@@ -155,6 +155,7 @@ body {
   text-align: center;
   color: var(--cream);
   letter-spacing: 0.06em;
+  text-shadow: 0 1px 8px rgba(16, 16, 24, 0.9);
 }
 
 #cross {

@@ -138,6 +138,39 @@ function kindOf(obj: THREE.Object3D | undefined): string {
   return "";
 }
 
+function nearbyGuestId(max = 3.6): string | null {
+  let best: string | null = null;
+  let bestD = max;
+  for (const [id, view] of cars) {
+    const g = state.guests.find((x) => x.id === id);
+    if (!g || g.served || g.walked) continue;
+    const d = walker.position.distanceTo(view.root.position);
+    if (d < bestD) {
+      bestD = d;
+      best = id;
+    }
+  }
+  return best;
+}
+
+function useGuest(id: string): boolean {
+  const g = state.guests.find((x) => x.id === id);
+  if (!g) return false;
+  if (g.authorized && !g.enrolled && enrollAuto(state, id)) {
+    playPay();
+    return true;
+  }
+  if (!g.greeted && greetDriver(state, id)) {
+    playTalk();
+    return true;
+  }
+  if (!g.plugged && plugInlet(state, id)) {
+    playPlug();
+    return true;
+  }
+  return false;
+}
+
 function act(): void {
   if (state.phase === "title") {
     dropIn();
@@ -163,16 +196,13 @@ function act(): void {
     if (pending && payKiosk(state, pending.id)) playPay();
     return;
   }
-  if (id && kind === "car") {
-    const g = state.guests.find((x) => x.id === id);
-    if (g && g.authorized && !g.enrolled && enrollAuto(state, id)) playPay();
-    else if (g && !g.greeted) {
-      greetDriver(state, id);
-      playTalk();
-    } else if (g && !g.plugged) {
-      plugInlet(state, id);
-      playPlug();
-    }
+  if (id && kind === "car" && useGuest(id)) return;
+  const near = nearbyGuestId();
+  if (near && useGuest(near)) return;
+  const kioskDist = walker.position.distanceTo(new THREE.Vector3(11.2, walker.position.y, 1.4));
+  if (kioskDist < 3.4) {
+    const pending = state.guests.find((g) => g.plugged && !g.authorized && !g.served && !g.walked);
+    if (pending && payKiosk(state, pending.id)) playPay();
   }
 }
 
@@ -194,6 +224,13 @@ function paintHud(): void {
   else if (kind === "kiosk") prompt = "E  PAY";
   else if (kind === "car" && id) {
     const g = state.guests.find((x) => x.id === id);
+    if (g && g.authorized && !g.enrolled) prompt = "E  AUTOCHARGE";
+    else if (g && !g.greeted) prompt = "E  TALK";
+    else if (g && !g.plugged) prompt = "E  PLUG";
+  }
+  if (!prompt) {
+    const near = nearbyGuestId();
+    const g = near ? state.guests.find((x) => x.id === near) : undefined;
     if (g && g.authorized && !g.enrolled) prompt = "E  AUTOCHARGE";
     else if (g && !g.greeted) prompt = "E  TALK";
     else if (g && !g.plugged) prompt = "E  PLUG";
@@ -276,6 +313,10 @@ window.__electromat = {
     return state;
   },
   startNight: dropIn,
+  act,
+  place(x: number, z: number, yaw = 0, pitch = 0) {
+    walker.place(x, z, yaw, pitch);
+  },
 };
 
 void loadSedanPrototype().then((tpl) => {

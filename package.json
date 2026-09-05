@@ -9,7 +9,8 @@
     "prebuild": "tsx scripts/export-sedan.ts",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "export:sedan": "tsx scripts/export-sedan.ts"
+    "export:sedan": "tsx scripts/export-sedan.ts",
+    "test": "tsx scripts/verify-shift.ts"
   },
   "dependencies": {
     "three": "^0.170.0"
