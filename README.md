@@ -2,9 +2,29 @@
 
 Playable WebGL FPV shift at a Zaps Electromat night lot. You are **ZOEY · STATION MASTER**.
 
-**Play:** [https://zaps-io.github.io/electromat-night-shift-v2/](https://zaps-io.github.io/electromat-night-shift-v2/)
+**Play:** [https://zaps-io.github.io/electromat-night-shift-v2/](https://zaps-io.github.io/electromat-night-shift-v2/) (live after Pages is enabled — see below)
 
 This is a clean restart. It does not clone or depend on `zaps-io/electromat-night-shift` v1 car meshes.
+
+## startNight stills
+
+Default `startNight()` lot view (no local build required):
+
+- [`docs/shots/startnight-lot.png`](docs/shots/startnight-lot.png) — HUD `ZOEY · STATION MASTER`, cyan bays, charging EVs
+- [`docs/shots/lot-rear34.png`](docs/shots/lot-rear34.png) — rear 3/4 of the notchback EVs
+- [`docs/shots/v2b-lot.png`](docs/shots/v2b-lot.png) — wider canopy / pavilion / occupancy
+
+## GitHub Pages
+
+The Actions workflow (`.github/workflows/pages.yml`) already builds `dist/` and deploys with `actions/deploy-pages`. Enabling Pages via the GitHub API from this environment returns **403** (`Resource not accessible by integration`) on a private repo; a 422 plan error is the other common block.
+
+**One-click enable (repo admin):**
+
+1. Open [Settings → Pages](https://github.com/zaps-io/electromat-night-shift-v2/settings/pages)
+2. Under **Build and deployment → Source**, choose **GitHub Actions**
+3. Save. The next push to `main` (or **Actions → pages → Run workflow**) publishes to the Play URL above
+
+Private-repo Pages also needs a GitHub plan that includes Pages (org GitHub Team/Enterprise, or a user Pro/Team account).
 
 ## Loop
 
