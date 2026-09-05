@@ -136,7 +136,7 @@ export function tick(s: GameState, dtMin: number): void {
     if (!bay.guestId) continue;
     const g = guestById(s, bay.guestId);
     if (!g || !g.plugged || !g.authorized) continue;
-    g.delivered = Math.min(g.targetKwh, g.delivered + 18 * dtMin);
+    g.delivered = Math.min(g.targetKwh, g.delivered + 3.6 * dtMin);
     if (g.delivered >= g.targetKwh && !g.served) {
       g.served = true;
       s.sessionsDone += 1;
@@ -165,13 +165,13 @@ export function seedOpeningLot(s: GameState): void {
   hale.plugged = true;
   hale.authorized = true;
   hale.greeted = true;
-  hale.delivered = 16;
+  hale.delivered = 4;
   s.bays[0].guestId = "hale";
   ruiz.assignedBay = 2;
   ruiz.plugged = true;
   ruiz.authorized = true;
   ruiz.greeted = true;
-  ruiz.delivered = 8;
+  ruiz.delivered = 2;
   s.bays[1].guestId = "ruiz";
   peck.greeted = false;
   s.plugs = 2;

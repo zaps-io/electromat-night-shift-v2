@@ -115,14 +115,19 @@ export function spawnCar(template: THREE.Group, guest: Guest): CarView {
   root.userData.guestId = guest.id;
   root.userData.kind = "car";
 
-  const inlet = new THREE.Object3D();
+  const ghost = new THREE.MeshBasicMaterial({
+    transparent: true,
+    opacity: 0,
+    depthWrite: false,
+  });
+  const inlet = new THREE.Mesh(new THREE.SphereGeometry(0.42, 10, 8), ghost);
   inlet.position.set(SEDAN_INLET.x, SEDAN_INLET.y, SEDAN_INLET.z);
   inlet.userData.kind = "inlet";
   inlet.userData.guestId = guest.id;
   root.add(inlet);
 
-  const driver = new THREE.Object3D();
-  driver.position.set(0.35, 1.15, 1.05);
+  const driver = new THREE.Mesh(new THREE.SphereGeometry(0.72, 10, 8), ghost);
+  driver.position.set(0.2, 1.12, 0.15);
   driver.userData.kind = "driver";
   driver.userData.guestId = guest.id;
   root.add(driver);
