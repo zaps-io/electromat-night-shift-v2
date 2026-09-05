@@ -4,9 +4,9 @@ import type { BuiltPart } from "./types";
 /** Four-door EV notchback. +X forward. Short closed deck, painted C-pillar, hip outboard of door. */
 
 const BELT = 0.94;
-const ROOF = 1.4;
-const DECK_Y = 0.97;
-const DECK_X0 = -2.3;
+const ROOF = 1.48;
+const DECK_Y = 1.04;
+const DECK_X0 = -2.26;
 const DECK_X1 = -1.18;
 const FRONT = 1.52;
 const REAR = -1.52;
@@ -16,7 +16,46 @@ const TIRE_HW = 0.13;
 const TRACK = 0.86;
 const ARCH_R = 0.44;
 const X0 = -2.48;
-const X1 = 2.52;
+const X1 = 2.5;
+
+interface Key {
+  x: number;
+  rocker: number;
+  mid: number;
+  belt: number;
+}
+
+const KEYS: Key[] = [
+  { x: X0, rocker: 0.5, mid: 0.66, belt: 0.6 },
+  { x: -2.32, rocker: 0.78, mid: 1.0, belt: 0.94 },
+  { x: -1.95, rocker: 0.9, mid: 1.14, belt: 1.08 },
+  { x: -1.55, rocker: 0.7, mid: 1.18, belt: 1.1 },
+  { x: -1.28, rocker: 0.88, mid: 1.08, belt: 1.02 },
+  { x: -1.02, rocker: 0.9, mid: 0.96, belt: 0.94 },
+  { x: 0.4, rocker: 0.9, mid: 0.95, belt: 0.93 },
+  { x: 1.05, rocker: 0.88, mid: 0.96, belt: 0.9 },
+  { x: 1.72, rocker: 0.72, mid: 0.86, belt: 0.76 },
+  { x: X1, rocker: 0.4, mid: 0.52, belt: 0.4 },
+];
+
+function sample(x: number): Key {
+  if (x <= KEYS[0].x) return KEYS[0];
+  if (x >= KEYS[KEYS.length - 1].x) return KEYS[KEYS.length - 1];
+  for (let i = 1; i < KEYS.length; i++) {
+    if (x <= KEYS[i].x) {
+      const a = KEYS[i - 1];
+      const b = KEYS[i];
+      const t = (x - a.x) / (b.x - a.x);
+      return {
+        x,
+        rocker: lerp(a.rocker, b.rocker, t),
+        mid: lerp(a.mid, b.mid, t),
+        belt: lerp(a.belt, b.belt, t),
+      };
+    }
+  }
+  return KEYS[KEYS.length - 1];
+}
 
 function rockerY(x: number): number {
   let y = 0.11;
@@ -29,47 +68,34 @@ function rockerY(x: number): number {
   return y;
 }
 
-/** Half-width. Haunch at the rear quarter is wider than the door. */
 function halfW(x: number, y: number): number {
-  const u = (x - X0) / (X1 - X0);
-  const rocker = x < -2.2 ? 0.58 : x > 2.2 ? 0.5 : 0.9;
-  const door = 0.93;
-  const hip = 1.16;
-  const mid =
-    x < -2.25
-      ? lerp(0.7, 1.02, (x + 2.48) / 0.23)
-      : x < DECK_X1
-        ? lerp(1.08, hip, clamp((x + 2.05) / 0.55, 0, 1)) * (x > -1.7 ? lerp(1, 0.92, (x + 1.7) / 0.52) : 1)
-        : x < 0.95
-          ? door
-          : lerp(0.92, 0.62, clamp((x - 0.95) / 1.55, 0, 1));
-  const beltW =
-    x < DECK_X1
-      ? lerp(0.78, 1.1, clamp((x + 2.32) / 1.1, 0, 1))
-      : x < 0.95
-        ? door
-        : lerp(0.9, 0.55, clamp((x - 0.95) / 1.55, 0, 1));
-  if (y <= 0.14) return lerp(rocker * 0.82, rocker, u);
-  if (y <= 0.55) return lerp(rocker, mid, (y - 0.14) / 0.41);
-  return lerp(mid, beltW, clamp((y - 0.55) / Math.max(0.08, BELT - 0.55), 0, 1));
+  const k = sample(x);
+  if (y <= 0.14) return k.rocker * 0.84;
+  if (y <= 0.55) return lerp(k.rocker, k.mid, (y - 0.14) / 0.41);
+  return lerp(k.mid, k.belt, clamp((y - 0.55) / Math.max(0.08, BELT - 0.55), 0, 1));
 }
 
 function skin(x: number, y: number, side: number): Vec3 {
   return { x, y, z: halfW(x, y) * side };
 }
 
-function grid(mesh: MeshBuilder, xA: number, xB: number, yA: (x: number) => number, yB: (x: number) => number, cols: number, rows: number): void {
+function grid(mesh: MeshBuilder, xA: number, xB: number, yBot: (x: number) => number, yTop: (x: number) => number, cols: number, rows: number): void {
   for (const side of [1, -1]) {
     for (let i = 0; i < cols; i++) {
       const x0 = lerp(xA, xB, i / cols);
       const x1 = lerp(xA, xB, (i + 1) / cols);
+      const lo0 = yBot(x0);
+      const lo1 = yBot(x1);
+      const hi0 = yTop(x0);
+      const hi1 = yTop(x1);
+      if (hi0 <= lo0 + 0.012 || hi1 <= lo1 + 0.012) continue;
       for (let j = 0; j < rows; j++) {
         const t0 = j / rows;
         const t1 = (j + 1) / rows;
-        const a = skin(x0, lerp(yA(x0), yB(x0), t0), side);
-        const b = skin(x1, lerp(yA(x1), yB(x1), t0), side);
-        const c = skin(x1, lerp(yA(x1), yB(x1), t1), side);
-        const d = skin(x0, lerp(yA(x0), yB(x0), t1), side);
+        const a = skin(x0, lerp(lo0, hi0, t0), side);
+        const b = skin(x1, lerp(lo1, hi1, t0), side);
+        const c = skin(x1, lerp(lo1, hi1, t1), side);
+        const d = skin(x0, lerp(lo0, hi0, t1), side);
         if (side > 0) mesh.addQuad(a, b, c, d);
         else mesh.addQuad(a, d, c, b);
       }
@@ -77,32 +103,42 @@ function grid(mesh: MeshBuilder, xA: number, xB: number, yA: (x: number) => numb
   }
 }
 
-function capRect(mesh: MeshBuilder, x0: number, x1: number, y: number, z0: (x: number) => number, cols: number): void {
+function capFlat(mesh: MeshBuilder, x0: number, x1: number, y: number, width: (x: number) => number, cols: number): void {
   for (let i = 0; i < cols; i++) {
     const a = lerp(x0, x1, i / cols);
     const b = lerp(x0, x1, (i + 1) / cols);
-    mesh.addQuad({ x: a, y, z: -z0(a) }, { x: b, y, z: -z0(b) }, { x: b, y, z: z0(b) }, { x: a, y, z: z0(a) });
+    mesh.addQuad({ x: a, y, z: -width(a) }, { x: b, y, z: -width(b) }, { x: b, y, z: width(b) }, { x: a, y, z: width(a) });
+  }
+}
+
+function hoodLid(mesh: MeshBuilder): void {
+  const cols = 36;
+  for (let i = 0; i < cols; i++) {
+    const x0 = lerp(0.95, 2.22, i / cols);
+    const x1 = lerp(0.95, 2.22, (i + 1) / cols);
+    const y0 = lerp(0.9, 0.58, i / cols);
+    const y1 = lerp(0.9, 0.58, (i + 1) / cols);
+    const w0 = halfW(x0, BELT) * 0.78;
+    const w1 = halfW(x1, BELT) * 0.78;
+    mesh.addQuad({ x: x0, y: y0, z: -w0 }, { x: x1, y: y1, z: -w1 }, { x: x1, y: y1, z: w1 }, { x: x0, y: y0, z: w0 });
   }
 }
 
 function rearFace(mesh: MeshBuilder): void {
-  const cols = 28;
-  const rows = 8;
+  const cols = 32;
+  const rows = 10;
   for (let i = 0; i < cols; i++) {
     const t0 = i / cols;
     const t1 = (i + 1) / cols;
     const zAt = (t: number): number => {
       const u = t * 2 - 1;
-      const corner = clamp((Math.abs(u) - 0.72) / 0.28, 0, 1);
-      return u * lerp(0.9, 0.55, corner);
+      const corner = clamp((Math.abs(u) - 0.7) / 0.3, 0, 1);
+      return u * lerp(0.88, 0.5, corner);
     };
-    const xAt = (t: number): number => {
-      const u = Math.abs(t * 2 - 1);
-      return X0 + clamp((u - 0.72) / 0.28, 0, 1) * 0.12;
-    };
+    const xAt = (t: number): number => X0 + 0.02 + clamp((Math.abs(t * 2 - 1) - 0.7) / 0.3, 0, 1) * 0.1;
     for (let j = 0; j < rows; j++) {
-      const y0 = lerp(0.22, DECK_Y, j / rows);
-      const y1 = lerp(0.22, DECK_Y, (j + 1) / rows);
+      const y0 = lerp(0.2, DECK_Y, j / rows);
+      const y1 = lerp(0.2, DECK_Y, (j + 1) / rows);
       mesh.addQuad(
         { x: xAt(t0), y: y0, z: zAt(t0) },
         { x: xAt(t1), y: y0, z: zAt(t1) },
@@ -115,38 +151,24 @@ function rearFace(mesh: MeshBuilder): void {
 
 function cPillars(mesh: MeshBuilder): void {
   for (const side of [1, -1]) {
-    const base0 = { x: DECK_X1 - 0.02, y: DECK_Y, z: 0.92 * side };
-    const base1 = { x: DECK_X1 + 0.14, y: BELT, z: 0.94 * side };
-    const top0 = { x: -1.02, y: ROOF - 0.02, z: 0.5 * side };
-    const top1 = { x: -0.86, y: ROOF - 0.02, z: 0.48 * side };
-    mesh.addQuad(base0, base1, top1, top0);
+    const outer = [
+      { x: DECK_X1 - 0.02, y: DECK_Y, z: 0.93 * side },
+      { x: DECK_X1 + 0.12, y: BELT, z: 0.94 * side },
+      { x: DECK_X1 + 0.18, y: ROOF - 0.01, z: 0.51 * side },
+      { x: DECK_X1 + 0.02, y: ROOF - 0.01, z: 0.52 * side },
+    ];
+    mesh.addQuad(outer[0], outer[1], outer[2], outer[3]);
     mesh.addQuad(
-      { x: base0.x, y: base0.y, z: 0.78 * side },
-      base0,
-      top0,
-      { x: top0.x, y: top0.y, z: 0.4 * side },
+      { x: outer[0].x, y: outer[0].y, z: 0.58 * side },
+      outer[0],
+      outer[3],
+      { x: outer[3].x, y: outer[3].y, z: 0.34 * side },
     );
-  }
-}
-
-function aPillars(mesh: MeshBuilder): void {
-  for (const side of [1, -1]) {
     mesh.addQuad(
-      { x: 0.82, y: BELT, z: 0.92 * side },
-      { x: 0.98, y: BELT, z: 0.9 * side },
-      { x: 0.62, y: ROOF - 0.02, z: 0.48 * side },
-      { x: 0.48, y: ROOF - 0.02, z: 0.5 * side },
-    );
-  }
-}
-
-function bPillars(mesh: MeshBuilder): void {
-  for (const side of [1, -1]) {
-    mesh.addQuad(
-      { x: -0.12, y: BELT + 0.01, z: 0.935 * side },
-      { x: 0.02, y: BELT + 0.01, z: 0.935 * side },
-      { x: 0.02, y: ROOF - 0.05, z: 0.52 * side },
-      { x: -0.12, y: ROOF - 0.05, z: 0.52 * side },
+      { x: outer[1].x, y: outer[1].y, z: 0.68 * side },
+      outer[1],
+      outer[2],
+      { x: outer[2].x, y: outer[2].y, z: 0.36 * side },
     );
   }
 }
@@ -156,16 +178,16 @@ function glass(mesh: MeshBuilder): void {
     const t0 = i / 10;
     const t1 = (i + 1) / 10;
     mesh.addQuad(
-      { x: 0.9, y: BELT + 0.02, z: lerp(-0.86, 0.86, t0) },
-      { x: 0.9, y: BELT + 0.02, z: lerp(-0.86, 0.86, t1) },
-      { x: 0.52, y: ROOF - 0.03, z: lerp(-0.48, 0.48, t1) },
-      { x: 0.52, y: ROOF - 0.03, z: lerp(-0.48, 0.48, t0) },
+      { x: 0.88, y: BELT + 0.02, z: lerp(-0.84, 0.84, t0) },
+      { x: 0.88, y: BELT + 0.02, z: lerp(-0.84, 0.84, t1) },
+      { x: 0.5, y: ROOF - 0.03, z: lerp(-0.47, 0.47, t1) },
+      { x: 0.5, y: ROOF - 0.03, z: lerp(-0.47, 0.47, t0) },
     );
     mesh.addQuad(
-      { x: DECK_X1 + 0.02, y: DECK_Y + 0.01, z: lerp(0.78, -0.78, t0) },
-      { x: DECK_X1 + 0.02, y: DECK_Y + 0.01, z: lerp(0.78, -0.78, t1) },
-      { x: -1.02, y: ROOF - 0.04, z: lerp(0.46, -0.46, t1) },
-      { x: -1.02, y: ROOF - 0.04, z: lerp(0.46, -0.46, t0) },
+      { x: DECK_X1 + 0.06, y: DECK_Y + 0.012, z: lerp(0.74, -0.74, t0) },
+      { x: DECK_X1 + 0.06, y: DECK_Y + 0.012, z: lerp(0.74, -0.74, t1) },
+      { x: DECK_X1 + 0.14, y: ROOF - 0.04, z: lerp(0.46, -0.46, t1) },
+      { x: DECK_X1 + 0.14, y: ROOF - 0.04, z: lerp(0.46, -0.46, t0) },
     );
   }
   for (const side of [1, -1]) {
@@ -173,18 +195,41 @@ function glass(mesh: MeshBuilder): void {
       const t0 = i / 8;
       const t1 = (i + 1) / 8;
       mesh.addQuad(
-        { x: lerp(DECK_X1 + 0.16, -0.12, t0), y: BELT + 0.03, z: 0.925 * side },
-        { x: lerp(DECK_X1 + 0.16, -0.12, t1), y: BELT + 0.03, z: 0.925 * side },
-        { x: lerp(-1.0, -0.12, t1), y: ROOF - 0.06, z: 0.51 * side },
-        { x: lerp(-1.0, -0.12, t0), y: ROOF - 0.06, z: 0.51 * side },
+        { x: lerp(DECK_X1 + 0.18, -0.1, t0), y: BELT + 0.03, z: 0.92 * side },
+        { x: lerp(DECK_X1 + 0.18, -0.1, t1), y: BELT + 0.03, z: 0.92 * side },
+        { x: lerp(-1.0, -0.1, t1), y: ROOF - 0.06, z: 0.5 * side },
+        { x: lerp(-1.0, -0.1, t0), y: ROOF - 0.06, z: 0.5 * side },
       );
       mesh.addQuad(
-        { x: lerp(0.04, 0.8, t0), y: BELT + 0.03, z: 0.92 * side },
-        { x: lerp(0.04, 0.8, t1), y: BELT + 0.03, z: 0.92 * side },
-        { x: lerp(0.04, 0.58, t1), y: ROOF - 0.06, z: 0.5 * side },
-        { x: lerp(0.04, 0.58, t0), y: ROOF - 0.06, z: 0.5 * side },
+        { x: lerp(0.04, 0.78, t0), y: BELT + 0.03, z: 0.915 * side },
+        { x: lerp(0.04, 0.78, t1), y: BELT + 0.03, z: 0.915 * side },
+        { x: lerp(0.04, 0.56, t1), y: ROOF - 0.06, z: 0.49 * side },
+        { x: lerp(0.04, 0.56, t0), y: ROOF - 0.06, z: 0.49 * side },
       );
     }
+  }
+}
+
+function pillars(mesh: MeshBuilder): void {
+  for (const side of [1, -1]) {
+    mesh.addQuad(
+      { x: 0.8, y: BELT, z: 0.91 * side },
+      { x: 0.96, y: BELT, z: 0.89 * side },
+      { x: 0.6, y: ROOF - 0.02, z: 0.48 * side },
+      { x: 0.46, y: ROOF - 0.02, z: 0.5 * side },
+    );
+    mesh.addQuad(
+      { x: -0.12, y: BELT + 0.01, z: 0.925 * side },
+      { x: 0.02, y: BELT + 0.01, z: 0.925 * side },
+      { x: 0.02, y: ROOF - 0.05, z: 0.51 * side },
+      { x: -0.12, y: ROOF - 0.05, z: 0.51 * side },
+    );
+    mesh.addQuad(
+      { x: lerp(DECK_X1 + 0.18, -0.1, 0), y: BELT + 0.02, z: 0.928 * side },
+      { x: lerp(DECK_X1 + 0.18, -0.1, 1), y: BELT + 0.02, z: 0.928 * side },
+      { x: lerp(-1.0, -0.1, 1), y: BELT + 0.05, z: 0.9 * side },
+      { x: lerp(-1.0, -0.1, 0), y: BELT + 0.05, z: 0.9 * side },
+    );
   }
 }
 
@@ -195,15 +240,15 @@ function lightBar(mesh: MeshBuilder): void {
     const wrap = (t: number): Vec3 => {
       const u = t * 2 - 1;
       const corner = clamp((Math.abs(u) - 0.7) / 0.3, 0, 1);
-      return { x: X0 + 0.03 + corner * 0.16, y: 0.78, z: u * lerp(0.88, 0.62, corner) };
+      return { x: X0 - 0.02 + corner * 0.2, y: 0.8, z: u * lerp(0.9, 0.6, corner) };
     };
     const a = wrap(t0);
     const b = wrap(t1);
     mesh.addQuad(
-      { x: a.x + 0.012, y: a.y - 0.024, z: a.z },
-      { x: b.x + 0.012, y: b.y - 0.024, z: b.z },
-      { x: b.x + 0.012, y: b.y + 0.024, z: b.z },
-      { x: a.x + 0.012, y: a.y + 0.024, z: a.z },
+      { x: a.x, y: a.y - 0.032, z: a.z },
+      { x: b.x, y: b.y - 0.032, z: b.z },
+      { x: b.x, y: b.y + 0.032, z: b.z },
+      { x: a.x, y: a.y + 0.032, z: a.z },
     );
   }
 }
@@ -254,7 +299,7 @@ function archLips(mesh: MeshBuilder): void {
   const segs = 28;
   for (const axle of [FRONT, REAR]) {
     for (const side of [1, -1]) {
-      const z = (halfW(axle, 0.55) - 0.04) * side;
+      const z = (sample(axle).mid - 0.06) * side;
       for (let i = 0; i < segs; i++) {
         const a0 = Math.PI * (i / segs);
         const a1 = Math.PI * ((i + 1) / segs);
@@ -279,24 +324,22 @@ export function buildNotchbackParts(): BuiltPart[] {
   const interior = new MeshBuilder();
   const port = new MeshBuilder();
 
-  grid(paint, X0, X1, rockerY, () => BELT, 110, 16);
-  grid(paint, DECK_X0, DECK_X1, () => BELT, () => DECK_Y, 36, 4);
-  grid(paint, 1.02, X1, () => BELT, (x) => lerp(0.9, 0.5, clamp((x - 1.02) / 1.5, 0, 1)), 40, 8);
-  capRect(paint, DECK_X0, DECK_X1, DECK_Y, (x) => halfW(x, BELT) * 0.82, 36);
-  capRect(paint, -1.02, 0.55, ROOF, () => 0.5, 28);
+  grid(paint, X0, X1, rockerY, () => BELT, 120, 18);
+  grid(paint, DECK_X0, DECK_X1, () => BELT, () => DECK_Y, 36, 6);
+  capFlat(paint, DECK_X0, DECK_X1, DECK_Y, (x) => halfW(x, BELT) * 0.84, 32);
+  capFlat(paint, DECK_X1 + 0.02, 0.52, ROOF, () => 0.5, 28);
+  hoodLid(paint);
   rearFace(paint);
   cPillars(paint);
-  aPillars(chrome);
-  bPillars(chrome);
   archLips(paint);
+  pillars(chrome);
   glass(glassM);
   lightBar(light);
   wheels(rubber, chrome);
 
-  const zPort = halfW(0.55, 0.72) + 0.01;
+  const zPort = sample(0.55).belt + 0.02;
   port.addQuad({ x: 0.48, y: 0.7, z: zPort }, { x: 0.64, y: 0.7, z: zPort }, { x: 0.64, y: 0.84, z: zPort }, { x: 0.48, y: 0.84, z: zPort });
-  interior.addQuad({ x: -1.05, y: BELT - 0.02, z: -0.68 }, { x: 0.72, y: BELT - 0.02, z: -0.68 }, { x: 0.72, y: BELT - 0.02, z: 0.68 }, { x: -1.05, y: BELT - 0.02, z: 0.68 });
-  interior.addQuad({ x: -0.7, y: BELT - 0.02, z: -0.55 }, { x: -0.15, y: BELT - 0.02, z: -0.55 }, { x: -0.15, y: 1.12, z: -0.2 }, { x: -0.7, y: 1.12, z: -0.2 });
+  interior.addQuad({ x: -1.02, y: BELT - 0.02, z: -0.66 }, { x: 0.7, y: BELT - 0.02, z: -0.66 }, { x: 0.7, y: BELT - 0.02, z: 0.66 }, { x: -1.02, y: BELT - 0.02, z: 0.66 });
 
   const pack = (name: BuiltPart["name"], m: MeshBuilder): BuiltPart => ({ name, ...m.finish() });
   return [
@@ -310,5 +353,5 @@ export function buildNotchbackParts(): BuiltPart[] {
   ].filter((p) => p.indices.length > 0);
 }
 
-export const NOTCHBACK_INLET = { x: 0.55, y: 0.74, z: 1.08 };
-export const NOTCHBACK_LENGTH = 5.0;
+export const NOTCHBACK_INLET = { x: 0.55, y: 0.74, z: 1.06 };
+export const NOTCHBACK_LENGTH = 4.98;

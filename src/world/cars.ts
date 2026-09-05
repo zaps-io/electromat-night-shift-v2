@@ -43,23 +43,23 @@ function dressAuthored(root: THREE.Object3D): void {
       mesh.material = new THREE.MeshPhysicalMaterial({
         name: "Paint",
         color,
-        metalness: 0.1,
-        roughness: 0.22,
+        metalness: 0.12,
+        roughness: 0.18,
         clearcoat: 1,
-        clearcoatRoughness: 0.045,
-        envMapIntensity: 1.95,
+        clearcoatRoughness: 0.04,
+        envMapIntensity: 2.15,
       });
     } else if (label.includes("glass")) {
       mesh.material = new THREE.MeshPhysicalMaterial({
         name: "Glass",
-        color: 0x151c22,
-        metalness: 0.12,
-        roughness: 0.03,
+        color: 0x243038,
+        metalness: 0.2,
+        roughness: 0.06,
         transparent: true,
-        opacity: 0.22,
-        transmission: 0.82,
-        thickness: 0.1,
-        envMapIntensity: 1.7,
+        opacity: 0.42,
+        transmission: 0.28,
+        thickness: 0.08,
+        envMapIntensity: 1.9,
       });
     } else if (label.includes("chrome")) {
       mesh.material = new THREE.MeshPhysicalMaterial({
@@ -74,7 +74,7 @@ function dressAuthored(root: THREE.Object3D): void {
         name: "LightBar",
         color: 0xe63225,
         emissive: 0xe63225,
-        emissiveIntensity: 1.7,
+        emissiveIntensity: 2.2,
         toneMapped: false,
       });
     } else if (label.includes("port") || label.includes("charge")) {
