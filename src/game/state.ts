@@ -7,6 +7,7 @@ export const WALKAWAY_LOSE = 3;
 export type Phase = "title" | "shift" | "grade" | "lose";
 export type AuthMode = "auto" | "kiosk";
 export type Pose = "wait" | "charge" | "pay" | "leave";
+export type HullKind = "sedan" | "suv";
 
 export interface Guest {
   id: string;
@@ -17,6 +18,7 @@ export interface Guest {
   arriveMin: number;
   patienceMin: number;
   paint: number;
+  hull: HullKind;
   assignedBay: number | null;
   authorized: boolean;
   greeted: boolean;

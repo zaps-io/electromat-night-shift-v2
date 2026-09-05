@@ -39,7 +39,7 @@ Site line: **DRIVE IN. CHARGE UP. ZIP OUT.**
 
 ## Visual bar
 
-GTA-like night lot: wet asphalt, white LED canopy, cyan bay outlines, cream pedestals, glass pavilion, windowed skyline. Cars are a real four-door notchback EV GLB (`public/cars/ev-sedan.glb`) lofted with belt, greenhouse glass, taut arches, multi-spoke rims, rear haunch, wraparound red light bar. No boxes. No disc wheels. No lathe loaf.
+Cinematic WebGL lot (Unreal-style approximation, no Unreal install): ACES Filmic + PCF-soft shadows, night PMREM probe, `postprocessing` bloom / vignette / SMAA, planar `Reflector` + MeshPhysical wet asphalt. Dark-underside canopy with warm downlights and cyan neon, tall cream pedestals with blue screens, glass lounge, fence-line skyline, orange `!` and cyan battery pips. Cars are lofted EV GLBs (`public/cars/ev-sedan.glb`, `public/cars/ev-suv.glb`) with physical clearcoat paint, transmission glass, ten-spoke rims, haunch, wraparound red light bar.
 
 Official cream/red Zaps wordmarks only. Palette: `#E63225` `#1E1E24` `#E89A2E` `#00D4F5` `#F5F0E8`.
 

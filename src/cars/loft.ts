@@ -108,12 +108,37 @@ export class MeshBuilder {
     }
   }
 
-  finish(): { positions: Float32Array; normals: Float32Array; indices: Uint32Array } {
+  finish(smooth = true): { positions: Float32Array; normals: Float32Array; indices: Uint32Array } {
+    if (smooth) this.smoothNormals();
     return {
       positions: new Float32Array(this.positions),
       normals: new Float32Array(this.normals),
       indices: new Uint32Array(this.indices),
     };
+  }
+
+  private smoothNormals(): void {
+    const pos = this.positions;
+    const nrm = this.normals;
+    const acc = new Map<string, { x: number; y: number; z: number }>();
+    const keyAt = (i: number): string =>
+      `${pos[i * 3].toFixed(4)}|${pos[i * 3 + 1].toFixed(4)}|${pos[i * 3 + 2].toFixed(4)}`;
+    const count = pos.length / 3;
+    for (let i = 0; i < count; i++) {
+      const k = keyAt(i);
+      const a = acc.get(k) ?? { x: 0, y: 0, z: 0 };
+      a.x += nrm[i * 3];
+      a.y += nrm[i * 3 + 1];
+      a.z += nrm[i * 3 + 2];
+      acc.set(k, a);
+    }
+    for (let i = 0; i < count; i++) {
+      const a = acc.get(keyAt(i))!;
+      const len = Math.hypot(a.x, a.y, a.z) || 1;
+      nrm[i * 3] = a.x / len;
+      nrm[i * 3 + 1] = a.y / len;
+      nrm[i * 3 + 2] = a.z / len;
+    }
   }
 }
 

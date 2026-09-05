@@ -12,7 +12,9 @@ import {
   tick,
 } from "./game/shift";
 import { Walker } from "./input/walker";
-import { loadSedanPrototype, syncCars, type CarView } from "./world/cars";
+import { configureKeyLight, createNightProbe, createPipeline, createRenderer } from "./render/pipeline";
+import { loadCarPrototypes, syncCars, type CarView } from "./world/cars";
+import { KIOSK } from "./world/layout";
 import { buildSkyline } from "./world/skyline";
 import { buildStation } from "./world/station";
 
@@ -29,23 +31,18 @@ const crossEl = document.querySelector("#cross")!;
 const startBtn = document.querySelector("#start")!;
 const pips = document.querySelectorAll("#pips i");
 
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.18;
-renderer.outputColorSpace = THREE.SRGBColorSpace;
+const renderer = createRenderer(canvas);
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x101018);
-scene.fog = new THREE.Fog(0x101018, 36, 110);
-scene.add(new THREE.AmbientLight(0xf5f0e8, 0.42));
-const fill = new THREE.DirectionalLight(0xffe6c4, 0.55);
-fill.position.set(-8, 12, -6);
+scene.background = new THREE.Color(0x0c1018);
+scene.fog = new THREE.Fog(0x0c1018, 32, 88);
+scene.add(new THREE.AmbientLight(0xb8c0c8, 0.12));
+const fill = new THREE.DirectionalLight(0xffd2a8, 1.15);
+fill.position.set(-10, 14, -4);
+configureKeyLight(fill);
 scene.add(fill);
-const rim = new THREE.DirectionalLight(0x7ad7ea, 0.28);
-rim.position.set(10, 8, 14);
+const rim = new THREE.DirectionalLight(0x5ec8e0, 0.55);
+rim.position.set(12, 9, 16);
 scene.add(rim);
 
 const station = buildStation();
@@ -55,14 +52,13 @@ scene.add(buildSkyline());
 const walker = new Walker();
 scene.add(walker.camera);
 
-const pmrem = new THREE.PMREMGenerator(renderer);
-const envScene = new THREE.Scene();
-envScene.add(new THREE.HemisphereLight(0xf5e6c8, 0x101018, 1));
-scene.environment = pmrem.fromScene(envScene, 0.04).texture;
+scene.environment = createNightProbe(renderer);
+const pipeline = createPipeline(renderer, scene, walker.camera);
 
 let state = resetNight();
 const cars = new Map<string, CarView>();
-let sedan: THREE.Group | null = null;
+let ready = false;
+let capturing = false;
 let last = performance.now();
 
 const ray = new THREE.Raycaster();
@@ -70,9 +66,11 @@ const pointer = new THREE.Vector2(0, 0);
 const shot = new URLSearchParams(location.search).get("shot");
 
 function resize(): void {
+  if (capturing) return;
   const w = canvas.clientWidth;
   const h = canvas.clientHeight;
   renderer.setSize(w, h, false);
+  pipeline.resize(w, h);
   walker.camera.aspect = w / Math.max(1, h);
   walker.camera.updateProjectionMatrix();
 }
@@ -199,7 +197,7 @@ function act(): void {
   if (id && kind === "car" && useGuest(id)) return;
   const near = nearbyGuestId();
   if (near && useGuest(near)) return;
-  const kioskDist = walker.position.distanceTo(new THREE.Vector3(11.2, walker.position.y, 1.4));
+  const kioskDist = walker.position.distanceTo(new THREE.Vector3(KIOSK.x, walker.position.y, KIOSK.z));
   if (kioskDist < 3.4) {
     const pending = state.guests.find((g) => g.plugged && !g.authorized && !g.served && !g.walked);
     if (pending && payKiosk(state, pending.id)) playPay();
@@ -257,9 +255,9 @@ function loop(now: number): void {
   resize();
   if (state.phase === "shift") tick(state, (dt * 1000) / MS_PER_GAME_MIN);
   walker.tick(dt, false);
-  if (sedan) syncCars(cars, scene, sedan, state, now / 1000);
+  if (ready) syncCars(cars, scene, state, now / 1000);
   paintHud();
-  renderer.render(scene, walker.camera);
+  pipeline.render();
   requestAnimationFrame(loop);
 }
 
@@ -300,12 +298,47 @@ canvas.addEventListener("contextmenu", (e) => {
   groundWalk(e.clientX, e.clientY);
 });
 
-if (new URLSearchParams(location.search).has("autostart")) {
-  dropIn();
+const params = new URLSearchParams(location.search);
+if (params.has("autostart")) dropIn();
+
+async function saveShots(): Promise<void> {
+  const post = async (path: string, data: string) => {
+    await fetch("http://127.0.0.1:8765", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path, data }),
+    });
+  };
+  while (!ready) await new Promise((r) => setTimeout(r, 40));
+  if (state.phase === "title") dropIn();
+  for (let i = 0; i < 8; i++) {
+    syncCars(cars, scene, state, i * 0.05);
+    pipeline.render();
+    await new Promise((r) => setTimeout(r, 80));
+  }
+  await post("/workspace/docs/shots/startnight-lot.png", capture(1280, 800));
+  walker.place(-5.4, -2.1);
+  walker.lookAt(-2.45, 0.72, 3.15);
+  await new Promise((r) => setTimeout(r, 200));
+  await post("/workspace/docs/shots/lot-rear34.png", capture(1280, 800));
 }
 
-if (shot) {
-  /* automated stills may pass shot=; default startNight uses shot=null */
+if (params.has("saveshots")) void saveShots();
+
+void shot;
+
+function capture(w = 1280, h = 800): string {
+  capturing = true;
+  renderer.setSize(w, h, false);
+  pipeline.resize(w, h);
+  walker.camera.aspect = w / h;
+  walker.camera.updateProjectionMatrix();
+  if (ready) syncCars(cars, scene, state, performance.now() / 1000);
+  paintHud();
+  pipeline.render();
+  const data = canvas.toDataURL("image/png");
+  capturing = false;
+  return data;
 }
 
 window.__electromat = {
@@ -317,10 +350,14 @@ window.__electromat = {
   place(x: number, z: number, yaw = 0, pitch = 0) {
     walker.place(x, z, yaw, pitch);
   },
+  lookAt(x: number, y: number, z: number) {
+    walker.lookAt(x, y, z);
+  },
+  capture,
 };
 
-void loadSedanPrototype().then((tpl) => {
-  sedan = tpl;
+void loadCarPrototypes().then(() => {
+  ready = true;
 });
 
 requestAnimationFrame(loop);

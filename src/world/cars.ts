@@ -1,8 +1,9 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { SEDAN_INLET } from "../cars/sedan";
-import { buildSedanParts } from "../cars/sedan";
-import type { GameState, Guest } from "../game/state";
+import { SEDAN_INLET, buildSedanParts } from "../cars/sedan";
+import { SUV_INLET, buildSuvParts } from "../cars/suv";
+import type { BuiltPart } from "../cars/types";
+import type { GameState, Guest, HullKind } from "../game/state";
 import { arrivedGuests } from "../game/shift";
 import { BAYS, WAIT_SLOTS } from "./layout";
 import { makeAttentionIcon, makeBatteryIcon } from "./icons";
@@ -17,32 +18,76 @@ export interface CarView {
 }
 
 const loader = new GLTFLoader();
-let prototype: THREE.Group | null = null;
+const prototypes: Partial<Record<HullKind, THREE.Group>> = {};
 
-function partsToGroup(): THREE.Group {
+function dressMaterials(root: THREE.Object3D): void {
+  root.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    const label = ((mesh.material as THREE.Material)?.name ?? mesh.name).toLowerCase();
+    if (label.includes("paint")) {
+      const color = (mesh.material as THREE.MeshStandardMaterial).color?.getHex?.() ?? 0xf4f1ea;
+      mesh.material = new THREE.MeshPhysicalMaterial({
+        name: "Paint",
+        color,
+        metalness: 0.35,
+        roughness: 0.22,
+        clearcoat: 1,
+        clearcoatRoughness: 0.08,
+        envMapIntensity: 1.35,
+      });
+    } else if (label.includes("glass")) {
+      mesh.material = new THREE.MeshPhysicalMaterial({
+        name: "Glass",
+        color: 0x151c22,
+        metalness: 0.15,
+        roughness: 0.04,
+        transparent: true,
+        opacity: 0.28,
+        transmission: 0.7,
+        thickness: 0.12,
+        envMapIntensity: 1.6,
+      });
+    } else if (label.includes("chrome")) {
+      mesh.material = new THREE.MeshPhysicalMaterial({
+        name: "Chrome",
+        color: 0xc5c9ce,
+        metalness: 1,
+        roughness: 0.12,
+        envMapIntensity: 1.8,
+      });
+    } else if (label.includes("light")) {
+      mesh.material = new THREE.MeshStandardMaterial({
+        name: "LightBar",
+        color: 0xe63225,
+        emissive: 0xe63225,
+        emissiveIntensity: 3.4,
+        toneMapped: false,
+      });
+    } else if (label.includes("port") || label.includes("charge")) {
+      mesh.material = new THREE.MeshStandardMaterial({
+        name: "ChargePort",
+        color: 0x00d4f5,
+        emissive: 0x00d4f5,
+        emissiveIntensity: 2.2,
+        toneMapped: false,
+      });
+    }
+  });
+}
+
+function partsToGroup(parts: BuiltPart[]): THREE.Group {
   const root = new THREE.Group();
-  const parts = buildSedanParts();
   const mats: Record<string, THREE.Material> = {
-    paint: new THREE.MeshPhysicalMaterial({
-      color: 0xf4f1ea,
-      metalness: 0.12,
-      roughness: 0.28,
-      clearcoat: 1,
-      clearcoatRoughness: 0.12,
-    }),
-    glass: new THREE.MeshPhysicalMaterial({
-      color: 0x22303a,
-      metalness: 0.1,
-      roughness: 0.06,
-      transparent: true,
-      opacity: 0.32,
-      transmission: 0.65,
-    }),
-    chrome: new THREE.MeshPhysicalMaterial({ color: 0xb8bcc0, metalness: 1, roughness: 0.18 }),
-    rubber: new THREE.MeshStandardMaterial({ color: 0x111114, roughness: 0.92 }),
-    light: new THREE.MeshStandardMaterial({ color: 0xe63225, emissive: 0xe63225, emissiveIntensity: 2.4 }),
-    interior: new THREE.MeshStandardMaterial({ color: 0x141418, roughness: 0.7 }),
-    port: new THREE.MeshStandardMaterial({ color: 0x00d4f5, emissive: 0x00d4f5, emissiveIntensity: 1.6 }),
+    paint: new THREE.MeshPhysicalMaterial({ name: "Paint", color: 0xf4f1ea, metalness: 0.35, roughness: 0.22, clearcoat: 1, clearcoatRoughness: 0.08 }),
+    glass: new THREE.MeshPhysicalMaterial({ name: "Glass", color: 0x151c22, metalness: 0.15, roughness: 0.04, transparent: true, opacity: 0.28, transmission: 0.7 }),
+    chrome: new THREE.MeshPhysicalMaterial({ name: "Chrome", color: 0xc5c9ce, metalness: 1, roughness: 0.12 }),
+    rubber: new THREE.MeshStandardMaterial({ name: "Rubber", color: 0x111114, roughness: 0.92 }),
+    light: new THREE.MeshStandardMaterial({ name: "LightBar", color: 0xe63225, emissive: 0xe63225, emissiveIntensity: 3.4, toneMapped: false }),
+    interior: new THREE.MeshStandardMaterial({ name: "Interior", color: 0x141418, roughness: 0.7 }),
+    port: new THREE.MeshStandardMaterial({ name: "ChargePort", color: 0x00d4f5, emissive: 0x00d4f5, emissiveIntensity: 2.2, toneMapped: false }),
   };
   for (const part of parts) {
     const geo = new THREE.BufferGeometry();
@@ -58,31 +103,32 @@ function partsToGroup(): THREE.Group {
   return root;
 }
 
-export async function loadSedanPrototype(): Promise<THREE.Group> {
-  if (prototype) return prototype;
-  const url = `${import.meta.env.BASE_URL}cars/ev-sedan.glb`;
+async function loadHull(kind: HullKind, file: string, fallback: () => BuiltPart[]): Promise<THREE.Group> {
+  if (prototypes[kind]) return prototypes[kind]!;
+  const url = `${import.meta.env.BASE_URL}cars/${file}`;
   try {
     const gltf = await loader.loadAsync(url);
-    prototype = gltf.scene;
-    prototype.traverse((o) => {
-      const mesh = o as THREE.Mesh;
-      if (mesh.isMesh) {
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
-      }
-    });
+    prototypes[kind] = gltf.scene;
   } catch {
-    prototype = partsToGroup();
+    prototypes[kind] = partsToGroup(fallback());
   }
-  return prototype;
+  dressMaterials(prototypes[kind]!);
+  return prototypes[kind]!;
+}
+
+export async function loadCarPrototypes(): Promise<void> {
+  await Promise.all([
+    loadHull("sedan", "ev-sedan.glb", buildSedanParts),
+    loadHull("suv", "ev-suv.glb", buildSuvParts),
+  ]);
 }
 
 function tintPaint(root: THREE.Object3D, color: number): void {
   root.traverse((o) => {
     const mesh = o as THREE.Mesh;
     if (!mesh.isMesh) return;
-    const name = (mesh.material as THREE.Material)?.name ?? mesh.name;
-    if (name === "Paint" || name === "paint") {
+    const name = ((mesh.material as THREE.Material)?.name ?? mesh.name).toLowerCase();
+    if (name.includes("paint")) {
       const mat = (mesh.material as THREE.MeshPhysicalMaterial).clone();
       mat.color.setHex(color);
       mesh.material = mat;
@@ -90,58 +136,62 @@ function tintPaint(root: THREE.Object3D, color: number): void {
   });
 }
 
-function makeCable(): THREE.Mesh {
+function makeCable(inlet: { x: number; y: number; z: number }): THREE.Mesh {
   const geo = new THREE.TubeGeometry(
     new THREE.CatmullRomCurve3([
-      new THREE.Vector3(0.2, 1.15, 2.4),
-      new THREE.Vector3(0.35, 1.35, 1.4),
-      new THREE.Vector3(0.5, 0.95, 0.55),
-      new THREE.Vector3(SEDAN_INLET.x, SEDAN_INLET.y, SEDAN_INLET.z),
+      new THREE.Vector3(2.35, 1.05, 0.12),
+      new THREE.Vector3(1.55, 1.32, 0.35),
+      new THREE.Vector3(0.85, 1.05, 0.7),
+      new THREE.Vector3(inlet.x, inlet.y, inlet.z),
     ]),
-    16,
-    0.028,
+    20,
+    0.032,
     8,
     false,
   );
   return new THREE.Mesh(
     geo,
-    new THREE.MeshStandardMaterial({ color: 0x00d4f5, emissive: 0x00d4f5, emissiveIntensity: 0.8 }),
+    new THREE.MeshStandardMaterial({
+      color: 0x00d4f5,
+      emissive: 0x00d4f5,
+      emissiveIntensity: 1.4,
+      toneMapped: false,
+    }),
   );
 }
 
-export function spawnCar(template: THREE.Group, guest: Guest): CarView {
+export function spawnCar(guest: Guest): CarView {
+  const kind = guest.hull ?? "sedan";
+  const template = prototypes[kind] ?? prototypes.sedan!;
+  const inletPos = kind === "suv" ? SUV_INLET : SEDAN_INLET;
   const root = template.clone(true);
   tintPaint(root, guest.paint);
   root.userData.guestId = guest.id;
   root.userData.kind = "car";
 
-  const ghost = new THREE.MeshBasicMaterial({
-    transparent: true,
-    opacity: 0,
-    depthWrite: false,
-  });
+  const ghost = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
   const inlet = new THREE.Mesh(new THREE.SphereGeometry(0.42, 10, 8), ghost);
-  inlet.position.set(SEDAN_INLET.x, SEDAN_INLET.y, SEDAN_INLET.z);
+  inlet.position.set(inletPos.x, inletPos.y, inletPos.z);
   inlet.userData.kind = "inlet";
   inlet.userData.guestId = guest.id;
   root.add(inlet);
 
   const driver = new THREE.Mesh(new THREE.SphereGeometry(0.72, 10, 8), ghost);
-  driver.position.set(0.2, 1.12, 0.15);
+  driver.position.set(0.2, kind === "suv" ? 1.28 : 1.12, 0.15);
   driver.userData.kind = "driver";
   driver.userData.guestId = guest.id;
   root.add(driver);
 
   const attention = makeAttentionIcon();
-  attention.position.set(0, 1.85, 0);
+  attention.position.set(0, kind === "suv" ? 2.15 : 1.92, 0);
   root.add(attention);
 
   const battery = makeBatteryIcon();
-  battery.position.set(0.2, 1.72, 0.15);
+  battery.position.set(0.15, kind === "suv" ? 2.0 : 1.78, 0.1);
   battery.visible = false;
   root.add(battery);
 
-  const cable = makeCable();
+  const cable = makeCable(inletPos);
   cable.visible = false;
   root.add(cable);
 
@@ -155,9 +205,8 @@ export function placeGuest(view: CarView, guest: Guest, now: number): void {
     view.root.position.set(bay.x, 0, bay.z);
     view.root.rotation.y = -Math.PI / 2;
   } else {
-    const slot = WAIT_SLOTS[Math.abs(guest.id.charCodeAt(0)) % WAIT_SLOTS.length];
-    const other = guest.id === "peck" || guest.id === "ng" || guest.id === "kim" ? 1 : 0;
-    const wait = WAIT_SLOTS[other] ?? slot;
+    const other = guest.id === "ng" || guest.id === "kim" ? 1 : 0;
+    const wait = WAIT_SLOTS[other];
     view.root.position.set(wait.x, 0, wait.z);
     view.root.rotation.y = -Math.PI / 2 + wait.yaw;
   }
@@ -166,16 +215,10 @@ export function placeGuest(view: CarView, guest: Guest, now: number): void {
   view.attention.visible = needs;
   view.battery.visible = onCharge;
   view.cable.visible = guest.plugged && !guest.served;
-  view.attention.position.y = 1.85 + Math.sin(now * 3) * 0.05;
+  view.attention.position.y = (guest.hull === "suv" ? 2.15 : 1.92) + Math.sin(now * 3) * 0.05;
 }
 
-export function syncCars(
-  map: Map<string, CarView>,
-  scene: THREE.Scene,
-  template: THREE.Group,
-  state: GameState,
-  now: number,
-): void {
+export function syncCars(map: Map<string, CarView>, scene: THREE.Scene, state: GameState, now: number): void {
   const live = new Set(arrivedGuests(state).map((g) => g.id));
   for (const [id, view] of map) {
     if (!live.has(id)) {
@@ -186,7 +229,7 @@ export function syncCars(
   for (const guest of arrivedGuests(state)) {
     let view = map.get(guest.id);
     if (!view) {
-      view = spawnCar(template, guest);
+      view = spawnCar(guest);
       map.set(guest.id, view);
       scene.add(view.root);
     }
