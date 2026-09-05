@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 932 310" width="932" height="310" role="img" aria-label="Zaps Electromat">
+  <title>Zaps Electromat</title>
+  <defs>
+    <clipPath id="zaps-letters">
+      <text x="466" y="148" text-anchor="middle" font-family="'Arial Narrow', Arial, sans-serif" font-weight="800" font-size="168" letter-spacing="0.12em">ZAPS</text>
+    </clipPath>
+  </defs>
+
+  <text x="466" y="148" text-anchor="middle" fill="#F5F0E8" font-family="'Arial Narrow', Arial, sans-serif" font-weight="800" font-size="168" letter-spacing="0.12em">ZAPS</text>
+
+  <g clip-path="url(#zaps-letters)" opacity="0.18" aria-hidden="true">
+    <path fill="#1E1E24" d="M0 36h932v1.2H0zm0 5h932v1.2H0zm0 5h932v1.2H0zm0 5h932v1.2H0zm0 5h932v1.2H0zm0 5h932v1.2H0zm0 5h932v1.2H0zm0 5h932v1.2H0zm0 5h932v1.2H0zm0 5h932v1.2H0zm0 5h932v1.2H0zm0 5h932v1.2H0zm0 5h932v1.2H0zm0 5h932v1.2H0zm0 5h932v1.2H0zm0 5h932v1.2H0zm0 5h932v1.2H0zm0 5h932v1.2H0zm0 5h932v1.2H0zm0 5h932v1.2H0zm0 5h932v1.2H0zm0 5h932v1.2H0zm0 5h932v1.2H0z"/>
+  </g>
+
+  <text x="466" y="214" text-anchor="middle" fill="#F5F0E8" font-family="'Arial Narrow', Arial, sans-serif" font-weight="800" font-size="40" letter-spacing="0.12em">ELECTROMAT</text>
+
+  <g aria-hidden="true">
+    <rect x="156" y="248" width="620" height="5" fill="#E63225"/>
+    <rect x="156" y="255" width="620" height="5" fill="#E89A2E"/>
+    <rect x="156" y="262" width="620" height="5" fill="#00D4F5"/>
+  </g>
+</svg>

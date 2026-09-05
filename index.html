@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ELECTROMAT Night Shift</title>
+    <link rel="icon" href="./brand/wordmark-red.svg" />
+  </head>
+  <body>
+    <canvas id="view"></canvas>
+    <div id="title">
+      <img class="mark" src="./brand/wordmark-cream-vector.svg" alt="Zaps Electromat" />
+      <p class="tag">DRIVE IN. CHARGE UP. ZIP OUT.</p>
+      <p class="who">ZOEY · STATION MASTER</p>
+      <button id="start" type="button">START NIGHT SHIFT</button>
+      <p class="hint">Click to walk · WASD · mouse look · E to talk / plug</p>
+    </div>
+    <div id="hud" class="hidden">
+      <div id="role">ZOEY · STATION MASTER</div>
+      <div id="clock">22:00</div>
+      <div id="auto">AUTO 0</div>
+      <div id="pips"><i></i><i></i><i></i></div>
+      <div id="prompt"></div>
+      <div id="toast"></div>
+      <div id="cross"></div>
+    </div>
+    <div id="end" class="hidden">
+      <p id="grade"></p>
+      <p class="hint">Click to return to title</p>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
