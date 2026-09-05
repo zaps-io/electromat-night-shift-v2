@@ -39,7 +39,7 @@ Site line: **DRIVE IN. CHARGE UP. ZIP OUT.**
 
 ## Visual bar
 
-Cinematic WebGL lot (Unreal-style approximation, no Unreal install): ACES Filmic + PCF-soft shadows, night PMREM probe, `postprocessing` bloom / vignette / SMAA, MeshPhysical wet asphalt (albedo + roughness + ripple — not a chrome reflector). Dark wood-panel canopy with recessed cans and cyan edge, white pedestals with blue screens, glass lounge with warm furniture silhouettes, fence-line skyline, orange `!` and cyan battery pips. Cars use a high-poly CC0 concept EV (`public/cars/ev-concept.glb`) with clearcoat paint, see-through glass, multi-spoke rims, and a wraparound red bar. Authored lofted hulls remain as fallback.
+Cinematic WebGL lot (Unreal-style approximation, no Unreal install): ACES Filmic + PCF-soft shadows, night PMREM probe, `postprocessing` bloom / vignette / SMAA, MeshPhysical wet asphalt (albedo + roughness + ripple — not a chrome reflector). Dark wood-panel canopy with recessed cans and cyan edge, white pedestals with blue screens, glass lounge with warm furniture silhouettes, fence-line skyline, orange `!` and cyan battery pips. Cars are authored four-door EV notchbacks (`public/cars/ev-sedan.glb`) with a short closed trunk deck, painted C-pillar, haunch outboard of the door, clearcoat paint, greenhouse glass on the belt, multi-spoke rims, and a wraparound red bar. The mid-engine CarConcept sports body is not used for guests.
 
 Official cream/red Zaps wordmarks only. Palette: `#E63225` `#1E1E24` `#E89A2E` `#00D4F5` `#F5F0E8`.
 
