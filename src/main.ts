@@ -58,6 +58,7 @@ const pipeline = createPipeline(renderer, scene, walker.camera);
 let state = resetNight();
 const cars = new Map<string, CarView>();
 let ready = false;
+let capturing = false;
 let last = performance.now();
 
 const ray = new THREE.Raycaster();
@@ -65,6 +66,7 @@ const pointer = new THREE.Vector2(0, 0);
 const shot = new URLSearchParams(location.search).get("shot");
 
 function resize(): void {
+  if (capturing) return;
   const w = canvas.clientWidth;
   const h = canvas.clientHeight;
   renderer.setSize(w, h, false);
@@ -296,13 +298,37 @@ canvas.addEventListener("contextmenu", (e) => {
   groundWalk(e.clientX, e.clientY);
 });
 
-if (new URLSearchParams(location.search).has("autostart")) {
-  dropIn();
+const params = new URLSearchParams(location.search);
+if (params.has("autostart")) dropIn();
+
+async function saveShots(): Promise<void> {
+  const post = async (path: string, data: string) => {
+    await fetch("http://127.0.0.1:8765", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path, data }),
+    });
+  };
+  while (!ready) await new Promise((r) => setTimeout(r, 40));
+  if (state.phase === "title") dropIn();
+  for (let i = 0; i < 8; i++) {
+    syncCars(cars, scene, state, i * 0.05);
+    pipeline.render();
+    await new Promise((r) => setTimeout(r, 80));
+  }
+  await post("/workspace/docs/shots/startnight-lot.png", capture(1280, 800));
+  walker.place(-5.4, -2.1);
+  walker.lookAt(-2.45, 0.72, 3.15);
+  await new Promise((r) => setTimeout(r, 200));
+  await post("/workspace/docs/shots/lot-rear34.png", capture(1280, 800));
 }
+
+if (params.has("saveshots")) void saveShots();
 
 void shot;
 
 function capture(w = 1280, h = 800): string {
+  capturing = true;
   renderer.setSize(w, h, false);
   pipeline.resize(w, h);
   walker.camera.aspect = w / h;
@@ -310,7 +336,9 @@ function capture(w = 1280, h = 800): string {
   if (ready) syncCars(cars, scene, state, performance.now() / 1000);
   paintHud();
   pipeline.render();
-  return canvas.toDataURL("image/png");
+  const data = canvas.toDataURL("image/png");
+  capturing = false;
+  return data;
 }
 
 window.__electromat = {
@@ -321,6 +349,9 @@ window.__electromat = {
   act,
   place(x: number, z: number, yaw = 0, pitch = 0) {
     walker.place(x, z, yaw, pitch);
+  },
+  lookAt(x: number, y: number, z: number) {
+    walker.lookAt(x, y, z);
   },
   capture,
 };

@@ -71,16 +71,16 @@ export function createPipeline(
   });
   composer.addPass(new RenderPass(scene, camera));
   const bloom = new BloomEffect({
-    intensity: 0.72,
-    luminanceThreshold: 0.28,
-    luminanceSmoothing: 0.22,
+    intensity: 0.38,
+    luminanceThreshold: 0.45,
+    luminanceSmoothing: 0.2,
     mipmapBlur: true,
-    radius: 0.62,
+    radius: 0.48,
   });
   const vignette = new VignetteEffect({
     eskil: false,
-    offset: 0.28,
-    darkness: 0.62,
+    offset: 0.32,
+    darkness: 0.52,
   });
   const smaa = new SMAAEffect();
   composer.addPass(new EffectPass(camera, bloom, vignette, smaa));

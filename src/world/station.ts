@@ -81,7 +81,7 @@ function makeAsphalt(root: THREE.Group): THREE.Mesh {
       clearcoat: 0.72,
       clearcoatRoughness: 0.12,
       transparent: true,
-      opacity: 0.55,
+      opacity: 0.72,
     }),
   );
   film.rotation.x = -Math.PI / 2;
@@ -92,7 +92,7 @@ function makeAsphalt(root: THREE.Group): THREE.Mesh {
     clipBias: 0.003,
     textureWidth: 1024,
     textureHeight: 1024,
-    color: 0x2a2a32,
+    color: 0x1c1c22,
   });
   wet.rotation.x = -Math.PI / 2;
   wet.position.y = 0.001;
@@ -192,11 +192,11 @@ function addCanopy(root: THREE.Group): void {
       const disc = new THREE.Mesh(new THREE.CircleGeometry(0.48, 28), lamp);
       disc.rotation.x = Math.PI / 2;
       disc.position.set(x, 5.05, z);
-      const light = new THREE.SpotLight(0xffc878, 36, 16, 0.72, 0.45, 1.05);
+      const light = new THREE.SpotLight(0xffc878, 420, 16, 0.72, 0.45, 1.05);
       light.position.set(x, 5.02, z);
       light.target.position.set(x, 0, z);
       light.castShadow = x === -2.6 || x === 2.6;
-      const point = new THREE.PointLight(0xffc878, 4.5, 9, 1.4);
+      const point = new THREE.PointLight(0xffc878, 55, 10, 1.4);
       point.position.set(x, 4.7, z);
       root.add(recess, disc, light, light.target, point);
     }
@@ -232,7 +232,7 @@ function addPavilion(root: THREE.Group): THREE.Box3 {
   back.rotation.y = Math.PI;
   g.add(front, back);
 
-  const warm = new THREE.PointLight(0xff9a3c, 18, 12, 1.3);
+  const warm = new THREE.PointLight(0xff9a3c, 140, 12, 1.3);
   warm.position.set(0, 2.0, 0);
   g.add(warm);
   const glow = new THREE.Mesh(
