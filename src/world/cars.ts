@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { sedanizeConcept } from "../cars/notch-kit";
 import { SEDAN_INLET, buildSedanParts } from "../cars/sedan";
 import { SUV_INLET } from "../cars/suv";
 import type { BuiltPart } from "../cars/types";
@@ -152,7 +153,7 @@ function fitConcept(scene: THREE.Group, kind: HullKind): THREE.Group {
 
 function addEvCues(root: THREE.Group): { x: number; y: number; z: number } {
   const box = new THREE.Box3().setFromObject(root);
-  const xRear = box.min.x + 0.04;
+  const xRear = box.min.x - 0.03;
   const yBar = THREE.MathUtils.clamp(box.min.y + 0.78, 0.62, 0.92);
   const half = Math.min(0.98, (box.max.z - box.min.z) * 0.42);
   const geo = new THREE.BufferGeometry();
@@ -250,6 +251,7 @@ async function loadHull(kind: HullKind, file: string, fallback: () => BuiltPart[
     if (meshCount.n > 20) {
       const fitted = fitConcept(gltf.scene, kind);
       dressConcept(fitted);
+      sedanizeConcept(fitted);
       inletByKind[kind] = addEvCues(fitted);
       prototypes[kind] = fitted;
     } else {
@@ -267,7 +269,7 @@ async function loadHull(kind: HullKind, file: string, fallback: () => BuiltPart[
 }
 
 export async function loadCarPrototypes(): Promise<void> {
-  await loadHull("sedan", "ev-sedan.glb", buildSedanParts);
+  await loadHull("sedan", "ev-concept.glb", buildSedanParts);
   prototypes.suv = prototypes.sedan;
   inletByKind.suv = inletByKind.sedan ?? SUV_INLET;
 }

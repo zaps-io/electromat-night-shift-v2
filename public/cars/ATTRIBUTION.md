@@ -1,9 +1,20 @@
 # EV hulls
 
-`ev-sedan.glb` is the lot car: an authored four-door EV **notchback** (`src/cars/notchback.ts` via `npm run export:sedan`). Continuous skin with circular wheel arches, closed short trunk deck, painted C-pillar (glass stops at the deck), haunch outboard of the door, wraparound red light bar, ten-spoke rims. Not BoxGeometry. Not the mid-engine CarConcept sports body.
+Guest cars load `ev-concept.glb` — Khronos glTF Sample Assets **CarConcept**
+(`Models/CarConcept/glTF-Binary/CarConcept.glb`).
 
-`ev-concept.glb` remains in-tree (Khronos / Unity Fan CC0 Concept Car 004) but is not loaded for guests.
+Source mesh: Unity Fan Concept Car 004, donated to Khronos as CC0 1.0.
+https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/CarConcept
 
-`ev-suv.glb` is an authored fallback only.
+A runtime **notch kit** (`src/cars/notch-kit.ts`) hides the fastback rear
+window, morphs the rear haunch down into a short closed trunk deck, and
+composites painted C-pillars, a vertical backlight, a B-pillar split, and a
+wraparound red bar. Doors stay closed; clearcoat, greenhouse glass, round
+arches, and silver rims stay on the CarConcept materials. No open / gull-wing
+side panels.
 
-Original Zaps Electromat geometry for the notchback. Not copied from v1.
+`ev-sedan.glb` / `ev-suv.glb` remain authored fallbacks only (`npm run export:sedan`).
+They are not loaded for guests.
+
+No Sketchfab download was used (token would be required). Poly Haven has no
+sedan. Kenney / Quaternius car kits are CC0 but too low-poly for the GTA bar.
