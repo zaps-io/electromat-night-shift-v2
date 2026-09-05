@@ -267,7 +267,7 @@ async function loadHull(kind: HullKind, file: string, fallback: () => BuiltPart[
 }
 
 export async function loadCarPrototypes(): Promise<void> {
-  await loadHull("sedan", "ev-concept.glb", buildSedanParts);
+  await loadHull("sedan", "ev-sedan.glb", buildSedanParts);
   prototypes.suv = prototypes.sedan;
   inletByKind.suv = inletByKind.sedan ?? SUV_INLET;
 }
