@@ -107,27 +107,31 @@ function dressConcept(root: THREE.Object3D): void {
         m.normalMap = null;
         if (m.normalScale) m.normalScale.set(0, 0);
         m.clearcoat = 1;
-        m.clearcoatRoughness = 0.035;
-        m.roughness = 0.16;
-        m.metalness = 0.08;
-        m.envMapIntensity = 1.85;
+        m.clearcoatRoughness = 0.022;
+        m.roughness = 0.11;
+        m.metalness = 0.06;
+        m.envMapIntensity = 2.2;
       } else if (mn.includes("glass") || label.includes("window") || label.includes("windshield")) {
-        m.roughness = 0.025;
-        m.envMapIntensity = 1.75;
-        if ("transmission" in m) m.transmission = Math.max(m.transmission ?? 0, 0.88);
+        m.roughness = 0.02;
+        m.envMapIntensity = 1.9;
+        if ("transmission" in m) m.transmission = Math.max(m.transmission ?? 0, 0.9);
       } else if (mn.includes("rim")) {
         m.metalness = 1;
-        m.roughness = 0.08;
-        m.envMapIntensity = 2.35;
-        m.color?.setHex(0xd8dce0);
+        m.roughness = 0.055;
+        m.envMapIntensity = 2.7;
+        m.color?.setHex(0xe2e6ea);
       } else if (mn.includes("brakelight") || label.includes("taillight")) {
         if (m.emissive) {
           m.emissive.setHex(0xe63225);
-          m.emissiveIntensity = 2.6;
+          m.emissiveIntensity = 2.8;
         }
         m.toneMapped = false;
       }
     });
+    if (/body|paint|panel|hood|pillar|door/.test(label) && !/window|glass|wheel|tire|rim|brake/.test(label)) {
+      mesh.geometry = mesh.geometry.clone();
+      mesh.geometry.computeVertexNormals();
+    }
   });
 }
 
@@ -153,29 +157,36 @@ function fitConcept(scene: THREE.Group, kind: HullKind): THREE.Group {
 
 function addEvCues(root: THREE.Group): { x: number; y: number; z: number } {
   const box = new THREE.Box3().setFromObject(root);
-  const xRear = box.min.x - 0.03;
-  const yBar = THREE.MathUtils.clamp(box.min.y + 0.78, 0.62, 0.92);
-  const half = Math.min(0.98, (box.max.z - box.min.z) * 0.42);
+  let yBar = 1.06;
+  root.traverse((o) => {
+    if (/BodyTaillights$/.test(o.name)) {
+      const b = new THREE.Box3().setFromObject(o);
+      yBar = (b.min.y + b.max.y) * 0.5;
+    }
+  });
+  const xRear = box.min.x - 0.022;
+  const half = Math.min(1.18, (box.max.z - box.min.z) * 0.455);
   const geo = new THREE.BufferGeometry();
   const pos: number[] = [];
   const idx: number[] = [];
-  const segs = 32;
+  const segs = 40;
+  const halfH = 0.016;
   for (let i = 0; i < segs; i++) {
     const t0 = i / segs;
     const t1 = (i + 1) / segs;
     const wrap = (t: number) => {
       const u = t * 2 - 1;
-      const corner = Math.max(0, (Math.abs(u) - 0.72) / 0.28);
+      const corner = Math.max(0, (Math.abs(u) - 0.7) / 0.3);
       return {
-        x: xRear + corner * 0.16,
+        x: xRear + corner * 0.2,
         y: yBar,
-        z: u * (half - corner * 0.12),
+        z: u * (half - corner * 0.1),
       };
     };
     const a = wrap(t0);
     const b = wrap(t1);
     const base = pos.length / 3;
-    pos.push(a.x, a.y - 0.025, a.z, b.x, b.y - 0.025, b.z, b.x, b.y + 0.025, b.z, a.x, a.y + 0.025, a.z);
+    pos.push(a.x, a.y - halfH, a.z, b.x, b.y - halfH, b.z, b.x, b.y + halfH, b.z, a.x, a.y + halfH, a.z);
     idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
   }
   geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
@@ -187,7 +198,7 @@ function addEvCues(root: THREE.Group): { x: number; y: number; z: number } {
       name: "LightBar",
       color: 0xe63225,
       emissive: 0xe63225,
-      emissiveIntensity: 1.85,
+      emissiveIntensity: 2.15,
       toneMapped: false,
     }),
   );

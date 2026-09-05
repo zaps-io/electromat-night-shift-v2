@@ -7,10 +7,10 @@ Source mesh: Unity Fan Concept Car 004, donated to Khronos as CC0 1.0.
 https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/CarConcept
 
 A runtime **notch kit** (`src/cars/notch-kit.ts`) leaves the CarConcept hull
-sealed (no vertex smash, no hidden hatch hole) and composites a thin painted
-deck lid, C-pillars, side-intake plugs, and a wraparound red bar. Doors stay
-closed; clearcoat, greenhouse glass, round arches, and silver rims stay on
-the CarConcept materials. No open / gull-wing side panels.
+sealed and composites a flush sloped deck (follows the hatch — not a raised
+wing), slim C-pillars, intake plugs, arch lips, and a thin wraparound red
+bar on the stock taillight line. Doors stay closed; clearcoat, greenhouse
+glass, and silver rims stay on the CarConcept materials.
 
 Morphing the fastback haunch into a deeper three-box opened holes and
 regressed below cab3959, so fidelity of the CC0 hull wins over a forced

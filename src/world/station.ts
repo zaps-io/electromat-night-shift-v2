@@ -45,19 +45,19 @@ function asphaltMaps(): { map: THREE.CanvasTexture; rough: THREE.CanvasTexture; 
   const c = color.getContext("2d")!;
   const r = rough.getContext("2d")!;
   const h = height.getContext("2d")!;
-  c.fillStyle = "#2a2c30";
+  c.fillStyle = "#24262a";
   c.fillRect(0, 0, size, size);
-  r.fillStyle = "#9a9a9a";
+  r.fillStyle = "#8e8e8e";
   r.fillRect(0, 0, size, size);
-  h.fillStyle = "#808080";
+  h.fillStyle = "#7a7a7a";
   h.fillRect(0, 0, size, size);
-  for (let i = 0; i < 42000; i++) {
+  for (let i = 0; i < 36000; i++) {
     const x = Math.random() * size;
     const y = Math.random() * size;
     const n = 38 + Math.random() * 55;
     c.fillStyle = `rgba(${n},${n + 2},${n + 4},${0.35 + Math.random() * 0.4})`;
     c.fillRect(x, y, 1 + Math.random() * 2, 1 + Math.random() * 2);
-    const puddle = Math.random() < 0.08;
+    const puddle = Math.random() < 0.11;
     const rv = puddle ? 28 + Math.random() * 40 : 110 + Math.random() * 90;
     r.fillStyle = `rgb(${rv},${rv},${rv})`;
     r.fillRect(x, y, puddle ? 6 : 2, puddle ? 4 : 2);
@@ -103,16 +103,16 @@ function makeAsphalt(root: THREE.Group): THREE.Mesh {
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(56, 48),
     new THREE.MeshPhysicalMaterial({
-      color: 0x3a3c40,
+      color: 0x323438,
       map: maps.map,
-      roughness: 0.42,
+      roughness: 0.38,
       roughnessMap: maps.rough,
-      metalness: 0.04,
+      metalness: 0.05,
       normalMap: maps.normal,
-      normalScale: new THREE.Vector2(0.55, 0.55),
-      envMapIntensity: 0.48,
-      clearcoat: 0.22,
-      clearcoatRoughness: 0.42,
+      normalScale: new THREE.Vector2(0.4, 0.4),
+      envMapIntensity: 0.62,
+      clearcoat: 0.3,
+      clearcoatRoughness: 0.36,
     }),
   );
   ground.rotation.x = -Math.PI / 2;
@@ -177,7 +177,7 @@ function addCanopy(root: THREE.Group): void {
   const under = mat(0x2a2118, { roughness: 0.72, metalness: 0.04 });
   root.add(box(24.8, 0.2, 13.4, shell, 0, 5.32, 3.1));
   root.add(box(24.2, 0.1, 12.9, under, 0, 5.14, 3.1));
-  const slat = mat(0x3a2c20, { roughness: 0.78, metalness: 0.02 });
+  const slat = mat(0x433226, { roughness: 0.7, metalness: 0.03, envMapIntensity: 0.35 });
   for (let i = 0; i < 14; i++) {
     root.add(box(24.0, 0.03, 0.42, slat, 0, 5.1, -2.8 + i * 0.92));
   }
@@ -185,7 +185,7 @@ function addCanopy(root: THREE.Group): void {
   const cyan = new THREE.MeshStandardMaterial({
     color: C.cyan,
     emissive: C.cyan,
-    emissiveIntensity: 1.6,
+    emissiveIntensity: 1.75,
     toneMapped: false,
   });
   root.add(box(24.6, 0.045, 0.07, cyan, 0, 5.06, 9.7));
@@ -207,7 +207,7 @@ function addCanopy(root: THREE.Group): void {
   const lamp = new THREE.MeshStandardMaterial({
     color: 0xffd8a0,
     emissive: 0xffc878,
-    emissiveIntensity: 1.35,
+    emissiveIntensity: 1.22,
     toneMapped: false,
   });
   for (const x of [-8, -2.6, 2.6, 8]) {
@@ -238,9 +238,9 @@ function addPavilion(root: THREE.Group): THREE.Box3 {
     metalness: 0.08,
     transmission: 0.55,
     transparent: true,
-    opacity: 0.32,
-    thickness: 0.14,
-    envMapIntensity: 1.1,
+    opacity: 0.28,
+    thickness: 0.12,
+    envMapIntensity: 1.25,
   });
   g.add(box(6.2, 0.16, 4.6, wall, 0, 0.08, 0));
   g.add(box(6.0, 0.14, 4.4, wall, 0, 3.12, 0));
@@ -257,12 +257,12 @@ function addPavilion(root: THREE.Group): THREE.Box3 {
   back.rotation.y = Math.PI;
   g.add(front, back);
 
-  const warm = new THREE.PointLight(0xff9a3c, 55, 10, 1.35);
+  const warm = new THREE.PointLight(0xff9a3c, 48, 10, 1.4);
   warm.position.set(0, 2.0, 0);
   g.add(warm);
   const glow = new THREE.Mesh(
     new THREE.BoxGeometry(5.2, 2.2, 3.6),
-    new THREE.MeshBasicMaterial({ color: 0xff8a2a, transparent: true, opacity: 0.035 }),
+    new THREE.MeshBasicMaterial({ color: 0xff8a2a, transparent: true, opacity: 0.024 }),
   );
   glow.position.set(0, 1.4, 0);
   g.add(glow);
