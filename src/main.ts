@@ -13,7 +13,7 @@ import {
 } from "./game/shift";
 import { Walker } from "./input/walker";
 import { configureKeyLight, createNightProbe, createPipeline, createRenderer } from "./render/pipeline";
-import { loadCarPrototypes, syncCars, type CarView } from "./world/cars";
+import { hullDebug, loadCarPrototypes, syncCars, type CarView } from "./world/cars";
 import { KIOSK } from "./world/layout";
 import { buildSkyline } from "./world/skyline";
 import { buildStation } from "./world/station";
@@ -355,6 +355,7 @@ window.__electromat = {
     walker.lookAt(x, y, z);
   },
   capture,
+  hullDebug,
 };
 
 void loadCarPrototypes().then(() => {

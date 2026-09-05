@@ -251,19 +251,29 @@ async function loadHull(kind: HullKind, file: string, fallback: () => BuiltPart[
     if (meshCount.n > 20) {
       const fitted = fitConcept(gltf.scene, kind);
       dressConcept(fitted);
-      sedanizeConcept(fitted);
+      try {
+        sedanizeConcept(fitted);
+      } catch (err) {
+        console.warn("sedanizeConcept failed, keeping CarConcept base", err);
+      }
       inletByKind[kind] = addEvCues(fitted);
       prototypes[kind] = fitted;
+      fitted.userData.meshCount = meshCount.n;
+      fitted.userData.source = file;
     } else {
       dressAuthored(gltf.scene);
       prototypes[kind] = gltf.scene;
       inletByKind[kind] = kind === "suv" ? SUV_INLET : SEDAN_INLET;
+      gltf.scene.userData.meshCount = meshCount.n;
+      gltf.scene.userData.source = file;
     }
-  } catch {
+  } catch (err) {
+    console.warn("hull load failed, authored fallback", file, err);
     const group = partsToGroup(fallback());
     dressAuthored(group);
     prototypes[kind] = group;
     inletByKind[kind] = kind === "suv" ? SUV_INLET : SEDAN_INLET;
+    group.userData.source = "fallback";
   }
   return prototypes[kind]!;
 }
@@ -272,6 +282,11 @@ export async function loadCarPrototypes(): Promise<void> {
   await loadHull("sedan", "ev-concept.glb", buildSedanParts);
   prototypes.suv = prototypes.sedan;
   inletByKind.suv = inletByKind.sedan ?? SUV_INLET;
+}
+
+export function hullDebug(): { source?: string; meshCount?: number } {
+  const u = prototypes.sedan?.userData ?? {};
+  return { source: u.source, meshCount: u.meshCount };
 }
 
 function tintPaint(root: THREE.Object3D, color: number): void {
