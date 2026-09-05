@@ -1,7 +1,7 @@
 import type { BuiltPart, MeshPart } from "./types";
 
 const MAT: Record<MeshPart, { pbr: number[]; emissive?: number[]; alpha?: number; name: string }> = {
-  paint: { name: "Paint", pbr: [0.92, 0.9, 0.86, 0.08, 0.28] },
+  paint: { name: "Paint", pbr: [0.92, 0.9, 0.86, 0.06, 0.26] },
   glass: { name: "Glass", pbr: [0.35, 0.45, 0.5, 0.05, 0.06], alpha: 0.28 },
   chrome: { name: "Chrome", pbr: [0.72, 0.74, 0.76, 1, 0.16] },
   rubber: { name: "Rubber", pbr: [0.07, 0.07, 0.08, 0, 0.92] },

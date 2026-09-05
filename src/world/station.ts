@@ -1,5 +1,4 @@
 import * as THREE from "three";
-import { Reflector } from "three/addons/objects/Reflector.js";
 import { C } from "../brand";
 import { BAYS, BAY_SIZE, KIOSK, PAVILION } from "./layout";
 
@@ -36,68 +35,90 @@ function box(
   return mesh;
 }
 
-function asphaltMaps(): { map: THREE.CanvasTexture; rough: THREE.CanvasTexture } {
+function asphaltMaps(): { map: THREE.CanvasTexture; rough: THREE.CanvasTexture; normal: THREE.CanvasTexture } {
   const size = 1024;
   const color = document.createElement("canvas");
   const rough = document.createElement("canvas");
-  color.width = rough.width = size;
-  color.height = rough.height = size;
+  const height = document.createElement("canvas");
+  color.width = rough.width = height.width = size;
+  color.height = rough.height = height.height = size;
   const c = color.getContext("2d")!;
   const r = rough.getContext("2d")!;
-  c.fillStyle = "#16161c";
+  const h = height.getContext("2d")!;
+  c.fillStyle = "#2a2c30";
   c.fillRect(0, 0, size, size);
-  r.fillStyle = "#2a2a2a";
+  r.fillStyle = "#9a9a9a";
   r.fillRect(0, 0, size, size);
-  for (let i = 0; i < 18000; i++) {
+  h.fillStyle = "#808080";
+  h.fillRect(0, 0, size, size);
+  for (let i = 0; i < 42000; i++) {
     const x = Math.random() * size;
     const y = Math.random() * size;
-    const n = 18 + Math.random() * 40;
-    c.fillStyle = `rgba(${n},${n},${n + 4},${0.18 + Math.random() * 0.25})`;
-    c.fillRect(x, y, 1 + Math.random() * 3, 1);
-    const rv = 40 + Math.random() * 90;
+    const n = 38 + Math.random() * 55;
+    c.fillStyle = `rgba(${n},${n + 2},${n + 4},${0.35 + Math.random() * 0.4})`;
+    c.fillRect(x, y, 1 + Math.random() * 2, 1 + Math.random() * 2);
+    const puddle = Math.random() < 0.08;
+    const rv = puddle ? 28 + Math.random() * 40 : 110 + Math.random() * 90;
     r.fillStyle = `rgb(${rv},${rv},${rv})`;
-    r.fillRect(x, y, 2, 2);
+    r.fillRect(x, y, puddle ? 6 : 2, puddle ? 4 : 2);
+    const hv = puddle ? 70 : 120 + Math.random() * 40;
+    h.fillStyle = `rgb(${hv},${hv},${hv})`;
+    h.fillRect(x, y, 2, 2);
   }
+  const hd = h.getImageData(0, 0, size, size);
+  const nd = h.createImageData(size, size);
+  const src = hd.data;
+  const dst = nd.data;
+  const at = (x: number, y: number) => src[(((y + size) % size) * size + ((x + size) % size)) * 4];
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const dx = at(x + 1, y) - at(x - 1, y);
+      const dy = at(x, y + 1) - at(x, y - 1);
+      const nx = -dx / 255;
+      const ny = -dy / 255;
+      const nz = 1;
+      const len = Math.hypot(nx, ny, nz) || 1;
+      const i = (y * size + x) * 4;
+      dst[i] = Math.round((nx / len) * 127 + 128);
+      dst[i + 1] = Math.round((ny / len) * 127 + 128);
+      dst[i + 2] = Math.round((nz / len) * 127 + 128);
+      dst[i + 3] = 255;
+    }
+  }
+  h.putImageData(nd, 0, 0);
   const map = new THREE.CanvasTexture(color);
   const roughMap = new THREE.CanvasTexture(rough);
-  map.wrapS = map.wrapT = roughMap.wrapS = roughMap.wrapT = THREE.RepeatWrapping;
-  map.repeat.set(6, 5);
-  roughMap.repeat.set(6, 5);
+  const normal = new THREE.CanvasTexture(height);
+  for (const tex of [map, roughMap, normal]) {
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(8, 7);
+    tex.anisotropy = 8;
+  }
   map.colorSpace = THREE.SRGBColorSpace;
-  return { map, rough: roughMap };
+  return { map, rough: roughMap, normal };
 }
 
 function makeAsphalt(root: THREE.Group): THREE.Mesh {
   const maps = asphaltMaps();
-  const film = new THREE.Mesh(
+  const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(56, 48),
     new THREE.MeshPhysicalMaterial({
-      color: 0x121218,
+      color: 0x3a3c40,
       map: maps.map,
-      roughness: 0.16,
+      roughness: 0.42,
       roughnessMap: maps.rough,
-      metalness: 0.42,
-      envMapIntensity: 1.8,
-      clearcoat: 0.72,
-      clearcoatRoughness: 0.12,
-      transparent: true,
-      opacity: 0.72,
+      metalness: 0.04,
+      normalMap: maps.normal,
+      normalScale: new THREE.Vector2(0.55, 0.55),
+      envMapIntensity: 0.48,
+      clearcoat: 0.22,
+      clearcoatRoughness: 0.42,
     }),
   );
-  film.rotation.x = -Math.PI / 2;
-  film.position.y = 0.01;
-  film.receiveShadow = true;
-
-  const wet = new Reflector(new THREE.PlaneGeometry(56, 48), {
-    clipBias: 0.003,
-    textureWidth: 1024,
-    textureHeight: 1024,
-    color: 0x1c1c22,
-  });
-  wet.rotation.x = -Math.PI / 2;
-  wet.position.y = 0.001;
-  root.add(wet, film);
-  return film;
+  ground.rotation.x = -Math.PI / 2;
+  ground.receiveShadow = true;
+  root.add(ground);
+  return ground;
 }
 
 function addLaneMarks(root: THREE.Group): void {
@@ -130,7 +151,7 @@ function addBayOutline(root: THREE.Group, x: number, z: number): THREE.Object3D 
 }
 
 function addPedestal(root: THREE.Group, x: number, z: number): void {
-  const cream = mat(0xf3efe6, { roughness: 0.28, metalness: 0.12 });
+  const cream = mat(0xf7f4ee, { roughness: 0.26, metalness: 0.1 });
   const body = box(0.48, 1.82, 0.34, cream, x, 0.92, z + 2.55);
   const cap = box(0.52, 0.06, 0.38, cream, x, 1.86, z + 2.55);
   const screen = new THREE.Mesh(
@@ -152,15 +173,19 @@ function addPedestal(root: THREE.Group, x: number, z: number): void {
 }
 
 function addCanopy(root: THREE.Group): void {
-  const shell = mat(0xefeae2, { roughness: 0.3, metalness: 0.16 });
-  const under = mat(0x1a1a20, { roughness: 0.55, metalness: 0.08 });
+  const shell = mat(0x2a2c30, { roughness: 0.5, metalness: 0.08 });
+  const under = mat(0x2a2118, { roughness: 0.72, metalness: 0.04 });
   root.add(box(24.8, 0.2, 13.4, shell, 0, 5.32, 3.1));
   root.add(box(24.2, 0.1, 12.9, under, 0, 5.14, 3.1));
+  const slat = mat(0x3a2c20, { roughness: 0.78, metalness: 0.02 });
+  for (let i = 0; i < 14; i++) {
+    root.add(box(24.0, 0.03, 0.42, slat, 0, 5.1, -2.8 + i * 0.92));
+  }
 
   const cyan = new THREE.MeshStandardMaterial({
     color: C.cyan,
     emissive: C.cyan,
-    emissiveIntensity: 3.2,
+    emissiveIntensity: 1.6,
     toneMapped: false,
   });
   root.add(box(24.6, 0.045, 0.07, cyan, 0, 5.06, 9.7));
@@ -182,7 +207,7 @@ function addCanopy(root: THREE.Group): void {
   const lamp = new THREE.MeshStandardMaterial({
     color: 0xffd8a0,
     emissive: 0xffc878,
-    emissiveIntensity: 2.6,
+    emissiveIntensity: 1.35,
     toneMapped: false,
   });
   for (const x of [-8, -2.6, 2.6, 8]) {
@@ -208,14 +233,14 @@ function addPavilion(root: THREE.Group): THREE.Box3 {
   g.position.set(PAVILION.x, 0, PAVILION.z);
   const wall = mat(0xefeae0, { roughness: 0.38, metalness: 0.08 });
   const glass = new THREE.MeshPhysicalMaterial({
-    color: 0x6a5030,
-    roughness: 0.04,
-    metalness: 0.12,
-    transmission: 0.72,
+    color: 0x4a3824,
+    roughness: 0.06,
+    metalness: 0.08,
+    transmission: 0.55,
     transparent: true,
-    opacity: 0.38,
-    thickness: 0.18,
-    envMapIntensity: 1.4,
+    opacity: 0.32,
+    thickness: 0.14,
+    envMapIntensity: 1.1,
   });
   g.add(box(6.2, 0.16, 4.6, wall, 0, 0.08, 0));
   g.add(box(6.0, 0.14, 4.4, wall, 0, 3.12, 0));
@@ -232,22 +257,29 @@ function addPavilion(root: THREE.Group): THREE.Box3 {
   back.rotation.y = Math.PI;
   g.add(front, back);
 
-  const warm = new THREE.PointLight(0xff9a3c, 140, 12, 1.3);
+  const warm = new THREE.PointLight(0xff9a3c, 55, 10, 1.35);
   warm.position.set(0, 2.0, 0);
   g.add(warm);
   const glow = new THREE.Mesh(
     new THREE.BoxGeometry(5.2, 2.2, 3.6),
-    new THREE.MeshBasicMaterial({ color: 0xff8a2a, transparent: true, opacity: 0.16 }),
+    new THREE.MeshBasicMaterial({ color: 0xff8a2a, transparent: true, opacity: 0.035 }),
   );
   glow.position.set(0, 1.4, 0);
   g.add(glow);
 
-  const wood = mat(0x3a2416, { roughness: 0.7 });
-  const cream = mat(0xf2eee6, { roughness: 0.45 });
-  g.add(box(2.4, 0.72, 0.7, wood, 0, 0.55, 0.9));
-  g.add(box(0.55, 0.95, 0.55, cream, -1.5, 0.62, -0.4));
-  g.add(box(0.55, 0.95, 0.55, cream, 1.4, 0.62, -0.5));
-  g.add(box(0.08, 1.1, 0.7, mat(0x1e1e24), -2.2, 1.4, 0.2));
+  const wood = mat(0x2a1810, { roughness: 0.74 });
+  const cream = mat(0xe8e0d2, { roughness: 0.48 });
+  const cushion = mat(0x6a3a28, { roughness: 0.7 });
+  g.add(box(2.6, 0.42, 0.78, wood, 0.1, 0.38, 0.85));
+  g.add(box(2.5, 0.18, 0.7, cushion, 0.1, 0.66, 0.85));
+  g.add(box(2.5, 0.55, 0.14, cushion, 0.1, 0.95, 1.14));
+  g.add(box(0.52, 0.88, 0.52, cream, -1.55, 0.58, -0.55));
+  g.add(box(0.52, 0.16, 0.52, cushion, -1.55, 1.08, -0.55));
+  g.add(box(0.52, 0.88, 0.52, cream, 1.45, 0.58, -0.62));
+  g.add(box(0.52, 0.16, 0.52, cushion, 1.45, 1.08, -0.62));
+  g.add(box(1.1, 0.08, 0.55, wood, 0, 0.72, -0.15));
+  g.add(box(0.08, 1.15, 0.62, mat(0x1a1a20), -2.15, 1.42, 0.15));
+  g.add(box(0.08, 1.15, 0.62, mat(0x1a1a20), 2.15, 1.42, 0.2));
   const lamp = new THREE.Mesh(
     new THREE.SphereGeometry(0.12, 12, 10),
     new THREE.MeshStandardMaterial({ color: 0xffc878, emissive: 0xff9a3c, emissiveIntensity: 2 }),

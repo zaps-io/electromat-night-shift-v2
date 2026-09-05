@@ -39,7 +39,7 @@ Site line: **DRIVE IN. CHARGE UP. ZIP OUT.**
 
 ## Visual bar
 
-Cinematic WebGL lot (Unreal-style approximation, no Unreal install): ACES Filmic + PCF-soft shadows, night PMREM probe, `postprocessing` bloom / vignette / SMAA, planar `Reflector` + MeshPhysical wet asphalt. Dark-underside canopy with warm downlights and cyan neon, tall cream pedestals with blue screens, glass lounge, fence-line skyline, orange `!` and cyan battery pips. Cars are lofted EV GLBs (`public/cars/ev-sedan.glb`, `public/cars/ev-suv.glb`) with physical clearcoat paint, transmission glass, ten-spoke rims, haunch, wraparound red light bar.
+Cinematic WebGL lot (Unreal-style approximation, no Unreal install): ACES Filmic + PCF-soft shadows, night PMREM probe, `postprocessing` bloom / vignette / SMAA, MeshPhysical wet asphalt (albedo + roughness + ripple — not a chrome reflector). Dark wood-panel canopy with recessed cans and cyan edge, white pedestals with blue screens, glass lounge with warm furniture silhouettes, fence-line skyline, orange `!` and cyan battery pips. Cars use a high-poly CC0 concept EV (`public/cars/ev-concept.glb`) with clearcoat paint, see-through glass, multi-spoke rims, and a wraparound red bar. Authored lofted hulls remain as fallback.
 
 Official cream/red Zaps wordmarks only. Palette: `#E63225` `#1E1E24` `#E89A2E` `#00D4F5` `#F5F0E8`.
 
