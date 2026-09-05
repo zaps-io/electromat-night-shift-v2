@@ -233,14 +233,14 @@ function addPavilion(root: THREE.Group): THREE.Box3 {
   g.position.set(PAVILION.x, 0, PAVILION.z);
   const wall = mat(0xefeae0, { roughness: 0.38, metalness: 0.08 });
   const glass = new THREE.MeshPhysicalMaterial({
-    color: 0x6a5030,
-    roughness: 0.04,
-    metalness: 0.12,
-    transmission: 0.72,
+    color: 0x4a3824,
+    roughness: 0.06,
+    metalness: 0.08,
+    transmission: 0.55,
     transparent: true,
-    opacity: 0.38,
-    thickness: 0.18,
-    envMapIntensity: 1.4,
+    opacity: 0.32,
+    thickness: 0.14,
+    envMapIntensity: 1.1,
   });
   g.add(box(6.2, 0.16, 4.6, wall, 0, 0.08, 0));
   g.add(box(6.0, 0.14, 4.4, wall, 0, 3.12, 0));
@@ -257,12 +257,12 @@ function addPavilion(root: THREE.Group): THREE.Box3 {
   back.rotation.y = Math.PI;
   g.add(front, back);
 
-  const warm = new THREE.PointLight(0xff9a3c, 140, 12, 1.3);
+  const warm = new THREE.PointLight(0xff9a3c, 55, 10, 1.35);
   warm.position.set(0, 2.0, 0);
   g.add(warm);
   const glow = new THREE.Mesh(
     new THREE.BoxGeometry(5.2, 2.2, 3.6),
-    new THREE.MeshBasicMaterial({ color: 0xff8a2a, transparent: true, opacity: 0.07 }),
+    new THREE.MeshBasicMaterial({ color: 0xff8a2a, transparent: true, opacity: 0.035 }),
   );
   glow.position.set(0, 1.4, 0);
   g.add(glow);

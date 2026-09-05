@@ -311,11 +311,12 @@ async function saveShots(): Promise<void> {
   };
   while (!ready) await new Promise((r) => setTimeout(r, 40));
   if (state.phase === "title") dropIn();
-  for (let i = 0; i < 8; i++) {
+  for (let i = 0; i < 16; i++) {
     syncCars(cars, scene, state, i * 0.05);
     pipeline.render();
     await new Promise((r) => setTimeout(r, 80));
   }
+  await new Promise((r) => setTimeout(r, 600));
   await post("/workspace/docs/shots/startnight-lot.png", capture(1280, 800));
   walker.place(-5.4, -2.1);
   walker.lookAt(-2.45, 0.72, 3.15);

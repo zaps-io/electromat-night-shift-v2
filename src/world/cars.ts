@@ -103,11 +103,13 @@ function dressConcept(root: THREE.Object3D): void {
     eachMat(mesh, (m) => {
       const mn = (m.name ?? "").toLowerCase();
       if (mn.includes("paint")) {
+        m.normalMap = null;
+        if (m.normalScale) m.normalScale.set(0, 0);
         m.clearcoat = 1;
-        m.clearcoatRoughness = 0.04;
-        m.roughness = Math.min(m.roughness ?? 0.24, 0.24);
-        m.metalness = 0.14;
-        m.envMapIntensity = 2.1;
+        m.clearcoatRoughness = 0.035;
+        m.roughness = 0.16;
+        m.metalness = 0.08;
+        m.envMapIntensity = 1.85;
       } else if (mn.includes("glass") || label.includes("window") || label.includes("windshield")) {
         m.roughness = 0.025;
         m.envMapIntensity = 1.75;
