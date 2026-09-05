@@ -14,13 +14,13 @@ function align4(n: number): number {
   return (n + 3) & ~3;
 }
 
-export function packSedanGlb(parts: BuiltPart[]): Uint8Array {
+export function packSedanGlb(parts: BuiltPart[], name = "EvSedan"): Uint8Array {
   const json: Record<string, unknown> = {
-    asset: { version: "2.0", generator: "electromat-night-shift-v2-sedan" },
+    asset: { version: "2.0", generator: "electromat-night-shift-v2" },
     scene: 0,
     scenes: [{ nodes: [0] }],
-    nodes: [{ mesh: 0, name: "EvSedan" }],
-    meshes: [{ name: "EvSedan", primitives: [] as unknown[] }],
+    nodes: [{ mesh: 0, name }],
+    meshes: [{ name, primitives: [] as unknown[] }],
     materials: [] as unknown[],
     accessors: [] as unknown[],
     bufferViews: [] as unknown[],

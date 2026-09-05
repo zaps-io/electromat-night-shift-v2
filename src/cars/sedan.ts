@@ -30,23 +30,23 @@ interface Key {
 }
 
 const KEYS: Key[] = [
-  { x: -2.50, rocker: 0.52, mid: 0.70, belt: 0.68, top: 0.60, topW: 0.20, cabin: false },
-  { x: -2.38, rocker: 0.72, mid: 0.88, belt: 0.84, top: 0.66, topW: 0.42, cabin: false },
-  { x: -2.18, rocker: 0.88, mid: 1.00, belt: 0.96, top: 0.90, topW: 0.70, cabin: false },
-  { x: -1.92, rocker: 0.90, mid: 1.08, belt: 1.02, top: 0.92, topW: 0.78, cabin: false },
-  { x: -1.70, rocker: 0.78, mid: 1.14, belt: 1.08, top: 0.94, topW: 0.55, cabin: false },
-  { x: -1.50, rocker: 0.70, mid: 1.16, belt: 1.10, top: 0.94, topW: 0.42, cabin: false },
-  { x: -1.28, rocker: 0.86, mid: 1.08, belt: 1.02, top: 1.28, topW: 0.48, cabin: true },
-  { x: -1.10, rocker: 0.92, mid: 0.98, belt: 0.95, top: 1.36, topW: 0.52, cabin: true },
-  { x: -0.55, rocker: 0.91, mid: 0.95, belt: 0.93, top: 1.37, topW: 0.54, cabin: true },
-  { x: -0.06, rocker: 0.90, mid: 0.94, belt: 0.92, top: 1.37, topW: 0.55, cabin: true },
-  { x: 0.48, rocker: 0.91, mid: 0.95, belt: 0.93, top: 1.36, topW: 0.50, cabin: true },
-  { x: 0.88, rocker: 0.93, mid: 0.97, belt: 0.94, top: 1.18, topW: 0.38, cabin: true },
-  { x: 1.12, rocker: 0.94, mid: 0.98, belt: 0.90, top: 0.90, topW: 0.72, cabin: false },
-  { x: 1.50, rocker: 0.72, mid: 0.99, belt: 0.90, top: 0.78, topW: 0.55, cabin: false },
-  { x: 1.82, rocker: 0.88, mid: 0.96, belt: 0.86, top: 0.68, topW: 0.48, cabin: false },
-  { x: 2.18, rocker: 0.78, mid: 0.84, belt: 0.72, top: 0.56, topW: 0.32, cabin: false },
-  { x: 2.48, rocker: 0.48, mid: 0.62, belt: 0.50, top: 0.46, topW: 0.12, cabin: false },
+  { x: -2.50, rocker: 0.50, mid: 0.68, belt: 0.66, top: 0.58, topW: 0.18, cabin: false },
+  { x: -2.40, rocker: 0.70, mid: 0.86, belt: 0.82, top: 0.64, topW: 0.40, cabin: false },
+  { x: -2.22, rocker: 0.88, mid: 1.02, belt: 0.98, top: 0.88, topW: 0.68, cabin: false },
+  { x: -1.98, rocker: 0.92, mid: 1.12, belt: 1.06, top: 0.93, topW: 0.78, cabin: false },
+  { x: -1.78, rocker: 0.80, mid: 1.20, belt: 1.12, top: 0.95, topW: 0.58, cabin: false },
+  { x: -1.52, rocker: 0.72, mid: 1.24, belt: 1.16, top: 0.95, topW: 0.40, cabin: false },
+  { x: -1.32, rocker: 0.86, mid: 1.12, belt: 1.04, top: 1.24, topW: 0.46, cabin: true },
+  { x: -1.12, rocker: 0.92, mid: 1.00, belt: 0.96, top: 1.36, topW: 0.52, cabin: true },
+  { x: -0.58, rocker: 0.91, mid: 0.96, belt: 0.93, top: 1.38, topW: 0.54, cabin: true },
+  { x: -0.06, rocker: 0.90, mid: 0.94, belt: 0.92, top: 1.38, topW: 0.55, cabin: true },
+  { x: 0.48, rocker: 0.91, mid: 0.95, belt: 0.93, top: 1.37, topW: 0.50, cabin: true },
+  { x: 0.90, rocker: 0.93, mid: 0.97, belt: 0.94, top: 1.16, topW: 0.36, cabin: true },
+  { x: 1.14, rocker: 0.94, mid: 0.99, belt: 0.90, top: 0.90, topW: 0.70, cabin: false },
+  { x: 1.50, rocker: 0.74, mid: 1.00, belt: 0.90, top: 0.78, topW: 0.54, cabin: false },
+  { x: 1.84, rocker: 0.88, mid: 0.96, belt: 0.86, top: 0.68, topW: 0.46, cabin: false },
+  { x: 2.18, rocker: 0.76, mid: 0.82, belt: 0.70, top: 0.54, topW: 0.30, cabin: false },
+  { x: 2.48, rocker: 0.46, mid: 0.60, belt: 0.48, top: 0.44, topW: 0.10, cabin: false },
 ];
 
 function sampleKey(x: number): Key {
@@ -96,7 +96,7 @@ function skinPoint(x: number, y: number, side: number): Vec3 | null {
 
 function gridSkin(mesh: MeshBuilder, y0: number, y1: number, rows: number, cabinOnly: boolean | null): void {
   const xs: number[] = [];
-  for (let i = 0; i <= 40; i++) xs.push(lerp(-2.50, 2.48, i / 40));
+  for (let i = 0; i <= 72; i++) xs.push(lerp(-2.50, 2.48, i / 72));
   const ys: number[] = [];
   for (let j = 0; j <= rows; j++) ys.push(lerp(y0, y1, j / rows));
   for (const side of [1, -1]) {
@@ -120,7 +120,7 @@ function gridSkin(mesh: MeshBuilder, y0: number, y1: number, rows: number, cabin
 
 function capTop(mesh: MeshBuilder, cabin: boolean): void {
   const xs: number[] = [];
-  for (let i = 0; i <= 40; i++) xs.push(lerp(-2.50, 2.48, i / 40));
+  for (let i = 0; i <= 72; i++) xs.push(lerp(-2.50, 2.48, i / 72));
   for (let i = 0; i < xs.length - 1; i++) {
     const a = sampleKey(xs[i]);
     const b = sampleKey(xs[i + 1]);
@@ -139,7 +139,7 @@ function capTop(mesh: MeshBuilder, cabin: boolean): void {
 
 function addBeltCrease(mesh: MeshBuilder): void {
   const xs: number[] = [];
-  for (let i = 0; i <= 40; i++) xs.push(lerp(-2.48, 2.46, i / 40));
+  for (let i = 0; i <= 72; i++) xs.push(lerp(-2.48, 2.46, i / 72));
   for (const side of [1, -1]) {
     for (let i = 0; i < xs.length - 1; i++) {
       const a = sampleKey(xs[i]);
@@ -209,32 +209,48 @@ function addPillars(mesh: MeshBuilder): void {
   }
 }
 
+function pane(
+  mesh: MeshBuilder,
+  x0: number,
+  x1: number,
+  y0: number,
+  y1: number,
+  z0: number,
+  z1: number,
+  segs = 4,
+): void {
+  for (let i = 0; i < segs; i++) {
+    const t0 = i / segs;
+    const t1 = (i + 1) / segs;
+    mesh.addQuad(
+      { x: lerp(x0, x1, t0), y: y0, z: lerp(z0, z0, t0) },
+      { x: lerp(x0, x1, t1), y: y0, z: lerp(z0, z0, t1) },
+      { x: lerp(x0, x1, t1), y: y1, z: lerp(z1, z1, t1) },
+      { x: lerp(x0, x1, t0), y: y1, z: lerp(z1, z1, t0) },
+    );
+  }
+}
+
 function addGlass(mesh: MeshBuilder): void {
-  mesh.addQuad(
-    { x: 0.90, y: BELT, z: -0.86 },
-    { x: 0.90, y: BELT, z: 0.86 },
-    { x: 0.55, y: ROOF - 0.02, z: 0.48 },
-    { x: 0.55, y: ROOF - 0.02, z: -0.48 },
-  );
-  mesh.addQuad(
-    { x: -1.18, y: BELT, z: 0.90 },
-    { x: -1.18, y: BELT, z: -0.90 },
-    { x: -1.05, y: ROOF - 0.04, z: -0.50 },
-    { x: -1.05, y: ROOF - 0.04, z: 0.50 },
-  );
+  for (let i = 0; i < 6; i++) {
+    const t0 = i / 6;
+    const t1 = (i + 1) / 6;
+    mesh.addQuad(
+      { x: lerp(0.9, 0.9, t0), y: BELT, z: lerp(-0.86, 0.86, t0) },
+      { x: lerp(0.9, 0.9, t1), y: BELT, z: lerp(-0.86, 0.86, t1) },
+      { x: lerp(0.55, 0.55, t1), y: ROOF - 0.02, z: lerp(-0.48, 0.48, t1) },
+      { x: lerp(0.55, 0.55, t0), y: ROOF - 0.02, z: lerp(-0.48, 0.48, t0) },
+    );
+    mesh.addQuad(
+      { x: lerp(-1.18, -1.18, t0), y: BELT, z: lerp(0.9, -0.9, t0) },
+      { x: lerp(-1.18, -1.18, t1), y: BELT, z: lerp(0.9, -0.9, t1) },
+      { x: lerp(-1.05, -1.05, t1), y: ROOF - 0.04, z: lerp(0.5, -0.5, t1) },
+      { x: lerp(-1.05, -1.05, t0), y: ROOF - 0.04, z: lerp(0.5, -0.5, t0) },
+    );
+  }
   for (const side of [1, -1]) {
-    mesh.addQuad(
-      { x: -1.00, y: BELT + 0.02, z: 0.93 * side },
-      { x: -0.14, y: BELT + 0.02, z: 0.92 * side },
-      { x: -0.14, y: ROOF - 0.06, z: 0.53 * side },
-      { x: -1.00, y: ROOF - 0.06, z: 0.52 * side },
-    );
-    mesh.addQuad(
-      { x: 0.02, y: BELT + 0.02, z: 0.92 * side },
-      { x: 0.78, y: BELT + 0.02, z: 0.90 * side },
-      { x: 0.62, y: ROOF - 0.06, z: 0.50 * side },
-      { x: 0.02, y: ROOF - 0.06, z: 0.54 * side },
-    );
+    pane(mesh, -1.0, -0.14, BELT + 0.02, ROOF - 0.06, 0.93 * side, 0.52 * side, 5);
+    pane(mesh, 0.02, 0.78, BELT + 0.02, ROOF - 0.06, 0.92 * side, 0.5 * side, 5);
   }
 }
 
@@ -276,12 +292,13 @@ function addHeadlights(mesh: MeshBuilder): void {
 }
 
 function addWheels(rubber: MeshBuilder, chrome: MeshBuilder): void {
-  const segs = 32;
+  const segs = 40;
   for (const axle of [FRONT, REAR]) {
     for (const side of [1, -1]) {
       const z = TRACK * side;
       const inner = z - side * TIRE_HW;
       const outer = z + side * TIRE_HW;
+      const dish = outer - side * 0.055;
       const ring = (r: number, zz: number): Vec3[] => {
         const pts: Vec3[] = [];
         for (let i = 0; i <= segs; i++) {
@@ -291,28 +308,28 @@ function addWheels(rubber: MeshBuilder, chrome: MeshBuilder): void {
         return pts;
       };
       rubber.loft(ring(TIRE_R, inner), ring(TIRE_R, outer));
-      rubber.loft(ring(TIRE_R, inner), ring(TIRE_R * 0.74, inner));
-      rubber.loft(ring(TIRE_R * 0.74, outer), ring(TIRE_R, outer));
+      rubber.loft(ring(TIRE_R, inner), ring(TIRE_R * 0.7, inner));
+      rubber.loft(ring(TIRE_R * 0.7, outer), ring(TIRE_R, outer));
 
-      const rimR = 0.275;
-      chrome.loft(ring(rimR, outer), ring(rimR * 0.9, outer - side * 0.035));
+      const rimR = 0.268;
+      chrome.loft(ring(rimR, outer), ring(rimR, dish));
+      chrome.loft(ring(rimR, outer), ring(rimR * 0.9, outer + side * 0.006));
+      chrome.loft(ring(rimR * 0.9, dish), ring(0.07, dish));
       const spokes = 10;
       for (let s = 0; s < spokes; s++) {
-        const a0 = (s / spokes) * Math.PI * 2;
-        const a1 = a0 + 0.11;
+        const mid = ((s + 0.5) / spokes) * Math.PI * 2;
+        const a0 = mid - 0.07;
+        const a1 = mid + 0.07;
         const P = (r: number, a: number, zz: number): Vec3 => ({
           x: axle + Math.cos(a) * r,
           y: WHEEL_Y + Math.sin(a) * r,
           z: zz,
         });
-        const zf = outer - side * 0.01;
-        chrome.addQuad(P(0.05, a0, zf), P(rimR * 0.88, a0 - 0.04, zf), P(rimR * 0.88, a1, zf), P(0.05, a1, zf));
+        chrome.addQuad(P(0.06, a0, outer - side * 0.008), P(rimR * 0.86, a0, outer - side * 0.004), P(rimR * 0.86, a1, outer - side * 0.004), P(0.06, a1, outer - side * 0.008));
+        chrome.addQuad(P(0.06, a0, dish + side * 0.01), P(0.06, a1, dish + side * 0.01), P(rimR * 0.86, a1, dish + side * 0.006), P(rimR * 0.86, a0, dish + side * 0.006));
+        chrome.addQuad(P(rimR * 0.86, a0, outer - side * 0.004), P(rimR * 0.86, a0, dish + side * 0.006), P(rimR * 0.86, a1, dish + side * 0.006), P(rimR * 0.86, a1, outer - side * 0.004));
       }
-      chrome.capFan(
-        ring(0.055, outer - side * 0.004),
-        { x: axle, y: WHEEL_Y, z: outer + side * 0.002 },
-        side < 0,
-      );
+      chrome.capFan(ring(0.062, outer - side * 0.002), { x: axle, y: WHEEL_Y, z: outer + side * 0.01 }, side < 0);
     }
   }
 }
@@ -365,7 +382,7 @@ export function buildSedanParts(): BuiltPart[] {
   const interior = new MeshBuilder();
   const port = new MeshBuilder();
 
-  gridSkin(paint, 0.10, BELT, 8, null);
+  gridSkin(paint, 0.10, BELT, 14, null);
   capTop(paint, false);
   capTop(paint, true);
   addBeltCrease(paint);
