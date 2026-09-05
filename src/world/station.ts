@@ -112,7 +112,7 @@ function addCanopy(root: THREE.Group): void {
       disc.rotation.x = Math.PI / 2;
       disc.position.set(x, 5.05, z);
       root.add(disc);
-      const light = new THREE.SpotLight(0xffc878, 18, 16, 0.7, 0.45, 1.4);
+      const light = new THREE.SpotLight(0xffc878, 28, 18, 0.85, 0.4, 1.15);
       light.position.set(x, 5.0, z);
       light.target.position.set(x, 0, z);
       light.castShadow = true;

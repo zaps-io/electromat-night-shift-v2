@@ -34,13 +34,19 @@ renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.05;
+renderer.toneMappingExposure = 1.18;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x101018);
-scene.fog = new THREE.Fog(0x101018, 28, 90);
-scene.add(new THREE.AmbientLight(0xf5f0e8, 0.22));
+scene.fog = new THREE.Fog(0x101018, 36, 110);
+scene.add(new THREE.AmbientLight(0xf5f0e8, 0.42));
+const fill = new THREE.DirectionalLight(0xffe6c4, 0.55);
+fill.position.set(-8, 12, -6);
+scene.add(fill);
+const rim = new THREE.DirectionalLight(0x7ad7ea, 0.28);
+rim.position.set(10, 8, 14);
+scene.add(rim);
 
 const station = buildStation();
 scene.add(station.root);
@@ -89,8 +95,8 @@ function dropIn(): void {
   setHum(true);
   if (state.phase === "title") seedOpeningLot(state);
   hideTitle();
-  walker.place(0.55, -9.15, 0.06, -0.05);
-  walker.lookAt(-1.2, 1.15, 3.0);
+  walker.place(1.85, -7.35, 0.22, -0.06);
+  walker.lookAt(-3.1, 0.82, 3.05);
 }
 
 function restart(): void {
@@ -257,8 +263,12 @@ canvas.addEventListener("contextmenu", (e) => {
   groundWalk(e.clientX, e.clientY);
 });
 
+if (new URLSearchParams(location.search).has("autostart")) {
+  dropIn();
+}
+
 if (shot) {
-  /* automated stills may pass shot=; default startNight ignores it */
+  /* automated stills may pass shot=; default startNight uses shot=null */
 }
 
 window.__electromat = {

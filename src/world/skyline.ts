@@ -10,10 +10,11 @@ export function buildSkyline(): THREE.Group {
   root.add(sky);
 
   const night = new THREE.Mesh(
-    new THREE.PlaneGeometry(180, 28),
+    new THREE.PlaneGeometry(180, 32),
     new THREE.MeshBasicMaterial({ color: 0x12121a, fog: false }),
   );
-  night.position.set(0, 10, -48);
+  night.position.set(0, 12, 52);
+  night.rotation.y = Math.PI;
   root.add(night);
 
   const win = new THREE.MeshBasicMaterial({ color: 0xffc878, toneMapped: false });
@@ -23,7 +24,7 @@ export function buildSkyline(): THREE.Group {
     const h = 6 + ((i * 17) % 14);
     const x = -40 + i * 3.1 + (i % 3) * 0.4;
     const tower = new THREE.Mesh(new THREE.BoxGeometry(w, h, 2.2), dark);
-    tower.position.set(x, h * 0.5 - 0.2, -46 - (i % 4));
+    tower.position.set(x, h * 0.5 - 0.2, 48 + (i % 4));
     root.add(tower);
     const cols = 3 + (i % 3);
     const rows = Math.max(4, Math.floor(h / 1.15));
@@ -34,8 +35,9 @@ export function buildSkyline(): THREE.Group {
         pane.position.set(
           x - w * 0.32 + c * (w * 0.32),
           0.8 + r * 1.05,
-          tower.position.z + 1.12,
+          tower.position.z - 1.12,
         );
+        pane.rotation.y = Math.PI;
         root.add(pane);
       }
     }
