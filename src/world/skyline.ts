@@ -90,7 +90,7 @@ export function buildSkyline(): THREE.Group {
   root.add(haze);
   const glow = new THREE.Mesh(
     new THREE.PlaneGeometry(240, 14),
-    new THREE.MeshBasicMaterial({ color: 0x4a3218, transparent: true, opacity: 0.34, fog: false, depthWrite: false }),
+    new THREE.MeshBasicMaterial({ color: 0x3a2816, transparent: true, opacity: 0.22, fog: false, depthWrite: false }),
   );
   glow.position.set(0, 3.2, 39);
   glow.rotation.y = Math.PI;

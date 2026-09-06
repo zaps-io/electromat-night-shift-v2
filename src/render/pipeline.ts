@@ -79,8 +79,8 @@ export function createPipeline(
   });
   composer.addPass(new RenderPass(scene, camera));
   const bloom = new BloomEffect({
-    intensity: 0.24,
-    luminanceThreshold: 0.52,
+    intensity: 0.2,
+    luminanceThreshold: 0.56,
     luminanceSmoothing: 0.2,
     mipmapBlur: true,
     radius: 0.5,

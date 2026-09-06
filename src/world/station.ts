@@ -145,14 +145,14 @@ function makeAsphalt(root: THREE.Group): THREE.Mesh {
     new THREE.MeshPhysicalMaterial({
       color: 0x15171b,
       map: maps.map,
-      roughness: 0.16,
+      roughness: 0.2,
       roughnessMap: maps.rough,
-      metalness: 0.1,
+      metalness: 0.09,
       normalMap: maps.normal,
       normalScale: new THREE.Vector2(0.16, 0.16),
-      envMapIntensity: 2.05,
-      clearcoat: 0.86,
-      clearcoatRoughness: 0.055,
+      envMapIntensity: 1.9,
+      clearcoat: 0.78,
+      clearcoatRoughness: 0.08,
     }),
   );
   ground.rotation.x = -Math.PI / 2;
@@ -164,10 +164,10 @@ function makeAsphalt(root: THREE.Group): THREE.Mesh {
 
 export function addLotMirror(root: THREE.Group, renderer: THREE.WebGLRenderer): void {
   const px = renderer.domElement.width > 1600 ? 512 : 384;
-  const color = new THREE.Color(0x2a323a);
+  const color = new THREE.Color(0x1a2228);
   const puddles: Array<[number, number, number, number]> = [
-    [0.2, 2.6, 9.4, 3.4],
-    [-1.8, -4.6, 5.2, 2.3],
+    [0.4, 2.4, 7.2, 2.6],
+    [-1.6, -4.4, 4.4, 1.9],
   ];
   for (const [x, z, w, d] of puddles) {
     const mirror = new Reflector(new THREE.PlaneGeometry(w, d), {
@@ -359,8 +359,8 @@ function addCanopy(root: THREE.Group): void {
   strip.scale.set(0.965, 1, 0.965);
   root.add(strip);
   const stripBloom = new THREE.Mesh(
-    new THREE.TubeGeometry(curve, 160, 0.14, 8, true),
-    new THREE.MeshBasicMaterial({ color: 0xdce8f8, transparent: true, opacity: 0.38, toneMapped: false, depthWrite: false }),
+    new THREE.TubeGeometry(curve, 160, 0.11, 8, true),
+    new THREE.MeshBasicMaterial({ color: 0xdce8f8, transparent: true, opacity: 0.26, toneMapped: false, depthWrite: false }),
   );
   stripBloom.position.set(0, 5.07, 3.1);
   stripBloom.scale.set(0.965, 1, 0.965);
@@ -499,7 +499,7 @@ function addPavilion(root: THREE.Group): THREE.Box3 {
   g.add(spill);
   const wash = new THREE.Mesh(
     new THREE.PlaneGeometry(W - 0.35, paneH - 0.08),
-    new THREE.MeshBasicMaterial({ color: 0xff7a28, transparent: true, opacity: 0.34, side: THREE.DoubleSide, depthWrite: false }),
+    new THREE.MeshBasicMaterial({ color: 0xff7a28, transparent: true, opacity: 0.26, side: THREE.DoubleSide, depthWrite: false }),
   );
   wash.position.set(0, H * 0.5, 0);
   g.add(wash);
