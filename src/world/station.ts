@@ -359,7 +359,7 @@ function addPavilion(root: THREE.Group): THREE.Box3 {
   const g = new THREE.Group();
   g.position.set(PAVILION.x, 0, PAVILION.z);
   g.rotation.y = PAVILION.yaw;
-  const wall = mat(0xc8b49a, { roughness: 0.48, metalness: 0.05 });
+  const wall = mat(0x2a2824, { roughness: 0.55, metalness: 0.08 });
   const glass = new THREE.MeshPhysicalMaterial({
     color: 0x1c1612,
     roughness: 0.06,
