@@ -172,7 +172,8 @@ function fitSedan(scene: THREE.Group, kind: HullKind): THREE.Group {
   });
   wrap.updateMatrixWorld(true);
   box.setFromObject(wrap);
-  scene.position.y -= box.min.y;
+  /* Wheels sit on the pad; a hair of extra sink kills the float look. */
+  scene.position.y -= box.min.y + 0.035;
   wrap.updateMatrixWorld(true);
   return wrap;
 }
