@@ -1,9 +1,9 @@
 # Official Zaps Electromat wordmarks
 
-Connected lowercase zaps mark only. Do not regenerate Arial letterforms or keep the 24KB font-extracted paths.
+Exact Drive `_brand/identity/marks/canonical/` vectors. Four path elements. Do not wrap PNGs. Do not reconstruct letterforms.
 
-- `zaps-wordmark-only-cream.png` / `.svg` — official cream wordmark (title)
-- `zaps-wordmark-only-red.png` / `.svg` — official red wordmark (HUD, canopy, pylon, kiosk, Zeus)
-- `wordmark-cream.svg` / `wordmark-red.svg` — thin wrappers of the same marks
+- `zaps-wordmark-only-cream.svg` — official cream wordmark (`#F5F0E8`, title)
+- `zaps-wordmark-only-red.svg` — official red wordmark (`#E63225`, HUD, canopy, pylon, kiosk, Zeus)
+- `wordmark-cream.svg` / `wordmark-red.svg` — identical copies of those files
 
-Title uses the official cream wordmark on dark. No fake ELECTROMAT text stack.
+Title and HUD load the official SVGs directly. 3D planes rasterize the same red SVG at runtime.
