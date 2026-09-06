@@ -424,8 +424,8 @@ function addCanopy(root: THREE.Group): void {
       }
     }
   };
-  hang([-7.2, -3.6, 0, 3.6, 7.2, 10.8], [4.2], 360, true);
-  hang([-9, -3, 3, 9], [1.1, 7.2], 170, false);
+  hang([-7.2, 0, 7.2], [4.2], 380, true);
+  hang([-3.6, 3.6, 10.8], [4.2], 220, false);
 }
 
 function addPerson(g: THREE.Group, x: number, z: number, yaw: number, h = 1.7): void {
@@ -560,7 +560,7 @@ function addPalm(root: THREE.Group, x: number, z: number, h = 5.2): void {
   const crown = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), frond);
   crown.position.set(x, h * 0.96, z);
   root.add(crown);
-  for (let i = 0; i < 14; i++) {
+  for (let i = 0; i < 10; i++) {
     const leaf = new THREE.Mesh(new THREE.PlaneGeometry(0.16, 2.55), frond);
     leaf.position.set(x, h * 0.95, z);
     leaf.rotation.order = "YXZ";
@@ -620,7 +620,7 @@ function addPlanterArc(
     wall.rotation.y = -mid - Math.PI / 2;
     root.add(wall);
     pts.push(new THREE.Vector3(x, 0.58, z));
-    addSucculents(root, x + Math.cos(mid) * 0.42, z + Math.sin(mid) * 0.42);
+    if (i % 2 === 0) addSucculents(root, x + Math.cos(mid) * 0.42, z + Math.sin(mid) * 0.42);
   }
   if (pts.length > 2) {
     const rail = new THREE.Mesh(
@@ -663,8 +663,6 @@ function addPlanters(root: THREE.Group): void {
     [-10.8, -13.4, 5.4],
     [8.4, -12.8, 5.2],
     [-20.4, 8.2, 7.8],
-    [19.2, 2.4, 6.6],
-    [-14.8, 16.2, 8.8],
     [2.2, 16.4, 7.2],
   ] as const) {
     addPalm(root, x, z, h);
