@@ -13,7 +13,7 @@ import {
 } from "./game/shift";
 import { Walker } from "./input/walker";
 import { configureKeyLight, createNightProbe, createPipeline, createRenderer } from "./render/pipeline";
-import { hullDebug, loadCarPrototypes, syncCars, type CarView } from "./world/cars";
+import { addLodFillers, hullDebug, loadCarPrototypes, syncCars, trimLodFillers, type CarView } from "./world/cars";
 import { KIOSK, WIDE_SHOT } from "./world/layout";
 import { buildSkyline } from "./world/skyline";
 import { addLotMirror, buildStation } from "./world/station";
@@ -367,7 +367,14 @@ window.__electromat = {
 };
 
 void loadCarPrototypes().then(() => {
+  addLodFillers(scene);
   ready = true;
+});
+
+canvas.addEventListener("webglcontextlost", (e) => {
+  e.preventDefault();
+  console.warn("CONTEXT_LOST_WEBGL — trimming LOD fillers");
+  trimLodFillers(2);
 });
 
 requestAnimationFrame(loop);
