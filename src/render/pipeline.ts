@@ -40,10 +40,10 @@ export function createNightProbe(renderer: THREE.WebGLRenderer): THREE.Texture {
   );
   env.add(sky);
   for (const [x, y, z, color, r] of [
-    [-7.4, 5.05, 3.15, 0x00d4f5, 0.28],
-    [-2.45, 5.05, 3.15, 0x00d4f5, 0.28],
-    [2.45, 5.05, 3.15, 0x00d4f5, 0.28],
-    [7.4, 5.05, 3.15, 0x00d4f5, 0.28],
+    [-7.4, 5.05, 3.15, 0xe8eef6, 0.22],
+    [-2.45, 5.05, 3.15, 0xe8eef6, 0.22],
+    [2.45, 5.05, 3.15, 0xe8eef6, 0.22],
+    [7.4, 5.05, 3.15, 0xe8eef6, 0.22],
     [-8, 5.1, 0.35, 0xdce6f2, 0.38],
     [8, 5.1, 5.85, 0xdce6f2, 0.38],
     [0, 5.08, -3.5, 0xe8eef8, 0.52],
@@ -79,11 +79,11 @@ export function createPipeline(
   });
   composer.addPass(new RenderPass(scene, camera));
   const bloom = new BloomEffect({
-    intensity: 0.1,
-    luminanceThreshold: 0.7,
-    luminanceSmoothing: 0.32,
+    intensity: 0.07,
+    luminanceThreshold: 0.78,
+    luminanceSmoothing: 0.36,
     mipmapBlur: true,
-    radius: 0.32,
+    radius: 0.26,
   });
   const vignette = new VignetteEffect({
     eskil: false,

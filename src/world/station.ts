@@ -315,23 +315,19 @@ function addCanopy(root: THREE.Group): void {
   for (let z = hd - rad; z >= -hd + rad; z -= 0.8) pts.push(new THREE.Vector3(-hw, 0, z));
   arc(-hw + rad, -hd + rad, Math.PI, Math.PI * 1.5);
   const curve = new THREE.CatmullRomCurve3(pts, true);
-  const cyan = new THREE.MeshBasicMaterial({ color: C.cyan, toneMapped: false });
-  const strip = new THREE.Mesh(new THREE.TubeGeometry(curve, 180, 0.055, 8, true), cyan);
-  strip.position.set(0, 5.08, 3.1);
-  strip.scale.set(0.972, 1, 0.972);
+  const cyan = new THREE.MeshBasicMaterial({ color: 0x00b8d4, toneMapped: true });
+  const strip = new THREE.Mesh(new THREE.TubeGeometry(curve, 180, 0.028, 8, true), cyan);
+  strip.position.set(0, 5.06, 3.1);
+  strip.scale.set(0.968, 1, 0.968);
   root.add(strip);
-  const stripBloom = new THREE.Mesh(
-    new THREE.TubeGeometry(curve, 160, 0.1, 8, true),
-    new THREE.MeshBasicMaterial({ color: C.cyan, transparent: true, opacity: 0.22, toneMapped: false, depthWrite: false }),
-  );
-  stripBloom.position.set(0, 5.08, 3.1);
-  stripBloom.scale.set(0.972, 1, 0.972);
-  root.add(stripBloom);
   const red = new THREE.MeshBasicMaterial({ color: C.red, toneMapped: false });
-  const fascia = new THREE.Mesh(new THREE.TubeGeometry(curve, 160, 0.042, 6, true), red);
-  fascia.position.set(0, 5.32, 3.1);
-  fascia.scale.set(1.01, 1, 1.01);
+  const fascia = new THREE.Mesh(new THREE.TubeGeometry(curve, 160, 0.03, 6, true), red);
+  fascia.position.set(0, 5.24, 3.1);
+  fascia.scale.set(1.012, 1, 1.012);
   root.add(fascia);
+  const southBand = new THREE.Mesh(new THREE.BoxGeometry(28.2, 0.07, 0.06), red);
+  southBand.position.set(0, 5.2, -4.08);
+  root.add(southBand);
 
   const col = mat(C.chrome, { metalness: 0.72, roughness: 0.34, envMapIntensity: 0.55 });
   for (const x of [-13.2, -4.4, 4.4, 13.2]) {
