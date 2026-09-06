@@ -33,26 +33,26 @@ export function createRenderer(canvas: HTMLCanvasElement): THREE.WebGLRenderer {
 export function createNightProbe(renderer: THREE.WebGLRenderer): THREE.Texture {
   const pmrem = new THREE.PMREMGenerator(renderer);
   const env = new THREE.Scene();
-  env.add(new THREE.HemisphereLight(0xffd0a0, 0x121018, 0.52));
+  env.add(new THREE.HemisphereLight(0xd8d0c8, 0x101018, 0.42));
   const sky = new THREE.Mesh(
     new THREE.SphereGeometry(40, 16, 12),
-    new THREE.MeshBasicMaterial({ color: 0x2a2218, side: THREE.BackSide }),
+    new THREE.MeshBasicMaterial({ color: 0x1c1820, side: THREE.BackSide }),
   );
   env.add(sky);
   for (const [x, y, z, color, r] of [
-    [-10.8, 5.05, 4.4, 0xf2e4c4, 0.2],
-    [-7.2, 5.05, 4.4, 0xf2e4c4, 0.22],
-    [-3.6, 5.05, 4.4, 0xf2e4c4, 0.2],
-    [3.6, 5.05, 4.4, 0xf2e4c4, 0.2],
-    [7.2, 5.05, 4.4, 0xf2e4c4, 0.22],
-    [10.8, 5.05, 4.4, 0xf2e4c4, 0.2],
-    [-7.2, 5.1, -2.8, 0xf0d8b0, 0.28],
-    [7.2, 5.1, -2.8, 0xf0d8b0, 0.28],
-    [-18.6, 1.6, 3.4, 0xc46a28, 0.26],
-    [-16.2, 4.8, -16.4, 0xffc878, 0.18],
-    [16.2, 4.8, -16.4, 0xffc878, 0.18],
-    [-7.4, 1.55, 2.15, 0x8a9098, 0.05],
-    [7.2, 1.55, 2.15, 0x8a9098, 0.05],
+    [-13.6, 5.05, 4.4, 0xf2e4c4, 0.2],
+    [-9.9, 5.05, 4.4, 0xf2e4c4, 0.22],
+    [-6.2, 5.05, 4.4, 0xf2e4c4, 0.2],
+    [8.2, 5.05, 4.4, 0xf2e4c4, 0.2],
+    [11.8, 5.05, 4.4, 0xf2e4c4, 0.22],
+    [15.4, 5.05, 4.4, 0xf2e4c4, 0.2],
+    [-9.9, 5.1, -2.8, 0xf0d8b0, 0.26],
+    [11.8, 5.1, -2.8, 0xf0d8b0, 0.26],
+    [-22.8, 1.6, 3.4, 0xc46a28, 0.22],
+    [-18.0, 4.8, -17.6, 0xffc878, 0.16],
+    [18.0, 4.8, -17.6, 0xffc878, 0.16],
+    [-8.8, 1.55, 2.15, 0x8a9098, 0.05],
+    [11.4, 1.55, 2.15, 0x8a9098, 0.05],
   ] as const) {
     const bulb = new THREE.Mesh(
       new THREE.SphereGeometry(r, 8, 8),

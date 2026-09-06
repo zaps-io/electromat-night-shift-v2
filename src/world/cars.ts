@@ -40,11 +40,11 @@ function paintMaterial(color: THREE.Color): THREE.MeshPhysicalMaterial {
   return new THREE.MeshPhysicalMaterial({
     name: "Paint",
     color,
-    metalness: 0.12,
-    roughness: 0.36,
-    clearcoat: 0.14,
-    clearcoatRoughness: 0.3,
-    envMapIntensity: 0.48,
+    metalness: 0.2,
+    roughness: 0.2,
+    clearcoat: 0.46,
+    clearcoatRoughness: 0.16,
+    envMapIntensity: 0.78,
   });
 }
 
@@ -467,9 +467,9 @@ function lodPaint(color: number): THREE.MeshStandardMaterial {
     mat = new THREE.MeshStandardMaterial({
       name: "LodPaint",
       color,
-      roughness: 0.36,
-      metalness: 0.5,
-      envMapIntensity: 1.1,
+      roughness: 0.24,
+      metalness: 0.42,
+      envMapIntensity: 1.25,
     });
     lodPaintMats.set(color, mat);
   }
@@ -604,11 +604,11 @@ function makeLodHull(color: number, hull: HullKind): THREE.Group {
 
 /** Distant / queue fillers. Last entry is dropped first if WebGL context is lost. */
 export const LOD_FILLERS = [
-  { x: 10.65, z: -5.4, yaw: Math.PI / 2, paint: 0xe8e2d4, waiting: false },
-  { x: -5.55, z: 6.9, yaw: Math.PI / 2, paint: 0xc8ccd0, waiting: false },
-  { x: 5.35, z: 5.4, yaw: -Math.PI / 2, paint: 0x14161c, waiting: false },
-  { x: 7.4, z: 12.4, yaw: Math.PI, paint: 0x3a4048, waiting: false },
-  { x: 0.2, z: -16.2, yaw: Math.PI, paint: 0x2a2e34, waiting: true },
+  { x: 16.05, z: -5.4, yaw: Math.PI / 2, paint: 0xe8e2d4, waiting: false },
+  { x: -9.45, z: 6.9, yaw: Math.PI / 2, paint: 0xc8ccd0, waiting: false },
+  { x: 10.75, z: 5.4, yaw: -Math.PI / 2, paint: 0x1c2434, waiting: false },
+  { x: 12.8, z: 12.4, yaw: Math.PI, paint: 0x6b5344, waiting: false },
+  { x: 0.2, z: -16.2, yaw: Math.PI, paint: 0x2a3848, waiting: true },
 ] as const;
 
 export let lodFillerBudget = 4;
