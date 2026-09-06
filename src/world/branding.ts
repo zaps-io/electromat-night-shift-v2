@@ -23,6 +23,18 @@ export function loadBrandTexture(file: string): Promise<THREE.CanvasTexture> {
   });
 }
 
+function cropZaps(src: THREE.CanvasTexture): THREE.CanvasTexture {
+  const c = document.createElement("canvas");
+  c.width = 512;
+  c.height = 140;
+  const ctx = c.getContext("2d")!;
+  ctx.drawImage(src.image as CanvasImageSource, 0, 20, 932, 160, 0, 0, 512, 140);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.needsUpdate = true;
+  return tex;
+}
+
 function signPlate(w: number, h: number, tex: THREE.Texture): THREE.Mesh {
   const mesh = new THREE.Mesh(
     new THREE.PlaneGeometry(w, h),
@@ -69,41 +81,46 @@ export async function addBrandSignage(root: THREE.Group): Promise<void> {
     loadBrandTexture("wordmark-red.svg"),
   ]);
 
-  const canopyMark = signPlate(5.2, 1.72, red);
-  canopyMark.position.set(0, 5.48, -4.08);
+  const zaps = cropZaps(red);
+  const canopyMark = signPlate(6.4, 1.85, red);
+  canopyMark.position.set(0, 5.52, -4.16);
   canopyMark.rotation.y = Math.PI;
   root.add(canopyMark);
 
   const g = new THREE.Group();
-  g.position.set(-15.4, 0, -12.2);
-  g.rotation.y = 0.46;
+  g.position.set(-11.0, 0, -6.2);
+  g.rotation.y = 0.7;
   const creamBody = new THREE.MeshStandardMaterial({
     color: C.cream,
-    roughness: 0.48,
-    metalness: 0.06,
+    roughness: 0.38,
+    metalness: 0.03,
+    emissive: 0x8a8478,
+    emissiveIntensity: 0.58,
   });
-  const post = new THREE.Mesh(new THREE.BoxGeometry(0.28, 3.15, 0.86), creamBody);
-  post.position.y = 1.58;
-  const cap = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.08, 0.9), creamBody);
-  cap.position.y = 3.18;
+  const post = new THREE.Mesh(new THREE.BoxGeometry(0.42, 3.75, 1.18), creamBody);
+  post.position.y = 1.88;
+  const cap = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.12, 1.24), creamBody);
+  cap.position.y = 3.78;
   const redBand = new THREE.Mesh(
-    new THREE.BoxGeometry(0.3, 0.04, 0.88),
+    new THREE.BoxGeometry(0.46, 0.1, 1.2),
     new THREE.MeshBasicMaterial({ color: C.red, toneMapped: false }),
   );
-  redBand.position.y = 2.72;
-  const mark = signPlate(0.72, 0.24, red);
-  mark.position.set(0.155, 2.42, 0);
+  redBand.position.y = 3.18;
+  const mark = signPlate(1.12, 0.4, red);
+  mark.position.set(0.22, 2.72, 0);
   mark.rotation.y = Math.PI / 2;
   const board = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.62, 0.38),
+    new THREE.PlaneGeometry(0.98, 0.6),
     new THREE.MeshStandardMaterial({
       map: amberBoard(),
+      color: 0xffffff,
       emissive: C.amber,
-      emissiveIntensity: 0.55,
+      emissiveIntensity: 1.3,
+      emissiveMap: amberBoard(),
       toneMapped: false,
     }),
   );
-  board.position.set(0.155, 1.55, 0);
+  board.position.set(0.22, 1.7, 0);
   board.rotation.y = Math.PI / 2;
   g.add(post, cap, redBand, mark, board);
   root.add(g);
@@ -112,5 +129,5 @@ export async function addBrandSignage(root: THREE.Group): Promise<void> {
   kioskMark.position.set(13.6, 2.02, 1.14);
   root.add(kioskMark);
 
-  applyZeusLogos(root, red);
+  applyZeusLogos(root, zaps);
 }

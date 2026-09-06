@@ -49,7 +49,7 @@ export function makeBatteryIcon(): THREE.Sprite {
   const ctx = c.getContext("2d")!;
   ctx.clearRect(0, 0, 320, 200);
   const g = ctx.createRadialGradient(160, 100, 16, 160, 100, 140);
-  g.addColorStop(0, "rgba(0,212,245,0.42)");
+  g.addColorStop(0, "rgba(0,212,245,0.18)");
   g.addColorStop(1, "rgba(0,212,245,0)");
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, 320, 200);
