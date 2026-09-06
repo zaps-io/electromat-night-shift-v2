@@ -162,6 +162,18 @@ function fitSedan(scene: THREE.Group, kind: HullKind): THREE.Group {
   scene.position.z -= (box.min.z + box.max.z) * 0.5;
   scene.position.y -= box.min.y;
   wrap.updateMatrixWorld(true);
+  wrap.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    const b = new THREE.Box3().setFromObject(mesh);
+    const bh = b.max.y - b.min.y;
+    const bw = Math.max(b.max.x - b.min.x, b.max.z - b.min.z);
+    if (bh < 0.07 && bw > 1.1 && b.min.y < 0.18) mesh.visible = false;
+  });
+  wrap.updateMatrixWorld(true);
+  box.setFromObject(wrap);
+  scene.position.y -= box.min.y;
+  wrap.updateMatrixWorld(true);
   return wrap;
 }
 
