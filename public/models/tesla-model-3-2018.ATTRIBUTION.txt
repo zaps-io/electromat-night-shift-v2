@@ -1,0 +1,6 @@
+Title: Tesla 2018 Model 3
+Author: Ameer Studio
+Source: https://sketchfab.com/3d-models/5ef9b845aaf44203b6d04e2c677e444f
+License: CC Attribution (http://creativecommons.org/licenses/by/4.0/)
+UID: 5ef9b845aaf44203b6d04e2c677e444f
+Faces: 684315

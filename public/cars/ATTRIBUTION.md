@@ -1,10 +1,10 @@
 # EV hulls
 
-Guest cars load `public/models/generic-electric-sedan.glb`.
+Guest cars load `public/models/tesla-model-3-2018.glb`.
 
-**Generic Electric sedan vector** by [Antonis_zks](https://sketchfab.com/Antonis_zks)  
-https://sketchfab.com/3d-models/95f32d0d23bf4db48b1b28843385685f  
+**Tesla 2018 Model 3** by [Ameer Studio](https://sketchfab.com/ameerstudio)  
+https://sketchfab.com/3d-models/5ef9b845aaf44203b6d04e2c677e444f  
 License: [CC Attribution 4.0](http://creativecommons.org/licenses/by/4.0/)
 
-`ev-concept.glb` (Khronos CarConcept, CC0) is unused for guests.
+`public/models/generic-electric-sedan.glb` remains as an unused Sketchfab fallback (CC BY 4.0, Antonis_zks).  
 `ev-sedan.glb` / `ev-suv.glb` remain authored fallbacks only (`npm run export:sedan`).
