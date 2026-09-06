@@ -695,11 +695,11 @@ function makeCable(inlet: { x: number; y: number; z: number }): THREE.Mesh {
   ]);
   const mesh = new THREE.Mesh(
     new THREE.TubeGeometry(curve, 28, 0.048, 10, false),
-    new THREE.MeshBasicMaterial({ color: 0x5ef4ff, toneMapped: false }),
+    new THREE.MeshBasicMaterial({ color: 0x2a3338, toneMapped: true }),
   );
   const halo = new THREE.Mesh(
-    new THREE.TubeGeometry(curve, 28, 0.09, 10, false),
-    new THREE.MeshBasicMaterial({ color: 0x00d4f5, transparent: true, opacity: 0.36, toneMapped: false, depthWrite: false }),
+    new THREE.TubeGeometry(curve, 28, 0.062, 10, false),
+    new THREE.MeshBasicMaterial({ color: 0x007888, transparent: true, opacity: 0.16, toneMapped: true, depthWrite: false }),
   );
   mesh.add(halo);
   return mesh;

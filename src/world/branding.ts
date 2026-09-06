@@ -88,39 +88,39 @@ export async function addBrandSignage(root: THREE.Group): Promise<void> {
   root.add(canopyMark);
 
   const g = new THREE.Group();
-  g.position.set(-10.8, 0, -7.4);
-  g.rotation.y = 0.52;
+  g.position.set(-12.2, 0, -9.0);
+  g.rotation.y = 0.82;
   const creamBody = new THREE.MeshStandardMaterial({
     color: C.cream,
-    roughness: 0.42,
-    metalness: 0.04,
-    emissive: 0x3a382e,
-    emissiveIntensity: 0.35,
+    roughness: 0.38,
+    metalness: 0.03,
+    emissive: 0x8a8478,
+    emissiveIntensity: 0.58,
   });
-  const post = new THREE.Mesh(new THREE.BoxGeometry(0.34, 3.45, 1.05), creamBody);
-  post.position.y = 1.72;
-  const cap = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.1, 1.1), creamBody);
-  cap.position.y = 3.48;
+  const post = new THREE.Mesh(new THREE.BoxGeometry(0.42, 3.75, 1.18), creamBody);
+  post.position.y = 1.88;
+  const cap = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.12, 1.24), creamBody);
+  cap.position.y = 3.78;
   const redBand = new THREE.Mesh(
-    new THREE.BoxGeometry(0.36, 0.06, 1.06),
+    new THREE.BoxGeometry(0.46, 0.1, 1.2),
     new THREE.MeshBasicMaterial({ color: C.red, toneMapped: false }),
   );
-  redBand.position.y = 2.92;
-  const mark = signPlate(0.92, 0.32, red);
-  mark.position.set(0.18, 2.55, 0);
+  redBand.position.y = 3.18;
+  const mark = signPlate(1.12, 0.4, red);
+  mark.position.set(0.22, 2.72, 0);
   mark.rotation.y = Math.PI / 2;
   const board = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.82, 0.5),
+    new THREE.PlaneGeometry(0.98, 0.6),
     new THREE.MeshStandardMaterial({
       map: amberBoard(),
       color: 0xffffff,
       emissive: C.amber,
-      emissiveIntensity: 1.05,
+      emissiveIntensity: 1.3,
       emissiveMap: amberBoard(),
       toneMapped: false,
     }),
   );
-  board.position.set(0.18, 1.62, 0);
+  board.position.set(0.22, 1.7, 0);
   board.rotation.y = Math.PI / 2;
   g.add(post, cap, redBand, mark, board);
   root.add(g);
