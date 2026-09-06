@@ -54,9 +54,9 @@ function asphaltMaps(): {
   const r = rough.getContext("2d")!;
   const h = height.getContext("2d")!;
   const a = alpha.getContext("2d")!;
-  c.fillStyle = "#121418";
+  c.fillStyle = "#08090c";
   c.fillRect(0, 0, size, size);
-  r.fillStyle = "#7a7a7a";
+  r.fillStyle = "#6e6e6e";
   r.fillRect(0, 0, size, size);
   h.fillStyle = "#787878";
   h.fillRect(0, 0, size, size);
@@ -65,8 +65,8 @@ function asphaltMaps(): {
   for (let i = 0; i < 22000; i++) {
     const x = Math.random() * size;
     const y = Math.random() * size;
-    const n = 22 + Math.random() * 38;
-    c.fillStyle = `rgba(${n},${n + 2},${n + 4},${0.22 + Math.random() * 0.32})`;
+    const n = 12 + Math.random() * 22;
+    c.fillStyle = `rgba(${n},${n + 1},${n + 3},${0.18 + Math.random() * 0.28})`;
     c.fillRect(x, y, 1 + Math.random() * 2, 1 + Math.random() * 2);
     const rv = 110 + Math.random() * 70;
     r.fillStyle = `rgb(${rv},${rv},${rv})`;
@@ -136,16 +136,16 @@ function makeAsphalt(root: THREE.Group): THREE.Mesh {
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(78, 68),
     new THREE.MeshPhysicalMaterial({
-      color: 0x0a0c10,
+      color: 0x07080b,
       map: maps.map,
-      roughness: 0.68,
+      roughness: 0.78,
       roughnessMap: maps.rough,
-      metalness: 0.02,
+      metalness: 0.01,
       normalMap: maps.normal,
-      normalScale: new THREE.Vector2(0.18, 0.18),
-      envMapIntensity: 0.2,
-      clearcoat: 0.03,
-      clearcoatRoughness: 0.62,
+      normalScale: new THREE.Vector2(0.22, 0.22),
+      envMapIntensity: 0.12,
+      clearcoat: 0.015,
+      clearcoatRoughness: 0.78,
     }),
   );
   ground.rotation.x = -Math.PI / 2;
@@ -157,19 +157,19 @@ function makeAsphalt(root: THREE.Group): THREE.Mesh {
 
 export function addLotMirror(root: THREE.Group, _renderer: THREE.WebGLRenderer): void {
   const sheen = new THREE.MeshPhysicalMaterial({
-    color: 0x0a0c10,
-    roughness: 0.52,
-    metalness: 0.03,
-    clearcoat: 0.03,
-    clearcoatRoughness: 0.6,
-    envMapIntensity: 0.18,
+    color: 0x07080b,
+    roughness: 0.62,
+    metalness: 0.02,
+    clearcoat: 0.02,
+    clearcoatRoughness: 0.72,
+    envMapIntensity: 0.12,
     transparent: true,
-    opacity: 0.04,
+    opacity: 0.03,
   });
   for (const [x, z, w, d] of [
-    [-6.8, 2.8, 9.4, 18.0],
-    [8.0, 2.4, 12.4, 18.0],
-    [0.0, -8.0, 3.0, 10.0],
+    [-9.9, 2.8, 9.4, 18.0],
+    [11.8, 2.4, 12.4, 18.0],
+    [0.0, -8.0, 4.2, 10.0],
   ] as const) {
     const patch = new THREE.Mesh(new THREE.PlaneGeometry(w, d), sheen);
     patch.rotation.x = -Math.PI / 2;
@@ -180,20 +180,20 @@ export function addLotMirror(root: THREE.Group, _renderer: THREE.WebGLRenderer):
 }
 
 function addLaneMarks(root: THREE.Group): void {
-  const white = new THREE.MeshBasicMaterial({ color: 0xf2f0ea, toneMapped: false });
+  const white = new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false });
   for (let i = 0; i < 12; i++) {
-    const dash = box(0.1, 0.01, 0.7, white, 0, 0.018, -14.2 + i * 1.35);
+    const dash = box(0.14, 0.012, 0.82, white, 0, 0.02, -14.2 + i * 1.35);
     dash.castShadow = false;
     root.add(dash);
   }
-  for (const x of [-7.2, 7.2]) {
+  for (const x of [-3.15, 3.15]) {
     for (let i = 0; i < 4; i++) {
-      const dash = box(0.08, 0.01, 0.5, white, x, 0.018, -8.8 + i * 1.15);
+      const dash = box(0.1, 0.012, 0.55, white, x, 0.02, -8.8 + i * 1.15);
       dash.castShadow = false;
       root.add(dash);
     }
   }
-  const arrow = box(0.5, 0.012, 0.12, white, 0, 0.02, -15.2);
+  const arrow = box(0.58, 0.014, 0.14, white, 0, 0.022, -15.2);
   root.add(arrow);
 }
 
@@ -201,8 +201,8 @@ function addBayOutline(root: THREE.Group, x: number, z: number, yaw: number, ada
   const g = new THREE.Group();
   g.position.set(x, 0.018, z);
   g.rotation.y = yaw + Math.PI / 2;
-  const paint = new THREE.MeshBasicMaterial({ color: ada ? 0x3d7ad6 : 0xf4f1ea, toneMapped: false });
-  const t = 0.055;
+  const paint = new THREE.MeshBasicMaterial({ color: ada ? 0x4a8ae8 : 0xffffff, toneMapped: false });
+  const t = 0.07;
   const { w, d } = BAY_SIZE;
   g.add(box(w, 0.012, t, paint, 0, 0, d / 2));
   g.add(box(w, 0.012, t, paint, 0, 0, -d / 2));
@@ -234,13 +234,13 @@ function roundedRectShape(w: number, d: number, r: number): THREE.Shape {
 }
 
 function addCanopyAt(root: THREE.Group, cx: number, cz: number, w: number, d: number, y: number, shadow: boolean): void {
-  const shell = mat(0xf3eee4, { roughness: 0.4, metalness: 0.12, envMapIntensity: 0.42 });
+  const shell = mat(0xf7f4ee, { roughness: 0.34, metalness: 0.1, envMapIntensity: 0.48 });
   const under = new THREE.MeshStandardMaterial({
-    color: 0xe7e2d6,
-    emissive: 0xb8a888,
-    emissiveIntensity: 0.18,
-    roughness: 0.6,
-    metalness: 0.03,
+    color: 0xefe8d8,
+    emissive: 0xc49a58,
+    emissiveIntensity: 0.32,
+    roughness: 0.55,
+    metalness: 0.02,
   });
   const topGeo = new THREE.ExtrudeGeometry(roundedRectShape(w, d, 1.35), {
     depth: 0.58,
@@ -287,9 +287,9 @@ function addCanopyAt(root: THREE.Group, cx: number, cz: number, w: number, d: nu
 
   const well = mat(0x3a3e44, { roughness: 0.58 });
   const lamp = new THREE.MeshStandardMaterial({
-    color: 0xf4e8d0,
-    emissive: 0xe8d2a8,
-    emissiveIntensity: 0.62,
+    color: 0xffe8c0,
+    emissive: 0xf0c070,
+    emissiveIntensity: 0.85,
     toneMapped: false,
   });
   const zs = [cz - d * 0.28, cz, cz + d * 0.28];
@@ -301,7 +301,7 @@ function addCanopyAt(root: THREE.Group, cx: number, cz: number, w: number, d: nu
     disc.position.set(cx, y - 0.14, z);
     root.add(recess, disc);
   }
-  const light = new THREE.SpotLight(0xf2e4c4, shadow ? 52 : 34, 14, 0.68, 0.55, 1.15);
+  const light = new THREE.SpotLight(0xf4d8a0, shadow ? 38 : 26, 11, 0.58, 0.62, 1.35);
   light.position.set(cx, y - 0.16, cz);
   light.target.position.set(cx, 0, cz);
   light.castShadow = shadow;
@@ -334,16 +334,16 @@ function addPavilion(root: THREE.Group): THREE.Box3 {
   const g = new THREE.Group();
   g.position.set(PAVILION.x, 0, PAVILION.z);
   g.rotation.y = PAVILION.yaw;
-  const wall = mat(0xf6f1e6, { roughness: 0.46, metalness: 0.05, envMapIntensity: 0.34, emissive: 0x3a3428, emissiveIntensity: 0.08 });
+  const wall = mat(0xf8f4ec, { roughness: 0.42, metalness: 0.04, envMapIntensity: 0.38, emissive: 0x2a2418, emissiveIntensity: 0.05 });
   const glass = new THREE.MeshPhysicalMaterial({
-    color: 0x3a2818,
-    roughness: 0.1,
-    metalness: 0.04,
-    transmission: 0.06,
+    color: 0x6a8898,
+    roughness: 0.06,
+    metalness: 0.08,
+    transmission: 0.12,
     transparent: true,
-    opacity: 0.28,
-    thickness: 0.08,
-    envMapIntensity: 0.4,
+    opacity: 0.34,
+    thickness: 0.06,
+    envMapIntensity: 0.85,
     side: THREE.DoubleSide,
   });
   const W = PAVILION.w;
@@ -383,7 +383,7 @@ function addPavilion(root: THREE.Group): THREE.Box3 {
   g.add(box(0.6, 0.85, 0.6, shade, -0.15, 0.55, 1.05));
   addPerson(g, -1.4, -0.4, 1.4, 1.56);
   addPerson(g, -1.25, 0.55, 1.7, 1.6);
-  const spill = new THREE.PointLight(0xe89a2e, 28, 10, 1.4);
+  const spill = new THREE.PointLight(0xe89a2e, 14, 8, 1.6);
   spill.position.set(-0.3, 2.0, 0);
   g.add(spill);
 
@@ -505,17 +505,19 @@ function addDesertBed(root: THREE.Group, x: number, z: number, w: number, d: num
 }
 
 function addPlanters(root: THREE.Group): void {
-  addDesertBed(root, -8.6, -15.2, 9.2, 2.6);
-  addDesertBed(root, 8.6, -15.2, 9.2, 2.6);
+  addDesertBed(root, -11.4, -16.4, 10.4, 2.8);
+  addDesertBed(root, 11.8, -16.4, 10.4, 2.8);
+  addDesertBed(root, -26.2, -10.6, 4.2, 8.4);
+  addDesertBed(root, 24.4, -6.4, 3.6, 6.8);
   const walk = mat(0xc8c2b4, { roughness: 0.7 });
-  const sidewalk = box(36, 0.08, 1.8, walk, 0, 0.03, -17.2);
+  const sidewalk = box(52, 0.08, 1.9, walk, 0, 0.03, -18.4);
   sidewalk.castShadow = false;
   root.add(sidewalk);
   for (const [x, z, h] of [
-    [-20.4, 10.6, 6.4],
-    [-16.8, 12.4, 5.8],
-    [16.6, 11.8, 6.2],
-    [20.2, 8.4, 5.6],
+    [-22.6, 11.2, 6.4],
+    [-18.8, 13.0, 5.8],
+    [20.2, 12.2, 6.2],
+    [24.0, 8.8, 5.6],
   ] as const) {
     addPalm(root, x, z, h);
   }
@@ -523,8 +525,8 @@ function addPlanters(root: THREE.Group): void {
 
 function addHatch(root: THREE.Group): void {
   const hatch = new THREE.MeshBasicMaterial({ color: 0xe8e4dc, toneMapped: false });
-  for (let i = 0; i < 9; i++) {
-    const x = -14.4 + i * 0.72;
+  for (let i = 0; i < 10; i++) {
+    const x = -16.6 + i * 0.72;
     const a = box(0.7, 0.008, 0.08, hatch, x, 0.02, 3.45);
     a.rotation.y = 0.7;
     const b = box(0.7, 0.008, 0.08, hatch, x, 0.02, 3.45);
@@ -545,16 +547,16 @@ function addArrows(root: THREE.Group): void {
   chevron(0, -15.4, 0);
   chevron(0, -10.2, 0);
   chevron(0, 11.6, 0);
-  chevron(-13.6, 13.8, Math.PI / 2);
-  chevron(14.2, 13.6, -Math.PI / 2);
-  chevron(-13.8, -8.4, Math.PI);
-  chevron(14.4, -8.2, Math.PI);
+  chevron(-16.2, 13.8, Math.PI / 2);
+  chevron(17.4, 13.6, -Math.PI / 2);
+  chevron(-16.4, -8.4, Math.PI);
+  chevron(17.6, -8.2, Math.PI);
 }
 
 function addParking(root: THREE.Group): void {
   const paint = new THREE.MeshBasicMaterial({ color: 0xe8e4dc, toneMapped: false });
   for (let i = 0; i < 7; i++) {
-    const x = -23.6 + i * 2.55;
+    const x = -25.8 + i * 2.55;
     const z = 14.8;
     root.add(box(2.2, 0.01, 0.05, paint, x, 0.02, z + 2.4));
     root.add(box(2.2, 0.01, 0.05, paint, x, 0.02, z - 2.4));
@@ -618,12 +620,12 @@ function addStreetlights(root: THREE.Group): void {
     toneMapped: false,
   });
   for (const [x, z] of [
-    [-16.8, -16.8],
-    [16.8, -16.8],
-    [-24.2, 3.2],
-    [22.4, 3.2],
-    [-16.8, 13.6],
-    [12.4, 16.4],
+    [-18.4, -18.0],
+    [18.4, -18.0],
+    [-26.4, 3.2],
+    [25.2, 3.2],
+    [-18.8, 13.6],
+    [16.2, 16.6],
   ]) {
     const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.06, 5.2, 8), poleMat);
     pole.position.set(x, 2.6, z);
@@ -631,8 +633,8 @@ function addStreetlights(root: THREE.Group): void {
     disc.position.set(x, 5.22, z);
     root.add(pole, disc);
   }
-  const glow = new THREE.PointLight(0xffc878, 2.1, 9, 1.8);
-  glow.position.set(-16.2, 5.0, -16.4);
+  const glow = new THREE.PointLight(0xffc878, 1.6, 8, 1.8);
+  glow.position.set(-18.0, 5.0, -17.6);
   root.add(glow);
 }
 

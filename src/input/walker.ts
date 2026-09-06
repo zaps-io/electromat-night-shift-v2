@@ -134,8 +134,8 @@ export class Walker {
         this.yaw = Math.atan2(-delta.x, -delta.z);
       }
     }
-    this.position.x = THREE.MathUtils.clamp(this.position.x, -28, 26);
-    this.position.z = THREE.MathUtils.clamp(this.position.z, -24, 22);
+    this.position.x = THREE.MathUtils.clamp(this.position.x, -29, 26);
+    this.position.z = THREE.MathUtils.clamp(this.position.z, -22, 20);
     this.sync();
   }
 
