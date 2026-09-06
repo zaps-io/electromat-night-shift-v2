@@ -97,8 +97,8 @@ function dropIn(): void {
   setHum(true);
   if (state.phase === "title") seedOpeningLot(state);
   hideTitle();
-  walker.place(0.55, -11.4, 0.18, -0.08, 1.48);
-  walker.lookAt(-6.4, 1.42, 3.2);
+  walker.place(1.2, -11.0, 0.12, -0.06, 1.48);
+  walker.lookAt(-4.8, 1.35, 3.8);
 }
 
 function restart(): void {
@@ -322,8 +322,8 @@ async function saveShots(): Promise<void> {
   }
   await new Promise((r) => setTimeout(r, 600));
   await post("/workspace/docs/shots/startnight-lot.png", capture(1280, 800));
-  walker.place(-6.2, -1.4);
-  walker.lookAt(-2.7, 0.72, 4.2);
+  walker.place(-5.4, -1.6);
+  walker.lookAt(-3.6, 0.72, 4.2);
   await new Promise((r) => setTimeout(r, 200));
   await post("/workspace/docs/shots/lot-rear34.png", capture(1280, 800));
   walker.place(WIDE_SHOT.x, WIDE_SHOT.z, WIDE_SHOT.yaw, WIDE_SHOT.pitch, WIDE_SHOT.eyeY);

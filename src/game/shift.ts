@@ -161,6 +161,7 @@ export function seedOpeningLot(s: GameState): void {
   const hale = guestById(s, "hale")!;
   const ruiz = guestById(s, "ruiz")!;
   const vora = guestById(s, "vora")!;
+  const chen = guestById(s, "chen")!;
   const peck = guestById(s, "peck")!;
   hale.assignedBay = 1;
   hale.plugged = true;
@@ -174,16 +175,22 @@ export function seedOpeningLot(s: GameState): void {
   ruiz.greeted = true;
   ruiz.delivered = 2;
   s.bays[1].guestId = "ruiz";
-  vora.assignedBay = 4;
+  vora.assignedBay = 3;
   vora.plugged = true;
   vora.authorized = true;
   vora.greeted = true;
   vora.delivered = 3;
-  s.bays[3].guestId = "vora";
+  s.bays[2].guestId = "vora";
+  chen.assignedBay = 5;
+  chen.plugged = true;
+  chen.authorized = true;
+  chen.greeted = true;
+  chen.delivered = 2;
+  s.bays[4].guestId = "chen";
   peck.greeted = false;
-  s.plugs = 3;
+  s.plugs = 4;
   s.autochargeSignups = 0;
-  speak(s, "Three on charge. Queue is building.", 10);
+  speak(s, "Four on charge. Queue is building.", 10);
 }
 
 export function resetNight(): GameState {

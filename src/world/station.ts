@@ -143,16 +143,16 @@ function makeAsphalt(root: THREE.Group): THREE.Mesh {
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(56, 48),
     new THREE.MeshPhysicalMaterial({
-      color: 0x15171b,
+      color: 0x101214,
       map: maps.map,
-      roughness: 0.2,
+      roughness: 0.18,
       roughnessMap: maps.rough,
-      metalness: 0.09,
+      metalness: 0.1,
       normalMap: maps.normal,
-      normalScale: new THREE.Vector2(0.16, 0.16),
-      envMapIntensity: 1.9,
-      clearcoat: 0.78,
-      clearcoatRoughness: 0.08,
+      normalScale: new THREE.Vector2(0.14, 0.14),
+      envMapIntensity: 2.15,
+      clearcoat: 0.82,
+      clearcoatRoughness: 0.06,
     }),
   );
   ground.rotation.x = -Math.PI / 2;
@@ -180,6 +180,27 @@ export function addLotMirror(root: THREE.Group, renderer: THREE.WebGLRenderer): 
     mirror.position.set(x, 0.012, z);
     mirror.name = "lotPuddle";
     root.add(mirror);
+  }
+  const sheen = new THREE.MeshPhysicalMaterial({
+    color: 0x0c0e12,
+    roughness: 0.07,
+    metalness: 0.14,
+    clearcoat: 1,
+    clearcoatRoughness: 0.035,
+    envMapIntensity: 2.6,
+    transparent: true,
+    opacity: 0.48,
+  });
+  for (const [x, z, w, d] of [
+    [-3.2, 3.8, 6.4, 2.2],
+    [6.4, 3.6, 5.6, 2.0],
+    [1.2, -6.8, 4.2, 1.6],
+  ] as const) {
+    const patch = new THREE.Mesh(new THREE.PlaneGeometry(w, d), sheen);
+    patch.rotation.x = -Math.PI / 2;
+    patch.position.set(x, 0.007, z);
+    patch.receiveShadow = true;
+    root.add(patch);
   }
 }
 
@@ -398,13 +419,13 @@ function addCanopy(root: THREE.Group): void {
         const light = new THREE.SpotLight(0xe8eef6, intensity, 13, 0.72, 0.52, 1.1);
         light.position.set(x, 5.02, z);
         light.target.position.set(x, 0, z);
-        light.castShadow = shadow && (x === -2.45 || x === 2.45);
+        light.castShadow = shadow && (x === -3.6 || x === 3.6);
         root.add(recess, disc, light, light.target);
       }
     }
   };
-  hang([-8.2, -2.7, 2.7, 8.2], [4.2], 420, true);
-  hang([-9, -3, 3, 9], [1.1, 7.2], 190, false);
+  hang([-7.2, 0, 7.2], [4.2], 380, true);
+  hang([-3.6, 3.6, 10.8], [4.2], 220, false);
 }
 
 function addPerson(g: THREE.Group, x: number, z: number, yaw: number, h = 1.7): void {
@@ -539,7 +560,7 @@ function addPalm(root: THREE.Group, x: number, z: number, h = 5.2): void {
   const crown = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), frond);
   crown.position.set(x, h * 0.96, z);
   root.add(crown);
-  for (let i = 0; i < 14; i++) {
+  for (let i = 0; i < 10; i++) {
     const leaf = new THREE.Mesh(new THREE.PlaneGeometry(0.16, 2.55), frond);
     leaf.position.set(x, h * 0.95, z);
     leaf.rotation.order = "YXZ";
@@ -641,6 +662,8 @@ function addPlanters(root: THREE.Group): void {
     [16.2, -5.6, 5.6],
     [-10.8, -13.4, 5.4],
     [8.4, -12.8, 5.2],
+    [-20.4, 8.2, 7.8],
+    [2.2, 16.4, 7.2],
   ] as const) {
     addPalm(root, x, z, h);
   }
@@ -649,9 +672,9 @@ function addPlanters(root: THREE.Group): void {
 function addStreetlights(root: THREE.Group): void {
   const poleMat = mat(0x1c1e22, { roughness: 0.48, metalness: 0.4 });
   const lamp = new THREE.MeshStandardMaterial({
-    color: 0xffe8c4,
-    emissive: 0xffd090,
-    emissiveIntensity: 1.85,
+    color: 0xffd090,
+    emissive: 0xffb050,
+    emissiveIntensity: 2.15,
     toneMapped: false,
   });
   for (const [x, z] of [

@@ -105,6 +105,24 @@ export function buildSkyline(): THREE.Group {
     tower.position.set(x, h * 0.5 - 0.4, z);
     root.add(tower);
   }
+  const glass = new THREE.MeshBasicMaterial({ color: 0x8ec8ff, toneMapped: false });
+  for (const [x, h, z] of [
+    [-38, 18, 36],
+    [-34.6, 22, 35.4],
+    [-31.4, 16, 36.6],
+    [-28.8, 20, 35.2],
+    [-25.6, 14, 36.2],
+  ] as const) {
+    const tower = new THREE.Mesh(new THREE.BoxGeometry(2.1, h, 2.4), dark);
+    tower.position.set(x, h * 0.5 - 0.6, z);
+    root.add(tower);
+    for (let r = 2; r < h - 1; r += 1.1) {
+      const pane = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.18), glass);
+      pane.position.set(x, r, z - 1.22);
+      pane.rotation.y = Math.PI;
+      root.add(pane);
+    }
+  }
 
   const fenceMat = new THREE.MeshBasicMaterial({
     map: chainTexture(),

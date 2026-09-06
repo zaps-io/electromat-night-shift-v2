@@ -10,6 +10,9 @@ export function nightRoster(): Guest[] {
     guest("ng", "Ng", "LOT-17", "kiosk", "I'll wait. Then pay.", base + 3, 24, 0xe8e2d4, 34, "sedan"),
     guest("vora", "Vora", "CYN-09", "auto", "Listed. Just plug me.", base + 2, 20, 0xc8ccd0, 40, "sedan"),
     guest("kim", "Kim", "AMB-3", "kiosk", "Night shift. Need a stall.", base + 3, 22, 0x2a2c32, 30, "sedan"),
+    guest("chen", "Chen", "PHX-12", "auto", "On file. Just plug.", base + 2, 20, 0x3a4048, 36, "sedan"),
+    guest("das", "Das", "LOT-22", "kiosk", "I can wait.", base + 18, 24, 0xd8d2c6, 32, "sedan"),
+    guest("ortiz", "Ortiz", "NS-90", "kiosk", "Queue's long. Still here.", base + 4, 24, 0x1a1c22, 30, "sedan"),
   ];
 }
 

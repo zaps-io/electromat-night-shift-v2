@@ -1,6 +1,6 @@
 export const SHIFT_START = 22 * 60;
 export const SHIFT_END = 28 * 60;
-export const BAY_COUNT = 4;
+export const BAY_COUNT = 6;
 export const MS_PER_GAME_MIN = Math.round((10 * 60 * 1000) / (SHIFT_END - SHIFT_START));
 export const WALKAWAY_LOSE = 3;
 
