@@ -285,7 +285,7 @@ function roundedRectShape(w: number, d: number, r: number): THREE.Shape {
 
 function addCanopy(root: THREE.Group): void {
   const shell = mat(0xf2eee6, { roughness: 0.38, metalness: 0.06, envMapIntensity: 0.7 });
-  const under = mat(0xe4dfd6, { roughness: 0.62, metalness: 0.04 });
+  const under = mat(0xf7f3ea, { roughness: 0.48, metalness: 0.04 });
   const topGeo = new THREE.ExtrudeGeometry(roundedRectShape(30.4, 14.4, 2.15), {
     depth: 0.2,
     bevelEnabled: true,
@@ -343,7 +343,7 @@ function addCanopy(root: THREE.Group): void {
   root.add(bloom);
 
   const innerLed = new THREE.MeshBasicMaterial({ color: 0xfff4dc, toneMapped: false });
-  const inner = new THREE.Mesh(new THREE.TubeGeometry(curve, 120, 0.02, 6, true), innerLed);
+  const inner = new THREE.Mesh(new THREE.TubeGeometry(curve, 140, 0.035, 6, true), innerLed);
   inner.position.set(0, 5.08, 3.1);
   inner.scale.set(0.94, 1, 0.94);
   root.add(inner);
@@ -358,7 +358,7 @@ function addCanopy(root: THREE.Group): void {
     }
   }
 
-  const well = mat(0x0a0a0e, { roughness: 0.78 });
+  const well = mat(0x2a2824, { roughness: 0.62 });
   const lamp = new THREE.MeshStandardMaterial({
     color: 0xffe2b0,
     emissive: 0xffd090,
@@ -557,9 +557,10 @@ function addPlanterArc(
 }
 
 function addPlanters(root: THREE.Group): void {
-  addPlanterArc(root, -1.2, -4.2, 8.6, 3.5, 5.15, 12);
-  addPlanterArc(root, 2.4, 12.8, 16, 3.7, 5.6, 10);
-  addPlanterArc(root, -14.5, 2.2, 4.4, -0.4, 1.4, 6);
+  addPlanterArc(root, -1.2, -4.2, 8.6, 3.5, 5.15, 14);
+  addPlanterArc(root, 2.4, 12.8, 16, 3.7, 5.6, 12);
+  addPlanterArc(root, -14.5, 2.2, 4.4, -0.4, 1.4, 7);
+  addPlanterArc(root, 10.8, -6.4, 7.2, 2.2, 3.6, 8);
   for (const [x, z, h] of [
     [-16.4, 11.2, 6.2],
     [-10.8, 13.6, 5.6],
