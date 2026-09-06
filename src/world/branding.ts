@@ -86,12 +86,12 @@ export async function addBrandSignage(root: THREE.Group): Promise<void> {
   }
 
   const loungeMark = signPlate(3.4, 0.76, red);
-  loungeMark.position.set(-16.95, 2.85, 3.4);
+  loungeMark.position.set(-17.55, 2.85, 3.4);
   loungeMark.rotation.y = Math.PI / 2;
   root.add(loungeMark);
 
   const loungeFront = signPlate(2.8, 0.62, red);
-  loungeFront.position.set(-22.8, 2.95, -3.35);
+  loungeFront.position.set(-23.4, 2.95, -3.35);
   loungeFront.rotation.y = Math.PI;
   root.add(loungeFront);
 

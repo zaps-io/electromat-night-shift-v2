@@ -2,95 +2,71 @@ import * as THREE from "three";
 import { C } from "../brand";
 
 /**
- * GoldenEye-style FPV attendant hand: rounded palm, two-knuckle fingers,
- * charcoal cuff. No toy box-palm, no hand lamp.
+ * GoldenEye-style FPV hand: one rounded palm mass, short curled fingers,
+ * charcoal cuff. No box palm, no sausage-joint toy, no hand lamp.
  */
 export function makeAttendantHand(): THREE.Group {
   const skin = new THREE.MeshStandardMaterial({
-    color: 0x8a5a38,
-    roughness: 0.58,
+    color: 0x7a4f32,
+    roughness: 0.64,
     metalness: 0.02,
-    envMapIntensity: 0.18,
-  });
-  const knuckle = new THREE.MeshStandardMaterial({
-    color: 0x7a4e30,
-    roughness: 0.62,
-    metalness: 0.02,
-    envMapIntensity: 0.14,
+    envMapIntensity: 0.12,
   });
   const sleeve = new THREE.MeshStandardMaterial({
     color: C.charcoal,
-    roughness: 0.84,
-    metalness: 0.04,
-  });
-  const cuff = new THREE.MeshStandardMaterial({
-    color: 0x2c2c34,
-    roughness: 0.72,
-    metalness: 0.05,
+    roughness: 0.86,
+    metalness: 0.03,
   });
 
   const root = new THREE.Group();
   root.name = "attendant-hand";
   root.userData.kind = "hand";
 
-  const forearm = new THREE.Mesh(new THREE.CapsuleGeometry(0.038, 0.16, 6, 12), sleeve);
-  forearm.rotation.z = 1.12;
-  forearm.rotation.x = 0.22;
-  forearm.position.set(-0.03, -0.03, 0.1);
+  const forearm = new THREE.Mesh(new THREE.CapsuleGeometry(0.036, 0.14, 6, 12), sleeve);
+  forearm.rotation.z = 1.05;
+  forearm.rotation.x = 0.28;
+  forearm.position.set(-0.018, -0.028, 0.09);
   root.add(forearm);
 
-  const band = new THREE.Mesh(new THREE.TorusGeometry(0.04, 0.007, 8, 18), cuff);
-  band.rotation.x = Math.PI / 2;
-  band.rotation.z = 0.2;
-  band.position.set(0.055, 0.006, 0.03);
-  root.add(band);
+  const cuff = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.038, 0.028, 12), sleeve);
+  cuff.rotation.z = 1.05;
+  cuff.position.set(0.05, 0.004, 0.028);
+  root.add(cuff);
 
-  const palm = new THREE.Mesh(new THREE.SphereGeometry(0.046, 14, 10), skin);
-  palm.scale.set(1.22, 0.52, 1.38);
-  palm.position.set(0.092, 0.016, -0.012);
-  palm.rotation.x = -0.18;
-  palm.rotation.z = 0.1;
+  const palm = new THREE.Mesh(new THREE.SphereGeometry(0.052, 16, 12), skin);
+  palm.scale.set(1.05, 0.42, 1.28);
+  palm.position.set(0.088, 0.012, -0.008);
+  palm.rotation.x = -0.22;
+  palm.rotation.z = 0.12;
   root.add(palm);
 
-  const heel = new THREE.Mesh(new THREE.SphereGeometry(0.028, 10, 8), knuckle);
-  heel.scale.set(1.15, 0.7, 0.85);
-  heel.position.set(0.07, 0.01, 0.028);
-  root.add(heel);
+  const pad = new THREE.Mesh(new THREE.SphereGeometry(0.03, 12, 10), skin);
+  pad.scale.set(1.35, 0.38, 0.9);
+  pad.position.set(0.086, 0.0, 0.018);
+  root.add(pad);
 
-  const thumb = new THREE.Group();
-  thumb.position.set(0.052, 0.028, 0.018);
-  thumb.rotation.set(0.55, 0.85, 0.55);
-  const thumbProx = new THREE.Mesh(new THREE.CapsuleGeometry(0.011, 0.028, 5, 8), skin);
-  const thumbDist = new THREE.Mesh(new THREE.CapsuleGeometry(0.009, 0.022, 5, 8), skin);
-  thumbDist.position.set(0, 0.002, -0.028);
-  thumbDist.rotation.x = 0.35;
-  thumb.add(thumbProx, thumbDist);
+  const thumb = new THREE.Mesh(new THREE.CapsuleGeometry(0.012, 0.046, 6, 10), skin);
+  thumb.position.set(0.05, 0.024, 0.012);
+  thumb.rotation.set(0.85, 1.05, 0.35);
   root.add(thumb);
 
   const digits = [
-    { x: 0.07, y: 0.02, z: -0.062, len: 0.032, tip: 0.028, curl: 0.42, splay: -0.1 },
-    { x: 0.092, y: 0.022, z: -0.068, len: 0.036, tip: 0.03, curl: 0.38, splay: 0.0 },
-    { x: 0.112, y: 0.02, z: -0.064, len: 0.034, tip: 0.028, curl: 0.4, splay: 0.1 },
-    { x: 0.128, y: 0.016, z: -0.054, len: 0.026, tip: 0.022, curl: 0.48, splay: 0.2 },
+    { x: 0.068, y: 0.016, z: -0.058, len: 0.05, splay: -0.08 },
+    { x: 0.09, y: 0.018, z: -0.064, len: 0.056, splay: 0.0 },
+    { x: 0.11, y: 0.016, z: -0.06, len: 0.052, splay: 0.08 },
+    { x: 0.126, y: 0.012, z: -0.05, len: 0.042, splay: 0.16 },
   ];
   for (const d of digits) {
-    const finger = new THREE.Group();
+    const finger = new THREE.Mesh(new THREE.CapsuleGeometry(0.0095, d.len, 6, 10), skin);
     finger.position.set(d.x, d.y, d.z);
-    finger.rotation.x = 0.72 + d.curl;
+    finger.rotation.x = 1.05;
     finger.rotation.y = d.splay;
-    const prox = new THREE.Mesh(new THREE.CapsuleGeometry(0.0085, d.len, 5, 8), skin);
-    const mid = new THREE.Mesh(new THREE.SphereGeometry(0.008, 8, 6), knuckle);
-    mid.position.set(0, 0, -d.len * 0.52);
-    const dist = new THREE.Mesh(new THREE.CapsuleGeometry(0.0072, d.tip, 5, 8), skin);
-    dist.position.set(0, 0.001, -d.len * 0.52 - d.tip * 0.55);
-    dist.rotation.x = 0.38;
-    finger.add(prox, mid, dist);
     root.add(finger);
   }
 
-  root.position.set(0.22, -0.22, -0.42);
-  root.rotation.set(0.32, -0.1, 0.08);
-  root.scale.setScalar(1.08);
+  root.position.set(0.2, -0.24, -0.4);
+  root.rotation.set(0.38, -0.08, 0.06);
+  root.scale.setScalar(1.04);
   root.traverse((o) => {
     const mesh = o as THREE.Mesh;
     if (mesh.isMesh) {
@@ -105,6 +81,6 @@ export function makeAttendantHand(): THREE.Group {
 export function tickHand(hand: THREE.Object3D, now: number, eyeY: number): void {
   hand.visible = eyeY < 3.2;
   if (!hand.visible) return;
-  hand.rotation.x = 0.32 + Math.sin(now * 1.2) * 0.012;
-  hand.position.y = -0.22 + Math.sin(now * 1.05) * 0.004;
+  hand.rotation.x = 0.38 + Math.sin(now * 1.15) * 0.01;
+  hand.position.y = -0.24 + Math.sin(now * 1.02) * 0.003;
 }

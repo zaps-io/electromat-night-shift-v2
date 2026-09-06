@@ -167,8 +167,8 @@ export function addLotMirror(root: THREE.Group, _renderer: THREE.WebGLRenderer):
     opacity: 0.03,
   });
   for (const [x, z, w, d] of [
-    [-9.9, 2.8, 9.4, 18.0],
-    [11.8, 2.4, 12.4, 18.0],
+    [-10.6, 2.8, 9.4, 18.0],
+    [13.4, 2.4, 12.4, 18.0],
     [0.0, -8.0, 4.2, 10.0],
   ] as const) {
     const patch = new THREE.Mesh(new THREE.PlaneGeometry(w, d), sheen);
@@ -505,10 +505,10 @@ function addDesertBed(root: THREE.Group, x: number, z: number, w: number, d: num
 }
 
 function addPlanters(root: THREE.Group): void {
-  addDesertBed(root, -11.4, -16.4, 10.4, 2.8);
-  addDesertBed(root, 11.8, -16.4, 10.4, 2.8);
-  addDesertBed(root, -26.2, -10.6, 4.2, 8.4);
-  addDesertBed(root, 24.4, -6.4, 3.6, 6.8);
+  addDesertBed(root, -12.2, -16.6, 11.2, 2.8);
+  addDesertBed(root, 13.2, -16.6, 11.2, 2.8);
+  addDesertBed(root, -27.0, -10.2, 4.2, 8.4);
+  addDesertBed(root, 26.2, -6.0, 3.6, 6.8);
   const walk = mat(0xc8c2b4, { roughness: 0.7 });
   const sidewalk = box(52, 0.08, 1.9, walk, 0, 0.03, -18.4);
   sidewalk.castShadow = false;
@@ -526,7 +526,7 @@ function addPlanters(root: THREE.Group): void {
 function addHatch(root: THREE.Group): void {
   const hatch = new THREE.MeshBasicMaterial({ color: 0xe8e4dc, toneMapped: false });
   for (let i = 0; i < 10; i++) {
-    const x = -16.6 + i * 0.72;
+    const x = -17.2 + i * 0.72;
     const a = box(0.7, 0.008, 0.08, hatch, x, 0.02, 3.45);
     a.rotation.y = 0.7;
     const b = box(0.7, 0.008, 0.08, hatch, x, 0.02, 3.45);

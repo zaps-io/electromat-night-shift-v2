@@ -23,17 +23,17 @@ const RIGHT_ZS = [-5.4, -2.7, 0.0, 2.7, 5.4, 8.1] as const;
  * sits between the islands (live lot had the roofs nearly touching).
  * Lounge stays far left; 24 chargers; yard stays at the back.
  */
-export const LEFT_CANOPY_X = -9.9;
-export const RIGHT_CANOPY_X = 11.8;
+export const LEFT_CANOPY_X = -10.6;
+export const RIGHT_CANOPY_X = 13.4;
 
 /** 24 chargers: left island 8, right island 12, north row 4. */
 export const STALLS: Stall[] = [
   ...LEFT_ZS.map((z, i) => ({
     id: i + 1,
-    x: -8.75,
+    x: -9.45,
     z,
     carYaw: FACE_NX,
-    zeusX: -11.25,
+    zeusX: -11.95,
     zeusZ: z,
     zeusYaw: Math.PI / 2,
     playable: i < 3 ? i + 1 : undefined,
@@ -41,24 +41,24 @@ export const STALLS: Stall[] = [
   })),
   ...RIGHT_ZS.map((z, i) => ({
     id: 9 + i,
-    x: 9.15,
+    x: 10.75,
     z,
     carYaw: FACE_PX,
-    zeusX: 11.65,
+    zeusX: 13.25,
     zeusZ: z,
     zeusYaw: -Math.PI / 2,
     playable: i < 3 ? i + 4 : undefined,
   })),
   ...RIGHT_ZS.map((z, i) => ({
     id: 15 + i,
-    x: 14.45,
+    x: 16.05,
     z,
     carYaw: FACE_NX,
-    zeusX: 11.95,
+    zeusX: 13.55,
     zeusZ: z,
     zeusYaw: Math.PI / 2,
   })),
-  ...[9.0, 11.2, 13.4, 15.6].map((x, i) => ({
+  ...[10.6, 12.8, 15.0, 17.2].map((x, i) => ({
     id: 21 + i,
     x,
     z: 12.4,
@@ -84,41 +84,41 @@ export const WAIT_ORDER = ["peck", "ng", "kim", "das", "ortiz"] as const;
 
 export const BAY_SIZE = { w: 2.55, d: 5.4 };
 
-export const KIOSK = { x: -22.6, z: -3.55 };
+export const KIOSK = { x: -23.2, z: -3.55 };
 
-export const PAVILION = { x: -22.8, z: 3.4, yaw: 0, w: 11.6, d: 13.4, h: 3.35 };
+export const PAVILION = { x: -23.4, z: 3.4, yaw: 0, w: 11.6, d: 13.4, h: 3.35 };
 
 export const CANOPIES = [
   { x: LEFT_CANOPY_X, z: 2.85, w: 12.6, d: 24.2, y: 5.22 },
   { x: RIGHT_CANOPY_X, z: 3.6, w: 16.4, d: 26.4, y: 5.22 },
 ] as const;
 
-export const YARD = { x: 18.8, z: 17.0, w: 10.4, d: 6.2 };
+export const YARD = { x: 20.2, z: 17.0, w: 10.4, d: 6.2 };
 
 export const START_SHOT = {
-  x: 0.0,
-  z: -20.4,
-  eyeY: 1.56,
-  yaw: 0.04,
-  pitch: 0.08,
-  lookAt: { x: 1.1, y: 2.5, z: 3.2 },
-  fov: 58,
+  x: -4.2,
+  z: -20.8,
+  eyeY: 1.58,
+  yaw: 0.18,
+  pitch: 0.1,
+  lookAt: { x: 3.4, y: 2.7, z: 2.2 },
+  fov: 56,
 } as const;
 
 export const WIDE_SHOT = {
-  x: -25.6,
-  z: -25.4,
-  eyeY: 14.6,
-  yaw: -0.16,
-  pitch: -0.5,
-  lookAt: { x: 2.2, y: 1.5, z: 4.8 },
-  fov: 46,
+  x: -26.2,
+  z: -26.0,
+  eyeY: 15.2,
+  yaw: -0.14,
+  pitch: -0.48,
+  lookAt: { x: 2.6, y: 1.6, z: 4.4 },
+  fov: 48,
 } as const;
 
 export const REAR_SHOT = {
-  x: -1.0,
-  z: -7.8,
-  lookAt: { x: -8.9, y: 1.15, z: -5.2 },
+  x: 0.6,
+  z: -6.4,
+  lookAt: { x: -9.4, y: 1.2, z: -4.6 },
   fov: 58,
 } as const;
 

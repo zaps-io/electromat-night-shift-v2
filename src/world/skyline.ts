@@ -110,12 +110,12 @@ export function buildSkyline(): THREE.Group {
   const darkGlass = new THREE.MeshBasicMaterial({ color: 0x2a3848, toneMapped: false });
 
   const towers = [
-    { x: -22, z: 30.5, w: 8.4, h: 11.2, d: 4.2 },
-    { x: -12, z: 31.8, w: 7.2, h: 13.6, d: 3.8 },
-    { x: -2.4, z: 30.2, w: 9.0, h: 10.4, d: 4.0 },
-    { x: 8.2, z: 31.4, w: 7.6, h: 14.2, d: 3.6 },
-    { x: 18.4, z: 30.6, w: 8.8, h: 12.0, d: 4.4 },
-    { x: 28.0, z: 32.2, w: 6.4, h: 9.6, d: 3.4 },
+    { x: -22, z: 27.4, w: 8.4, h: 11.2, d: 4.2 },
+    { x: -12, z: 28.6, w: 7.2, h: 13.6, d: 3.8 },
+    { x: -2.4, z: 27.2, w: 9.0, h: 10.4, d: 4.0 },
+    { x: 8.2, z: 28.2, w: 7.6, h: 14.2, d: 3.6 },
+    { x: 18.4, z: 27.6, w: 8.8, h: 12.0, d: 4.4 },
+    { x: 28.0, z: 29.0, w: 6.4, h: 9.6, d: 3.4 },
   ];
   for (const t of towers) {
     const tower = new THREE.Mesh(new THREE.BoxGeometry(t.w, t.h, t.d), plaster);
@@ -133,18 +133,18 @@ export function buildSkyline(): THREE.Group {
     new THREE.BoxGeometry(18, 5.6, 3.2),
     new THREE.MeshStandardMaterial({ color: 0xeee8dc, roughness: 0.72 }),
   );
-  muralWall.position.set(-31.2, 2.7, 6.4);
+  muralWall.position.set(-31.6, 2.7, -1.2);
   const mural = new THREE.Mesh(
     new THREE.PlaneGeometry(17.2, 5.0),
     new THREE.MeshBasicMaterial({ map: muralTex(), toneMapped: false }),
   );
-  mural.position.set(-29.5, 2.8, 6.4);
+  mural.position.set(-29.9, 2.8, -1.2);
   mural.rotation.y = Math.PI / 2;
   const muralSouth = new THREE.Mesh(
     new THREE.PlaneGeometry(16.8, 4.8),
     new THREE.MeshBasicMaterial({ map: muralTex(), toneMapped: false }),
   );
-  muralSouth.position.set(-31.2, 2.8, 4.72);
+  muralSouth.position.set(-31.6, 2.8, -2.88);
   muralSouth.rotation.y = Math.PI;
   root.add(muralWall, mural, muralSouth);
 

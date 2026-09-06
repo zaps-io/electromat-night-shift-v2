@@ -604,10 +604,10 @@ function makeLodHull(color: number, hull: HullKind): THREE.Group {
 
 /** Distant / queue fillers. Last entry is dropped first if WebGL context is lost. */
 export const LOD_FILLERS = [
-  { x: 14.45, z: -5.4, yaw: Math.PI / 2, paint: 0xe8e2d4, waiting: false },
-  { x: -8.75, z: 6.9, yaw: Math.PI / 2, paint: 0xc8ccd0, waiting: false },
-  { x: 9.15, z: 5.4, yaw: -Math.PI / 2, paint: 0x1c2434, waiting: false },
-  { x: 11.2, z: 12.4, yaw: Math.PI, paint: 0x6b5344, waiting: false },
+  { x: 16.05, z: -5.4, yaw: Math.PI / 2, paint: 0xe8e2d4, waiting: false },
+  { x: -9.45, z: 6.9, yaw: Math.PI / 2, paint: 0xc8ccd0, waiting: false },
+  { x: 10.75, z: 5.4, yaw: -Math.PI / 2, paint: 0x1c2434, waiting: false },
+  { x: 12.8, z: 12.4, yaw: Math.PI, paint: 0x6b5344, waiting: false },
   { x: 0.2, z: -16.2, yaw: Math.PI, paint: 0x2a3848, waiting: true },
 ] as const;
 
