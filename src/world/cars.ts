@@ -5,7 +5,7 @@ import { SUV_INLET, buildSuvParts } from "../cars/suv";
 import type { BuiltPart } from "../cars/types";
 import type { GameState, Guest, HullKind } from "../game/state";
 import { arrivedGuests } from "../game/shift";
-import { BAYS, WAIT_SLOTS } from "./layout";
+import { BAYS, WAIT_ORDER, WAIT_SLOTS } from "./layout";
 import { makeAttentionIcon, makeBatteryIcon } from "./icons";
 
 export interface CarView {
@@ -322,22 +322,28 @@ function addEvCues(root: THREE.Group): { x: number; y: number; z: number } {
   root.add(glow);
 
   const inlet = {
-    x: box.min.x + 0.16,
-    y: THREE.MathUtils.lerp(box.min.y, box.max.y, 0.48),
-    z: box.max.z - 0.02,
+    x: box.max.x - 0.38,
+    y: THREE.MathUtils.lerp(box.min.y, box.max.y, 0.46),
+    z: box.max.z - 0.03,
   };
   const port = new THREE.Mesh(
-    new THREE.CircleGeometry(0.05, 20),
+    new THREE.CircleGeometry(0.07, 22),
     new THREE.MeshStandardMaterial({
       name: "ChargePort",
       color: 0x00d4f5,
       emissive: 0x00d4f5,
-      emissiveIntensity: 3.1,
+      emissiveIntensity: 3.4,
       toneMapped: false,
     }),
   );
-  port.position.set(inlet.x, inlet.y, inlet.z + 0.01);
+  port.position.set(inlet.x, inlet.y, inlet.z + 0.012);
   root.add(port);
+  const ring = new THREE.Mesh(
+    new THREE.RingGeometry(0.08, 0.13, 22),
+    new THREE.MeshBasicMaterial({ color: 0x7ef6ff, toneMapped: false, side: THREE.DoubleSide }),
+  );
+  ring.position.set(inlet.x, inlet.y, inlet.z + 0.014);
+  root.add(ring);
   return inlet;
 }
 
@@ -490,11 +496,11 @@ export function spawnCar(guest: Guest): CarView {
   root.add(cable);
 
   const portGlow = new THREE.Mesh(
-    new THREE.SphereGeometry(0.16, 12, 10),
+    new THREE.SphereGeometry(0.2, 12, 10),
     new THREE.MeshBasicMaterial({
       color: 0x5ef6ff,
       transparent: true,
-      opacity: 0.55,
+      opacity: 0.62,
       toneMapped: false,
       depthWrite: false,
     }),
@@ -513,8 +519,9 @@ export function placeGuest(view: CarView, guest: Guest, now: number): void {
     view.root.position.set(bay.x, 0, bay.z);
     view.root.rotation.y = -Math.PI / 2;
   } else {
-    const slot = guest.id === "ng" ? 1 : guest.id === "kim" ? 2 : 0;
-    const wait = WAIT_SLOTS[slot];
+    const named = WAIT_ORDER.indexOf(guest.id as (typeof WAIT_ORDER)[number]);
+    const slot = named >= 0 ? named : 0;
+    const wait = WAIT_SLOTS[Math.min(slot, WAIT_SLOTS.length - 1)];
     view.root.position.set(wait.x, 0, wait.z);
     view.root.rotation.y = -Math.PI / 2 + wait.yaw;
   }

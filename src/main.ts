@@ -322,8 +322,8 @@ async function saveShots(): Promise<void> {
   }
   await new Promise((r) => setTimeout(r, 600));
   await post("/workspace/docs/shots/startnight-lot.png", capture(1280, 800));
-  walker.place(-6.2, -1.4);
-  walker.lookAt(-2.7, 0.72, 4.2);
+  walker.place(-5.4, -1.6);
+  walker.lookAt(-3.6, 0.72, 4.2);
   await new Promise((r) => setTimeout(r, 200));
   await post("/workspace/docs/shots/lot-rear34.png", capture(1280, 800));
   walker.place(WIDE_SHOT.x, WIDE_SHOT.z, WIDE_SHOT.yaw, WIDE_SHOT.pitch, WIDE_SHOT.eyeY);
