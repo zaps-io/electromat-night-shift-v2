@@ -385,9 +385,9 @@ function addPavilion(root: THREE.Group): THREE.Box3 {
   const warmWall = new THREE.Mesh(
     new THREE.PlaneGeometry(4.1, 2.5),
     new THREE.MeshStandardMaterial({
-      color: 0xc88840,
-      emissive: 0xc87830,
-      emissiveIntensity: 0.38,
+      color: 0xa87038,
+      emissive: 0x8a5820,
+      emissiveIntensity: 0.28,
     }),
   );
   warmWall.position.set(-2.88, 1.5, 0);

@@ -322,16 +322,14 @@ function makeCable(inlet: { x: number; y: number; z: number }): THREE.Mesh {
       new THREE.Vector3(inlet.x, inlet.y, inlet.z),
     ]),
     28,
-    0.04,
-    9,
+    0.046,
+    10,
     false,
   );
   return new THREE.Mesh(
     geo,
-    new THREE.MeshStandardMaterial({
+    new THREE.MeshBasicMaterial({
       color: 0x00d4f5,
-      emissive: 0x00d4f5,
-      emissiveIntensity: 2.45,
       toneMapped: false,
     }),
   );
