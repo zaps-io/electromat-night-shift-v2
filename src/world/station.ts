@@ -366,9 +366,10 @@ function addPavilion(root: THREE.Group): THREE.Box3 {
     metalness: 0.04,
     transmission: 0.04,
     transparent: true,
-    opacity: 0.2,
+    opacity: 0.12,
     thickness: 0.05,
     envMapIntensity: 0.55,
+    side: THREE.DoubleSide,
   });
   const W = 7.2;
   const D = 4.5;
@@ -403,38 +404,26 @@ function addPavilion(root: THREE.Group): THREE.Box3 {
   lot.rotation.y = Math.PI / 2;
   g.add(front, rear, lot);
 
-  const warm = new THREE.MeshBasicMaterial({ color: 0x7a4e24 });
-  const backLit = new THREE.Mesh(new THREE.PlaneGeometry(D - 0.2, paneH), warm);
-  backLit.position.set(-W / 2 + 0.12, H * 0.5, 0);
+  const warm = new THREE.MeshBasicMaterial({ color: 0x9a6230 });
+  const backLit = new THREE.Mesh(new THREE.PlaneGeometry(D - 0.55, paneH - 0.2), warm);
+  backLit.position.set(-W / 2 + 0.2, H * 0.48, 0.1);
   backLit.rotation.y = Math.PI / 2;
-  const ceilLit = new THREE.Mesh(
-    new THREE.PlaneGeometry(W - 0.4, D - 0.4),
-    new THREE.MeshBasicMaterial({ color: 0x5a3a1c }),
-  );
-  ceilLit.rotation.x = Math.PI / 2;
-  ceilLit.position.set(0, H - 0.14, 0);
-  const floorLit = new THREE.Mesh(
-    new THREE.PlaneGeometry(W - 0.35, D - 0.35),
-    new THREE.MeshBasicMaterial({ color: 0x3a2414 }),
-  );
-  floorLit.rotation.x = -Math.PI / 2;
-  floorLit.position.set(0, 0.15, 0);
-  g.add(backLit, ceilLit, floorLit);
+  g.add(backLit);
 
-  const shade = new THREE.MeshBasicMaterial({ color: 0x0b0908 });
-  g.add(box(2.8, 0.38, 0.72, shade, -0.15, 0.42, 0.85));
-  g.add(box(2.7, 0.16, 0.64, shade, -0.15, 0.68, 0.85));
-  g.add(box(2.7, 0.52, 0.12, shade, -0.15, 0.98, 1.14));
-  g.add(box(0.5, 0.82, 0.5, shade, -1.35, 0.55, -0.85));
-  g.add(box(0.5, 0.14, 0.5, shade, -1.35, 1.02, -0.85));
-  g.add(box(0.5, 0.82, 0.5, shade, 1.15, 0.55, -0.95));
-  g.add(box(0.5, 0.14, 0.5, shade, 1.15, 1.02, -0.95));
-  g.add(box(1.15, 0.07, 0.58, shade, 0.05, 0.7, -0.35));
-  g.add(box(0.08, 1.05, 0.7, shade, -2.35, 1.28, 0.15));
-  g.add(box(0.08, 1.05, 0.7, shade, 2.25, 1.28, 0.2));
-  addPerson(g, -0.85, 0.55, 0.15, 1.58);
-  addPerson(g, 0.95, 0.5, -0.2, 1.62);
-  addPerson(g, 1.55, -0.7, 2.6, 1.74);
+  const shade = new THREE.MeshBasicMaterial({ color: 0x050403 });
+  g.add(box(3.2, 0.42, 0.86, shade, 0.1, 0.44, 0.35));
+  g.add(box(3.1, 0.2, 0.78, shade, 0.1, 0.72, 0.35));
+  g.add(box(3.1, 0.7, 0.14, shade, 0.1, 1.12, 0.68));
+  g.add(box(0.62, 0.9, 0.62, shade, -1.7, 0.58, -1.15));
+  g.add(box(0.62, 0.16, 0.62, shade, -1.7, 1.1, -1.15));
+  g.add(box(0.62, 0.9, 0.62, shade, 1.55, 0.58, -1.2));
+  g.add(box(0.62, 0.16, 0.62, shade, 1.55, 1.1, -1.2));
+  g.add(box(1.35, 0.08, 0.7, shade, 0.05, 0.72, -0.85));
+  g.add(box(0.1, 1.25, 0.85, shade, -2.55, 1.35, 0.05));
+  g.add(box(0.1, 1.25, 0.85, shade, 2.45, 1.35, 0.1));
+  addPerson(g, -1.05, -0.15, 0.2, 1.56);
+  addPerson(g, 0.85, -0.2, -0.15, 1.6);
+  addPerson(g, 2.05, -1.15, 2.8, 1.78);
 
   root.add(g);
   return new THREE.Box3().setFromCenterAndSize(
@@ -510,7 +499,7 @@ function addStreetlights(root: THREE.Group): void {
     arm.position.set(x - 0.35, 4.55, z);
     const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 8), lamp);
     bulb.position.set(x - 0.72, 4.42, z);
-    const glow = new THREE.PointLight(0xffc878, 8, 9, 1.6);
+    const glow = new THREE.PointLight(0xffc878, 3.2, 7, 1.8);
     glow.position.set(x - 0.72, 4.35, z);
     root.add(pole, arm, bulb, glow);
   }
