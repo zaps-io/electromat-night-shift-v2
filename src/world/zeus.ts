@@ -40,15 +40,15 @@ function alum(): THREE.MeshPhysicalMaterial {
     color: C.chrome,
     map: brush.map,
     roughnessMap: brush.rough,
-    metalness: 0.84,
-    roughness: 0.34,
-    clearcoat: 0.38,
-    clearcoatRoughness: 0.28,
-    anisotropy: 0.82,
+    metalness: 0.48,
+    roughness: 0.32,
+    clearcoat: 0.28,
+    clearcoatRoughness: 0.32,
+    anisotropy: 0.7,
     anisotropyRotation: Math.PI / 2,
-    envMapIntensity: 1.05,
-    emissive: 0x000000,
-    emissiveIntensity: 0,
+    envMapIntensity: 0.85,
+    emissive: 0x3c4044,
+    emissiveIntensity: 0.18,
   });
 }
 
@@ -122,20 +122,20 @@ function addHandle(g: THREE.Group, x: number, zSign: number): void {
     envMapIntensity: 0.85,
   });
   const grip = new THREE.Mesh(new RoundedBoxGeometry(0.055, 0.2, 0.07, 2, 0.012), black);
-  grip.position.set(x, 1.02, 0.2 * zSign);
+  grip.position.set(x, 1.05, 0.22 * zSign);
   const top = new THREE.Mesh(new RoundedBoxGeometry(0.058, 0.055, 0.074, 2, 0.012), silver);
-  top.position.set(x, 1.14, 0.2 * zSign);
+  top.position.set(x, 1.17, 0.22 * zSign);
   const trigger = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.035, 0.04), black);
-  trigger.position.set(x, 1.0, 0.235 * zSign);
+  trigger.position.set(x, 1.03, 0.255 * zSign);
   g.add(grip, top, trigger);
 }
 
 function addCable(g: THREE.Group, x: number, zSign: number): void {
   const mat = new THREE.MeshStandardMaterial({ color: 0x16181c, roughness: 0.78 });
   const curve = new THREE.CatmullRomCurve3([
-    new THREE.Vector3(x, 0.9, 0.2 * zSign),
-    new THREE.Vector3(x * 1.15, 0.55, 0.18 * zSign),
-    new THREE.Vector3(x * 1.35, 0.28, 0.08 * zSign),
+    new THREE.Vector3(x, 0.92, 0.22 * zSign),
+    new THREE.Vector3(x * 1.15, 0.55, 0.2 * zSign),
+    new THREE.Vector3(x * 1.35, 0.28, 0.1 * zSign),
     new THREE.Vector3(x * 1.15, 0.22, 0.02 * zSign),
   ]);
   g.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 10, 0.016, 6, false), mat));
@@ -155,20 +155,16 @@ export function addZeusCharger(root: THREE.Group, x: number, z: number): void {
     metalness: 0.06,
   });
 
-  const base = new THREE.Mesh(new RoundedBoxGeometry(0.44, 0.2, 0.36, 3, 0.02), baseMat);
+  const base = new THREE.Mesh(new RoundedBoxGeometry(0.46, 0.2, 0.38, 3, 0.02), baseMat);
   base.position.y = 0.1;
-  const body = new THREE.Mesh(new RoundedBoxGeometry(0.36, 1.94, 0.3, 4, 0.028), silver);
-  body.position.y = 1.2;
+  const body = new THREE.Mesh(new RoundedBoxGeometry(0.4, 1.96, 0.32, 4, 0.03), silver);
+  body.position.y = 1.22;
   body.castShadow = true;
-  const cap = new THREE.Mesh(new RoundedBoxGeometry(0.37, 0.06, 0.31, 3, 0.02), silver);
-  cap.position.y = 2.18;
+  const cap = new THREE.Mesh(new RoundedBoxGeometry(0.41, 0.06, 0.33, 3, 0.02), silver);
+  cap.position.y = 2.22;
 
-  const cyan = new THREE.MeshBasicMaterial({ color: 0x00b8cc, toneMapped: true });
-  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.006, 8, 28), cyan);
-  ring.rotation.x = Math.PI / 2;
-  ring.position.y = 0.205;
-  ring.scale.set(1.05, 0.88, 1);
-  const band = new THREE.Mesh(new THREE.BoxGeometry(0.368, 0.008, 0.308), cyan);
+  const cyan = new THREE.MeshBasicMaterial({ color: 0x007888, toneMapped: true });
+  const band = new THREE.Mesh(new THREE.BoxGeometry(0.408, 0.007, 0.328), cyan);
   band.position.y = 0.205;
 
   const screenMat = new THREE.MeshBasicMaterial({
@@ -183,27 +179,27 @@ export function addZeusCharger(root: THREE.Group, x: number, z: number): void {
     depthWrite: false,
   });
 
-  const skim = new THREE.SpotLight(0xe8eef4, 0.85, 2.8, 0.5, 0.7, 1.5);
-  skim.position.set(0.12, 2.0, -0.62);
-  skim.target.position.set(0, 1.15, 0.04);
+  const skim = new THREE.SpotLight(0xe8eef4, 1.35, 3.0, 0.52, 0.62, 1.4);
+  skim.position.set(0.1, 2.05, -0.7);
+  skim.target.position.set(0, 1.2, 0.04);
   g.add(skim, skim.target);
 
   const face = (sign: number) => {
-    const recess = new THREE.Mesh(new THREE.BoxGeometry(0.26, 1.7, 0.04), dark);
-    recess.position.set(0, 1.22, 0.158 * sign);
-    const plate = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.01), dark);
-    plate.position.set(0, 1.92, 0.182 * sign);
-    const logo = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 0.068), logoMat);
-    logo.position.set(0, 1.92, 0.19 * sign);
+    const recess = new THREE.Mesh(new THREE.BoxGeometry(0.28, 1.72, 0.04), dark);
+    recess.position.set(0, 1.24, 0.17 * sign);
+    const plate = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.1, 0.01), dark);
+    plate.position.set(0, 1.96, 0.196 * sign);
+    const logo = new THREE.Mesh(new THREE.PlaneGeometry(0.24, 0.08), logoMat);
+    logo.position.set(0, 1.96, 0.204 * sign);
     logo.rotation.y = sign < 0 ? 0 : Math.PI;
     logo.userData.zeusLogo = true;
-    const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 0.075), screenMat);
-    screen.position.set(0, 1.72, 0.186 * sign);
+    const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.24, 0.09), screenMat);
+    screen.position.set(0, 1.76, 0.2 * sign);
     screen.rotation.y = sign < 0 ? 0 : Math.PI;
     g.add(recess, plate, logo, screen);
-    for (const hx of [-0.055, 0.055] as const) {
-      const slot = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.26, 0.05), dark);
-      slot.position.set(hx, 1.05, 0.168 * sign);
+    for (const hx of [-0.06, 0.06] as const) {
+      const slot = new THREE.Mesh(new THREE.BoxGeometry(0.074, 0.28, 0.05), dark);
+      slot.position.set(hx, 1.08, 0.178 * sign);
       g.add(slot);
       addHandle(g, hx, sign);
       addCable(g, hx, sign);
@@ -212,7 +208,7 @@ export function addZeusCharger(root: THREE.Group, x: number, z: number): void {
   face(-1);
   face(1);
 
-  g.add(base, body, cap, ring, band);
+  g.add(base, body, cap, band);
   root.add(g);
 }
 
