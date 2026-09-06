@@ -97,8 +97,8 @@ function dropIn(): void {
   setHum(true);
   if (state.phase === "title") seedOpeningLot(state);
   hideTitle();
-  walker.place(2.15, -10.4, 0.28, -0.1, 1.48);
-  walker.lookAt(-4.4, 1.55, 4.1);
+  walker.place(0.55, -11.4, 0.18, -0.08, 1.48);
+  walker.lookAt(-6.4, 1.42, 3.2);
 }
 
 function restart(): void {

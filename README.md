@@ -10,7 +10,7 @@ This is a clean restart. It does not clone or depend on `zaps-io/electromat-nigh
 
 Default `startNight()` lot view (no local build required):
 
-- [`docs/shots/startnight-lot.png`](docs/shots/startnight-lot.png) — HUD `ZOEY · STATION MASTER`, cyan bays, charging EVs
+- [`docs/shots/startnight-lot.png`](docs/shots/startnight-lot.png) — HUD `ZOEY · STATION MASTER`, white stall lines, charging EVs
 - [`docs/shots/lot-rear34.png`](docs/shots/lot-rear34.png) — rear 3/4 of the Sketchfab 2020 Porsche Taycan guest hull
 - [`docs/shots/lot-wide.png`](docs/shots/lot-wide.png) — elevated plaza matching the wide still
 - [`docs/shots/v2b-lot.png`](docs/shots/v2b-lot.png) — wider canopy / pavilion / occupancy

@@ -5,24 +5,24 @@ export const BAYS = [
   { id: 4, x: 8.2, z: 4.2 },
 ] as const;
 
-/** Queue along the curved approach, Peck first. */
+/** Queue hugging the left planter curve, Peck first. */
 export const WAIT_SLOTS = [
-  { x: -7.6, z: -5.4, yaw: 0.42 },
-  { x: -5.1, z: -7.8, yaw: 0.52 },
-  { x: -2.4, z: -10.0, yaw: 0.62 },
+  { x: -9.0, z: -3.8, yaw: 0.58 },
+  { x: -6.6, z: -6.4, yaw: 0.7 },
+  { x: -3.6, z: -8.8, yaw: 0.82 },
 ] as const;
 
 export const BAY_SIZE = { w: 3.05, d: 5.9 };
 export const KIOSK = { x: 13.2, z: 1.6 };
-/** Under the left canopy, glass faces the approach. */
-export const PAVILION = { x: -13.4, z: 4.4, yaw: -0.35 };
+/** Glass lounge under the left canopy, facing the approach. */
+export const PAVILION = { x: -12.4, z: 3.8, yaw: -0.2 };
 
-/** Elevated wide-still camera (place x,z + eyeY, then lookAt). */
+/** Elevated wide-still camera: queue left, canopy center, city beyond. */
 export const WIDE_SHOT = {
-  x: 7.2,
-  z: -18.4,
-  eyeY: 13.4,
-  yaw: 0.22,
-  pitch: -0.78,
-  lookAt: { x: -0.6, y: 1.0, z: 4.2 },
+  x: -8.6,
+  z: -18.8,
+  eyeY: 15.2,
+  yaw: -0.1,
+  pitch: -0.84,
+  lookAt: { x: 2.2, y: 1.05, z: 5.4 },
 } as const;

@@ -15,6 +15,7 @@ export interface CarView {
   attention: THREE.Sprite;
   battery: THREE.Sprite;
   cable: THREE.Mesh;
+  portGlow: THREE.Mesh;
 }
 
 const loader = new GLTFLoader();
@@ -488,7 +489,21 @@ export function spawnCar(guest: Guest): CarView {
   cable.visible = false;
   root.add(cable);
 
-  return { root, inlet, driver, attention, battery, cable };
+  const portGlow = new THREE.Mesh(
+    new THREE.SphereGeometry(0.16, 12, 10),
+    new THREE.MeshBasicMaterial({
+      color: 0x5ef6ff,
+      transparent: true,
+      opacity: 0.55,
+      toneMapped: false,
+      depthWrite: false,
+    }),
+  );
+  portGlow.position.set(inletPos.x, inletPos.y, inletPos.z);
+  portGlow.visible = false;
+  root.add(portGlow);
+
+  return { root, inlet, driver, attention, battery, cable, portGlow };
 }
 
 export function placeGuest(view: CarView, guest: Guest, now: number): void {
@@ -508,6 +523,7 @@ export function placeGuest(view: CarView, guest: Guest, now: number): void {
   view.attention.visible = needs;
   view.battery.visible = onCharge;
   view.cable.visible = guest.plugged && !guest.served;
+  view.portGlow.visible = guest.plugged && !guest.served;
   view.attention.position.y = (guest.hull === "suv" ? 2.36 : 2.02) + Math.sin(now * 3) * 0.05;
 }
 

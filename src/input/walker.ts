@@ -80,8 +80,8 @@ export class Walker {
         this.yaw = Math.atan2(-delta.x, -delta.z);
       }
     }
-    this.position.x = THREE.MathUtils.clamp(this.position.x, -20, 20);
-    this.position.z = THREE.MathUtils.clamp(this.position.z, -18, 16);
+    this.position.x = THREE.MathUtils.clamp(this.position.x, -22, 22);
+    this.position.z = THREE.MathUtils.clamp(this.position.z, -20, 16);
     this.sync();
   }
 
