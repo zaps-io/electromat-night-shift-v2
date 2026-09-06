@@ -4,10 +4,12 @@ import { C } from "../brand";
 /** GoldenEye/GTA attendant hand — dark skin, charcoal sleeve, camera-parented. */
 export function makeAttendantHand(): THREE.Group {
   const skin = new THREE.MeshStandardMaterial({
-    color: 0x4a2c18,
-    roughness: 0.68,
+    color: 0x6a4328,
+    roughness: 0.62,
     metalness: 0.02,
-    envMapIntensity: 0.35,
+    emissive: 0x2a160c,
+    emissiveIntensity: 0.28,
+    envMapIntensity: 0.2,
   });
   const nail = new THREE.MeshStandardMaterial({
     color: 0x3a2414,
@@ -68,9 +70,13 @@ export function makeAttendantHand(): THREE.Group {
     root.add(tip);
   }
 
-  root.position.set(0.22, -0.28, -0.46);
-  root.rotation.set(0.42, -0.18, 0.12);
-  root.scale.setScalar(0.92);
+  const lamp = new THREE.PointLight(0xffc8a0, 0.55, 0.7, 1.6);
+  lamp.position.set(0.04, 0.06, 0.08);
+  root.add(lamp);
+
+  root.position.set(0.2, -0.2, -0.4);
+  root.rotation.set(0.28, -0.12, 0.1);
+  root.scale.setScalar(1.12);
   root.traverse((o) => {
     const mesh = o as THREE.Mesh;
     if (mesh.isMesh) {
@@ -85,6 +91,6 @@ export function makeAttendantHand(): THREE.Group {
 export function tickHand(hand: THREE.Object3D, now: number, eyeY: number): void {
   hand.visible = eyeY < 3.2;
   if (!hand.visible) return;
-  hand.rotation.x = 0.42 + Math.sin(now * 1.35) * 0.018;
-  hand.position.y = -0.28 + Math.sin(now * 1.1) * 0.006;
+  hand.rotation.x = 0.28 + Math.sin(now * 1.35) * 0.016;
+  hand.position.y = -0.2 + Math.sin(now * 1.1) * 0.005;
 }

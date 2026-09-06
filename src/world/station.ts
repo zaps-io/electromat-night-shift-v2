@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { C } from "../brand";
 import { BAYS, BAY_SIZE, KIOSK, PAVILION } from "./layout";
+import { addZeusCharger } from "./zeus";
 
 export interface Station {
   root: THREE.Group;
@@ -163,14 +164,14 @@ function makeAsphalt(root: THREE.Group): THREE.Mesh {
     new THREE.MeshPhysicalMaterial({
       color: 0x0c0e12,
       map: maps.map,
-      roughness: 0.52,
+      roughness: 0.62,
       roughnessMap: maps.rough,
-      metalness: 0.04,
+      metalness: 0.03,
       normalMap: maps.normal,
-      normalScale: new THREE.Vector2(0.2, 0.2),
-      envMapIntensity: 0.38,
-      clearcoat: 0.08,
-      clearcoatRoughness: 0.46,
+      normalScale: new THREE.Vector2(0.22, 0.22),
+      envMapIntensity: 0.28,
+      clearcoat: 0.05,
+      clearcoatRoughness: 0.55,
     }),
   );
   ground.rotation.x = -Math.PI / 2;
@@ -183,13 +184,13 @@ function makeAsphalt(root: THREE.Group): THREE.Mesh {
 export function addLotMirror(root: THREE.Group, _renderer: THREE.WebGLRenderer): void {
   const sheen = new THREE.MeshPhysicalMaterial({
     color: 0x0a0c10,
-    roughness: 0.42,
-    metalness: 0.04,
-    clearcoat: 0.08,
-    clearcoatRoughness: 0.5,
-    envMapIntensity: 0.32,
+    roughness: 0.5,
+    metalness: 0.03,
+    clearcoat: 0.04,
+    clearcoatRoughness: 0.58,
+    envMapIntensity: 0.22,
     transparent: true,
-    opacity: 0.08,
+    opacity: 0.05,
   });
   for (const [x, z, w, d] of [
     [-3.2, 3.8, 8.2, 2.4],
@@ -239,70 +240,8 @@ function addBayOutline(root: THREE.Group, x: number, z: number): THREE.Object3D 
   return anchor;
 }
 
-function screenTexture(): THREE.CanvasTexture {
-  const c = document.createElement("canvas");
-  c.width = 128;
-  c.height = 256;
-  const ctx = c.getContext("2d")!;
-  ctx.fillStyle = "#042028";
-  ctx.fillRect(0, 0, 128, 256);
-  const glow = ctx.createLinearGradient(0, 0, 0, 256);
-  glow.addColorStop(0, "#8cffff");
-  glow.addColorStop(1, "#00d4f5");
-  ctx.fillStyle = glow;
-  ctx.fillRect(10, 10, 108, 236);
-  ctx.fillStyle = "rgba(8,20,28,0.55)";
-  ctx.fillRect(18, 22, 92, 14);
-  ctx.fillRect(18, 44, 60, 8);
-  ctx.fillStyle = "#041820";
-  ctx.fillRect(28, 78, 72, 108);
-  ctx.fillStyle = "#7ef6ff";
-  ctx.fillRect(34, 148, 18, 30);
-  ctx.fillRect(56, 128, 18, 50);
-  ctx.fillRect(78, 108, 18, 70);
-  ctx.fillStyle = "#e8fbff";
-  ctx.beginPath();
-  ctx.moveTo(64, 92);
-  ctx.lineTo(52, 118);
-  ctx.lineTo(64, 118);
-  ctx.lineTo(58, 148);
-  ctx.lineTo(80, 112);
-  ctx.lineTo(68, 112);
-  ctx.closePath();
-  ctx.fill();
-  ctx.fillStyle = "rgba(255,255,255,0.85)";
-  ctx.fillRect(18, 200, 92, 6);
-  ctx.fillRect(18, 214, 54, 6);
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
-}
-
 function addPedestal(root: THREE.Group, x: number, z: number): void {
-  const body = mat(C.charcoal, { roughness: 0.48, metalness: 0.1, envMapIntensity: 0.28 });
-  const px = x - 1.18;
-  const pz = z - 2.25;
-  root.add(box(0.5, 2.08, 0.38, body, px, 1.04, pz));
-  root.add(box(0.54, 0.05, 0.42, body, px, 2.1, pz));
-  const ident = new THREE.MeshBasicMaterial({ color: C.red, toneMapped: false });
-  root.add(box(0.5, 0.018, 0.38, ident, px, 2.02, pz));
-  const ui = screenTexture();
-  const screenMat = new THREE.MeshStandardMaterial({
-    map: ui,
-    color: 0xffffff,
-    emissive: C.cyan,
-    emissiveIntensity: 1.65,
-    emissiveMap: ui,
-    toneMapped: false,
-    side: THREE.DoubleSide,
-  });
-  const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.26, 1.02), screenMat);
-  screen.position.set(px, 1.18, pz - 0.2);
-  screen.rotation.y = Math.PI;
-  const rear = screen.clone();
-  rear.position.set(px, 1.18, pz + 0.2);
-  rear.rotation.y = 0;
-  root.add(screen, rear);
+  addZeusCharger(root, x, z);
 }
 
 function roundedRectShape(w: number, d: number, r: number): THREE.Shape {
@@ -323,7 +262,7 @@ function roundedRectShape(w: number, d: number, r: number): THREE.Shape {
 }
 
 function addCanopy(root: THREE.Group): void {
-  const shell = mat(C.cream, { roughness: 0.42, metalness: 0.03, envMapIntensity: 0.42 });
+  const shell = mat(C.cream, { roughness: 0.38, metalness: 0.18, envMapIntensity: 0.48 });
   const under = new THREE.MeshStandardMaterial({
     color: 0xe8e6e0,
     emissive: 0x9aa4b0,
@@ -376,24 +315,25 @@ function addCanopy(root: THREE.Group): void {
   for (let z = hd - rad; z >= -hd + rad; z -= 0.8) pts.push(new THREE.Vector3(-hw, 0, z));
   arc(-hw + rad, -hd + rad, Math.PI, Math.PI * 1.5);
   const curve = new THREE.CatmullRomCurve3(pts, true);
-  const cool = new THREE.MeshBasicMaterial({ color: 0xeef4ff, toneMapped: false });
-  const strip = new THREE.Mesh(new THREE.TubeGeometry(curve, 180, 0.07, 8, true), cool);
-  strip.position.set(0, 5.07, 3.1);
-  strip.scale.set(0.965, 1, 0.965);
+  const cyan = new THREE.MeshBasicMaterial({ color: C.cyan, toneMapped: false });
+  const strip = new THREE.Mesh(new THREE.TubeGeometry(curve, 180, 0.055, 8, true), cyan);
+  strip.position.set(0, 5.08, 3.1);
+  strip.scale.set(0.972, 1, 0.972);
   root.add(strip);
   const stripBloom = new THREE.Mesh(
-    new THREE.TubeGeometry(curve, 160, 0.11, 8, true),
-    new THREE.MeshBasicMaterial({ color: 0xdce8f8, transparent: true, opacity: 0.26, toneMapped: false, depthWrite: false }),
+    new THREE.TubeGeometry(curve, 160, 0.1, 8, true),
+    new THREE.MeshBasicMaterial({ color: C.cyan, transparent: true, opacity: 0.22, toneMapped: false, depthWrite: false }),
   );
-  stripBloom.position.set(0, 5.07, 3.1);
-  stripBloom.scale.set(0.965, 1, 0.965);
+  stripBloom.position.set(0, 5.08, 3.1);
+  stripBloom.scale.set(0.972, 1, 0.972);
   root.add(stripBloom);
-  const cyan = new THREE.MeshBasicMaterial({ color: C.cyan, transparent: true, opacity: 0.1, toneMapped: false, depthWrite: false });
-  const edge = new THREE.Mesh(new THREE.TubeGeometry(curve, 140, 0.022, 6, true), cyan);
-  edge.position.set(0, 5.15, 3.1);
-  root.add(edge);
+  const red = new THREE.MeshBasicMaterial({ color: C.red, toneMapped: false });
+  const fascia = new THREE.Mesh(new THREE.TubeGeometry(curve, 160, 0.018, 6, true), red);
+  fascia.position.set(0, 5.28, 3.1);
+  fascia.scale.set(1.002, 1, 1.002);
+  root.add(fascia);
 
-  const col = mat(0xf0ece4, { metalness: 0.08, roughness: 0.42, envMapIntensity: 0.5 });
+  const col = mat(C.chrome, { metalness: 0.72, roughness: 0.34, envMapIntensity: 0.55 });
   for (const x of [-13.2, -4.4, 4.4, 13.2]) {
     for (const z of [-1.4, 9.2]) {
       const post = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.12, 5.15, 20), col);
@@ -407,7 +347,7 @@ function addCanopy(root: THREE.Group): void {
   const lamp = new THREE.MeshStandardMaterial({
     color: 0xe8eef6,
     emissive: 0xd4deea,
-    emissiveIntensity: 1.65,
+    emissiveIntensity: 0.7,
     toneMapped: false,
   });
   const hang = (xs: number[], zs: number[], intensity: number, shadow: boolean) => {
@@ -426,8 +366,8 @@ function addCanopy(root: THREE.Group): void {
       }
     }
   };
-  hang([-7.2, 0, 7.2], [4.2], 150, true);
-  hang([-3.6, 3.6, 10.8], [4.2], 95, false);
+  hang([-7.2, 0, 7.2], [4.2], 88, true);
+  hang([-3.6, 3.6, 10.8], [4.2], 52, false);
 }
 
 function addPerson(g: THREE.Group, x: number, z: number, yaw: number, h = 1.7): void {
@@ -526,6 +466,11 @@ function addPavilion(root: THREE.Group): THREE.Box3 {
   );
   wash.position.set(0, H * 0.5, 0);
   g.add(wash);
+  const outline = new THREE.MeshBasicMaterial({ color: C.cyan, toneMapped: false });
+  g.add(box(W, 0.03, 0.03, outline, 0, H - 0.02, -D / 2));
+  g.add(box(W, 0.03, 0.03, outline, 0, H - 0.02, D / 2));
+  g.add(box(0.03, H, 0.03, outline, W / 2, H * 0.5, -D / 2));
+  g.add(box(0.03, H, 0.03, outline, W / 2, H * 0.5, D / 2));
 
   root.add(g);
   return new THREE.Box3().setFromCenterAndSize(

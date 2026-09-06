@@ -40,11 +40,11 @@ function paintMaterial(color: THREE.Color): THREE.MeshPhysicalMaterial {
   return new THREE.MeshPhysicalMaterial({
     name: "Paint",
     color,
-    metalness: 0.14,
-    roughness: 0.3,
-    clearcoat: 0.22,
-    clearcoatRoughness: 0.24,
-    envMapIntensity: 0.72,
+    metalness: 0.12,
+    roughness: 0.36,
+    clearcoat: 0.14,
+    clearcoatRoughness: 0.3,
+    envMapIntensity: 0.48,
   });
 }
 
@@ -336,7 +336,7 @@ function addEvCues(root: THREE.Group): { x: number; y: number; z: number } {
       name: "ChargePort",
       color: 0x00d4f5,
       emissive: 0x00d4f5,
-      emissiveIntensity: 3.4,
+      emissiveIntensity: 1.8,
       toneMapped: false,
     }),
   );
