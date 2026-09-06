@@ -145,14 +145,14 @@ function makeAsphalt(root: THREE.Group): THREE.Mesh {
     new THREE.MeshPhysicalMaterial({
       color: 0x1c1e22,
       map: maps.map,
-      roughness: 0.3,
+      roughness: 0.24,
       roughnessMap: maps.rough,
-      metalness: 0.05,
+      metalness: 0.08,
       normalMap: maps.normal,
-      normalScale: new THREE.Vector2(0.2, 0.2),
-      envMapIntensity: 1.5,
-      clearcoat: 0.58,
-      clearcoatRoughness: 0.16,
+      normalScale: new THREE.Vector2(0.18, 0.18),
+      envMapIntensity: 1.75,
+      clearcoat: 0.72,
+      clearcoatRoughness: 0.1,
     }),
   );
   ground.rotation.x = -Math.PI / 2;
@@ -398,7 +398,7 @@ function addPavilion(root: THREE.Group): THREE.Box3 {
   lot.rotation.y = Math.PI / 2;
   g.add(front, rear, lot);
 
-  const warm = new THREE.MeshBasicMaterial({ color: 0xe89648 });
+  const warm = new THREE.MeshBasicMaterial({ color: 0xffb05a });
   const backLit = new THREE.Mesh(new THREE.PlaneGeometry(D - 0.3, paneH - 0.1), warm);
   backLit.position.set(-W / 2 + 0.18, H * 0.5, 0);
   backLit.rotation.y = Math.PI / 2;
@@ -426,7 +426,7 @@ function addPavilion(root: THREE.Group): THREE.Box3 {
   addPerson(g, -1.55, -0.55, 1.4, 1.56);
   addPerson(g, -1.45, 0.65, 1.7, 1.6);
   addPerson(g, 0.15, -1.2, 0.2, 1.78);
-  const spill = new THREE.PointLight(0xffb060, 18, 9, 1.6);
+  const spill = new THREE.PointLight(0xffb060, 28, 11, 1.4);
   spill.position.set(-0.4, 2.1, 0);
   g.add(spill);
 

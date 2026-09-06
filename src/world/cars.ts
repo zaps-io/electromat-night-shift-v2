@@ -282,7 +282,7 @@ function addEvCues(root: THREE.Group): { x: number; y: number; z: number } {
       }
     });
     const xRear = box.min.x - 0.018;
-    const half = Math.min(1.12, (box.max.z - box.min.z) * 0.46);
+    const half = Math.min(1.22, (box.max.z - box.min.z) * 0.49);
     const geo = new THREE.BufferGeometry();
     const pos: number[] = [];
     const idx: number[] = [];
