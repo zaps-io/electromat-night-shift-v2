@@ -62,18 +62,24 @@ export function buildSkyline(): THREE.Group {
   const fenceMat = new THREE.MeshBasicMaterial({
     map: chainTexture(),
     transparent: true,
-    opacity: 0.72,
+    opacity: 0.8,
     side: THREE.DoubleSide,
     depthWrite: false,
   });
-  const postMat = new THREE.MeshStandardMaterial({ color: 0x3a3e44, roughness: 0.55 });
+  const postMat = new THREE.MeshStandardMaterial({ color: 0x4a4e54, roughness: 0.5, metalness: 0.25 });
+  const rail = new THREE.MeshStandardMaterial({ color: 0x5a5e64, roughness: 0.4, metalness: 0.35 });
   for (const z of [14.6]) {
-    const fence = new THREE.Mesh(new THREE.PlaneGeometry(48, 2.45), fenceMat);
-    fence.position.set(0, 1.22, z);
+    const fence = new THREE.Mesh(new THREE.PlaneGeometry(48, 2.55), fenceMat);
+    fence.position.set(0, 1.28, z);
     root.add(fence);
-    for (let x = -22; x <= 22; x += 3.2) {
-      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 2.5, 8), postMat);
-      post.position.set(x, 1.25, z);
+    for (const y of [2.52, 0.08]) {
+      const bar = new THREE.Mesh(new THREE.BoxGeometry(48, 0.04, 0.04), rail);
+      bar.position.set(0, y, z);
+      root.add(bar);
+    }
+    for (let x = -22; x <= 22; x += 2.6) {
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 2.6, 8), postMat);
+      post.position.set(x, 1.3, z);
       root.add(post);
     }
   }
