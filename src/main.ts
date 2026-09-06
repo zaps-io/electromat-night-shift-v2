@@ -21,6 +21,7 @@ import { buildSkyline } from "./world/skyline";
 import { addLotMirror, buildStation } from "./world/station";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#view")!;
+canvas.tabIndex = 0;
 const titleEl = document.querySelector("#title")!;
 const hudEl = document.querySelector("#hud")!;
 const hudMark = document.querySelector("#hud-mark");
@@ -97,7 +98,7 @@ function showTitle(): void {
   endEl.classList.add("hidden");
 }
 
-function dropIn(): void {
+function beginShift(lock = true): void {
   resumeAudio();
   playOn();
   setHum(true);
@@ -106,6 +107,12 @@ function dropIn(): void {
   walker.setFov(START_SHOT.fov);
   walker.place(START_SHOT.x, START_SHOT.z, START_SHOT.yaw, START_SHOT.pitch, START_SHOT.eyeY);
   walker.lookAt(START_SHOT.lookAt.x, START_SHOT.lookAt.y, START_SHOT.lookAt.z);
+  canvas.focus();
+  if (lock) walker.requestLock(canvas);
+}
+
+function dropIn(): void {
+  beginShift(false);
 }
 
 function restart(): void {
@@ -147,19 +154,43 @@ function kindOf(obj: THREE.Object3D | undefined): string {
   return "";
 }
 
+function guestNeed(id: string | null): "talk" | "plug" | "auto" | "pay" | "" {
+  if (!id) return "";
+  const g = state.guests.find((x) => x.id === id);
+  if (!g || g.served || g.walked) return "";
+  if (!g.greeted) return "talk";
+  if (!g.plugged) return "plug";
+  if (g.plugged && !g.authorized) return "pay";
+  if (g.authorized && !g.enrolled) return "auto";
+  return "";
+}
+
 function nearbyGuestId(max = 3.6): string | null {
   let best: string | null = null;
   let bestD = max;
+  let bestRank = 99;
+  const rank = (need: ReturnType<typeof guestNeed>) => (need === "talk" || need === "plug" ? 0 : need === "pay" ? 1 : need === "auto" ? 2 : 9);
   for (const [id, view] of cars) {
-    const g = state.guests.find((x) => x.id === id);
-    if (!g || g.served || g.walked) continue;
+    const need = guestNeed(id);
+    if (!need) continue;
     const d = walker.position.distanceTo(view.root.position);
-    if (d < bestD) {
+    if (d >= max) continue;
+    const r = rank(need);
+    if (r < bestRank || (r === bestRank && d < bestD)) {
+      bestRank = r;
       bestD = d;
       best = id;
     }
   }
   return best;
+}
+
+function promptFor(need: ReturnType<typeof guestNeed>): string {
+  if (need === "talk") return "E  TALK";
+  if (need === "plug") return "E  PLUG";
+  if (need === "auto") return "E  AUTOCHARGE";
+  if (need === "pay") return "E  PAY";
+  return "";
 }
 
 function useGuest(id: string): boolean {
@@ -182,7 +213,7 @@ function useGuest(id: string): boolean {
 
 function act(): void {
   if (state.phase === "title") {
-    dropIn();
+    beginShift(true);
     return;
   }
   if (state.phase === "grade" || state.phase === "lose") {
@@ -192,20 +223,12 @@ function act(): void {
   const hit = aim();
   const id = guestIdOf(hit?.object);
   const kind = kindOf(hit?.object);
-  if (kind === "driver" && id && greetDriver(state, id)) {
-    playTalk();
-    return;
-  }
-  if (kind === "inlet" && id && plugInlet(state, id)) {
-    playPlug();
-    return;
-  }
   if (kind === "kiosk") {
     const pending = state.guests.find((g) => g.plugged && !g.authorized && !g.served && !g.walked);
     if (pending && payKiosk(state, pending.id)) playPay();
     return;
   }
-  if (id && kind === "car" && useGuest(id)) return;
+  if (id && useGuest(id)) return;
   const near = nearbyGuestId();
   if (near && useGuest(near)) return;
   const kioskDist = walker.position.distanceTo(new THREE.Vector3(KIOSK.x, walker.position.y, KIOSK.z));
@@ -230,22 +253,10 @@ function paintHud(): void {
   const kind = kindOf(hit?.object);
   const id = guestIdOf(hit?.object);
   let prompt = "";
-  if (kind === "driver") prompt = "E  TALK";
-  else if (kind === "inlet") prompt = "E  PLUG";
-  else if (kind === "kiosk") prompt = "E  PAY";
-  else if (kind === "car" && id) {
-    const g = state.guests.find((x) => x.id === id);
-    if (g && g.authorized && !g.enrolled) prompt = "E  AUTOCHARGE";
-    else if (g && !g.greeted) prompt = "E  TALK";
-    else if (g && !g.plugged) prompt = "E  PLUG";
-  }
-  if (!prompt) {
-    const near = nearbyGuestId();
-    const g = near ? state.guests.find((x) => x.id === near) : undefined;
-    if (g && g.authorized && !g.enrolled) prompt = "E  AUTOCHARGE";
-    else if (g && !g.greeted) prompt = "E  TALK";
-    else if (g && !g.plugged) prompt = "E  PLUG";
-  }
+  if (kind === "kiosk") prompt = "E  PAY";
+  else if (kind === "inlet" && guestNeed(id) === "plug") prompt = "E  PLUG";
+  else if (id) prompt = promptFor(guestNeed(id));
+  if (!prompt) prompt = promptFor(guestNeed(nearbyGuestId()));
   promptEl.textContent = prompt;
   toastEl.textContent = live && state.toastUntil > state.timeMin ? state.toast : "";
   crossEl.classList.toggle("ready", !!prompt);
@@ -275,10 +286,14 @@ function loop(now: number): void {
   requestAnimationFrame(loop);
 }
 
+function lockFromGesture(): void {
+  canvas.focus();
+  walker.requestLock(canvas);
+}
+
 canvas.addEventListener("click", (e) => {
   if (state.phase === "title") {
-    dropIn();
-    walker.requestLock(canvas);
+    beginShift(true);
     return;
   }
   if (state.phase === "grade" || state.phase === "lose") {
@@ -287,24 +302,31 @@ canvas.addEventListener("click", (e) => {
   }
   if (!walker.locked) {
     if (e.shiftKey) groundWalk(e.clientX, e.clientY);
-    else {
-      walker.requestLock(canvas);
-      act();
-    }
+    else lockFromGesture();
     return;
   }
   act();
 });
 
-startBtn.addEventListener("click", (e) => {
+startBtn.addEventListener("pointerdown", (e) => {
+  e.preventDefault();
   e.stopPropagation();
-  dropIn();
-  walker.requestLock(canvas);
+  beginShift(true);
+});
+
+startBtn.addEventListener("click", (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  if (state.phase === "title") beginShift(true);
+  else if (!walker.locked) lockFromGesture();
 });
 
 window.addEventListener("keydown", (e) => {
-  if (e.code === "KeyE") act();
-  if (e.code === "KeyF") walker.requestLock(canvas);
+  if (e.code === "KeyE" || e.key.toLowerCase() === "e") {
+    e.preventDefault();
+    act();
+  }
+  if (e.code === "KeyF") lockFromGesture();
 });
 
 canvas.addEventListener("contextmenu", (e) => {

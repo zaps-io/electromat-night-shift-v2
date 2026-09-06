@@ -21,7 +21,7 @@ export function createRenderer(canvas: HTMLCanvasElement): THREE.WebGLRenderer {
     powerPreference: "high-performance",
     stencil: false,
   });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -52,13 +52,13 @@ export function createNightProbe(renderer: THREE.WebGLRenderer): THREE.Texture {
     [12.35, 5.08, 3.1, 0xdce6f2, 0.16],
     [-6, 5.08, -3.5, 0xe8eef6, 0.12],
     [6, 5.08, -3.5, 0xe8eef6, 0.12],
-    [-10.55, 1.4, 2.55, 0xff7a28, 0.48],
+    [-10.55, 1.4, 2.55, 0xc46a28, 0.28],
     [-16.8, 4.4, 0.4, 0xffc878, 0.22],
     [12.6, 4.4, 8.4, 0xffc878, 0.22],
-    [-7.4, 1.55, 1.6, 0xd4dae0, 0.12],
-    [-3.8, 1.55, 1.6, 0xd4dae0, 0.12],
-    [-0.2, 1.55, 1.6, 0xd4dae0, 0.12],
-    [3.4, 1.55, 1.6, 0xd4dae0, 0.12],
+    [-7.4, 1.55, 1.6, 0x8a9098, 0.06],
+    [-3.8, 1.55, 1.6, 0x8a9098, 0.06],
+    [-0.2, 1.55, 1.6, 0x8a9098, 0.06],
+    [3.4, 1.55, 1.6, 0x8a9098, 0.06],
     [-5.0, 1.8, -1.0, 0xeee6d8, 0.14],
   ] as const) {
     const bulb = new THREE.Mesh(

@@ -1,5 +1,17 @@
 import * as THREE from "three";
 
+const MOVE = new Set(["KeyW", "KeyA", "KeyS", "KeyD", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
+
+function keyToken(e: KeyboardEvent): string[] {
+  const tokens = [e.code];
+  const letter = e.key.length === 1 ? e.key.toLowerCase() : "";
+  if (letter === "w") tokens.push("KeyW");
+  if (letter === "a") tokens.push("KeyA");
+  if (letter === "s") tokens.push("KeyS");
+  if (letter === "d") tokens.push("KeyD");
+  return tokens;
+}
+
 export class Walker {
   readonly camera: THREE.PerspectiveCamera;
   readonly position = new THREE.Vector3(0.4, 1.64, -9.2);
@@ -19,9 +31,20 @@ export class Walker {
   }
 
   private bind(): void {
-    window.addEventListener("keydown", (e) => this.keys.add(e.code));
-    window.addEventListener("keyup", (e) => this.keys.delete(e.code));
+    const down = (e: KeyboardEvent) => {
+      for (const token of keyToken(e)) this.keys.add(token);
+      if (MOVE.has(e.code) || MOVE.has(keyToken(e)[1] ?? "")) e.preventDefault();
+    };
+    const up = (e: KeyboardEvent) => {
+      for (const token of keyToken(e)) this.keys.delete(token);
+    };
+    document.addEventListener("keydown", down, true);
+    document.addEventListener("keyup", up, true);
+    window.addEventListener("blur", () => this.keys.clear());
     document.addEventListener("pointerlockchange", () => {
+      this.locked = document.pointerLockElement != null;
+    });
+    document.addEventListener("pointerlockerror", () => {
       this.locked = document.pointerLockElement != null;
     });
     document.addEventListener("mousemove", (e) => {
@@ -32,7 +55,33 @@ export class Walker {
   }
 
   requestLock(el: HTMLElement): void {
-    void el.requestPointerLock();
+    if (document.pointerLockElement === el) {
+      this.locked = true;
+      el.focus();
+      return;
+    }
+    el.focus();
+    const req = el.requestPointerLock.bind(el);
+    try {
+      const result = (req as (opts?: { unadjustedMovement?: boolean }) => Promise<void> | void)({
+        unadjustedMovement: true,
+      });
+      if (result && typeof result.catch === "function") {
+        void result.catch(() => {
+          try {
+            el.requestPointerLock();
+          } catch {
+            /* ignore */
+          }
+        });
+      }
+    } catch {
+      try {
+        el.requestPointerLock();
+      } catch {
+        /* ignore */
+      }
+    }
   }
 
   walkTo(point: THREE.Vector3): void {
