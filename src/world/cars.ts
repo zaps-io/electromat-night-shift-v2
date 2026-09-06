@@ -604,11 +604,11 @@ function makeLodHull(color: number, hull: HullKind): THREE.Group {
 
 /** Distant / queue fillers. Last entry is dropped first if WebGL context is lost. */
 export const LOD_FILLERS = [
-  { x: 10.8, z: 4.2, yaw: -Math.PI / 2, paint: 0xe8e2d4, waiting: false },
-  { x: -11.2, z: -0.2, yaw: -Math.PI / 2 + 0.36, paint: 0xc8ccd0, waiting: true },
-  { x: 2.2, z: -12.6, yaw: -Math.PI / 2 + 1.05, paint: 0x14161c, waiting: true },
-  { x: -14.6, z: -6.8, yaw: -Math.PI / 2 + 0.22, paint: 0x3a4048, waiting: true },
-  { x: 16.4, z: 6.2, yaw: -Math.PI / 2, paint: 0x2a2e34, waiting: false },
+  { x: 10.65, z: -5.4, yaw: Math.PI / 2, paint: 0xe8e2d4, waiting: false },
+  { x: -5.55, z: 6.9, yaw: Math.PI / 2, paint: 0xc8ccd0, waiting: false },
+  { x: 5.35, z: 5.4, yaw: -Math.PI / 2, paint: 0x14161c, waiting: false },
+  { x: 7.4, z: 12.4, yaw: Math.PI, paint: 0x3a4048, waiting: false },
+  { x: 0.2, z: -16.2, yaw: Math.PI, paint: 0x2a2e34, waiting: true },
 ] as const;
 
 export let lodFillerBudget = 4;
@@ -776,7 +776,7 @@ export function placeGuest(view: CarView, guest: Guest, now: number): void {
   if (charging && guest.assignedBay != null) {
     const bay = BAYS[guest.assignedBay - 1];
     view.root.position.set(bay.x, 0, bay.z);
-    view.root.rotation.y = -Math.PI / 2;
+    view.root.rotation.y = bay.carYaw;
   } else {
     const named = WAIT_ORDER.indexOf(guest.id as (typeof WAIT_ORDER)[number]);
     const slot = named >= 0 ? named : 0;

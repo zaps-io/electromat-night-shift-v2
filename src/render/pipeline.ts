@@ -107,10 +107,10 @@ export function configureKeyLight(light: THREE.DirectionalLight): void {
   light.shadow.mapSize.set(2048, 2048);
   light.shadow.camera.near = 2;
   light.shadow.camera.far = 48;
-  light.shadow.camera.left = -24;
-  light.shadow.camera.right = 24;
-  light.shadow.camera.top = 18;
-  light.shadow.camera.bottom = -18;
+  light.shadow.camera.left = -30;
+  light.shadow.camera.right = 30;
+  light.shadow.camera.top = 24;
+  light.shadow.camera.bottom = -24;
   light.shadow.bias = -0.00035;
   light.shadow.normalBias = 0.03;
 }

@@ -144,7 +144,7 @@ const screenMat = new THREE.MeshBasicMaterial({
   toneMapped: false,
 });
 
-function addSideHolster(g: THREE.Group, side: -1 | 1): void {
+function addSideHolster(g: THREE.Group, side: -1 | 1, cables = true): void {
   const x = 0.205 * side;
   const pocket = new THREE.Mesh(new RoundedBoxGeometry(0.05, 0.22, 0.1, 2, 0.01), alum);
   pocket.position.set(x, 1.02, 0.01);
@@ -164,14 +164,23 @@ function addSideHolster(g: THREE.Group, side: -1 | 1): void {
     new THREE.Vector3(x + side * 0.12, 0.42, 0.04),
     new THREE.Vector3(x + side * 0.02, 0.28, 0.0),
   );
+  g.add(pocket, lip, barrel, gripMesh, nose);
+  if (!cables) return;
   const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, 12, 0.012, 6, false), cableMat);
-  g.add(pocket, lip, barrel, gripMesh, nose, tube);
+  g.add(tube);
 }
 
 /** Slim Zeus: brushed pedestal, charcoal face, PLUG IN, waist side holsters. */
-export function addZeusCharger(root: THREE.Group, x: number, z: number): void {
+export function addZeusCharger(
+  root: THREE.Group,
+  x: number,
+  z: number,
+  yaw = 0,
+  detail: "full" | "lite" = "full",
+): void {
   const g = new THREE.Group();
-  g.position.set(x - 1.18, 0, z - 2.25);
+  g.position.set(x, 0, z);
+  g.rotation.y = yaw;
   g.userData.kind = "zeus";
 
   const base = new THREE.Mesh(new RoundedBoxGeometry(0.48, 0.11, 0.4, 3, 0.018), black);
@@ -213,8 +222,8 @@ export function addZeusCharger(root: THREE.Group, x: number, z: number): void {
   const status = new THREE.Mesh(new THREE.BoxGeometry(0.016, 0.016, 0.006), led);
   status.position.set(0, 2.12, -0.134);
 
-  addSideHolster(g, -1);
-  addSideHolster(g, 1);
+  addSideHolster(g, -1, detail === "full");
+  addSideHolster(g, 1, detail === "full");
 
   g.add(base, body, cap, seam, recess, plate, logo, bezel, screen, status);
   root.add(g);
