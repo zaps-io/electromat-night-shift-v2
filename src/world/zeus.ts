@@ -1,54 +1,24 @@
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { C } from "../brand";
+import { brushMetal } from "./tex";
 
-function brushedMaps(): { map: THREE.CanvasTexture; rough: THREE.CanvasTexture } {
-  const w = 256;
-  const h = 512;
-  const color = document.createElement("canvas");
-  const rough = document.createElement("canvas");
-  color.width = rough.width = w;
-  color.height = rough.height = h;
-  const c = color.getContext("2d")!;
-  const r = rough.getContext("2d")!;
-  c.fillStyle = "#B8BCC0";
-  c.fillRect(0, 0, w, h);
-  r.fillStyle = "#6a6a6a";
-  r.fillRect(0, 0, w, h);
-  for (let x = 0; x < w; x++) {
-    const grain = Math.sin(x * 0.55) * 7 + Math.sin(x * 1.7) * 3.2 + ((x * 17) % 5);
-    const v = 168 + grain;
-    c.fillStyle = `rgb(${v},${v + 2},${v + 5})`;
-    c.fillRect(x, 0, 1, h);
-    const rv = 86 + grain * 1.4;
-    r.fillStyle = `rgb(${rv},${rv},${rv})`;
-    r.fillRect(x, 0, 1, h);
-  }
-  const map = new THREE.CanvasTexture(color);
-  map.colorSpace = THREE.SRGBColorSpace;
-  map.wrapS = map.wrapT = THREE.RepeatWrapping;
-  map.anisotropy = 4;
-  const roughTex = new THREE.CanvasTexture(rough);
-  roughTex.wrapS = roughTex.wrapT = THREE.RepeatWrapping;
-  return { map, rough: roughTex };
-}
-
-const brush = brushedMaps();
+const brush = brushMetal();
 
 const alum = new THREE.MeshPhysicalMaterial({
   name: "ZeusAlum",
   color: C.chrome,
   map: brush.map,
   roughnessMap: brush.rough,
-  metalness: 0.66,
-  roughness: 0.3,
-  clearcoat: 0.36,
-  clearcoatRoughness: 0.28,
-  anisotropy: 0.78,
+  metalness: 0.72,
+  roughness: 0.26,
+  clearcoat: 0.22,
+  clearcoatRoughness: 0.32,
+  anisotropy: 0.86,
   anisotropyRotation: Math.PI / 2,
-  envMapIntensity: 0.88,
-  emissive: 0x2a2c30,
-  emissiveIntensity: 0.055,
+  envMapIntensity: 1.05,
+  emissive: 0x1c1e22,
+  emissiveIntensity: 0.04,
 });
 
 const charcoal = new THREE.MeshStandardMaterial({

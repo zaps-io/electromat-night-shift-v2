@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { C } from "../brand";
 import { BAY_SIZE, CANOPIES, KIOSK, PAVILION, STALLS, YARD } from "./layout";
+import { asphaltColor, asphaltRough, creamPanels, gravel, stucco } from "./tex";
 import { addZeusCharger } from "./zeus";
 
 export interface Station {
@@ -37,115 +38,16 @@ function box(
   return mesh;
 }
 
-function asphaltMaps(): {
-  map: THREE.CanvasTexture;
-  rough: THREE.CanvasTexture;
-  normal: THREE.CanvasTexture;
-  alpha: THREE.CanvasTexture;
-} {
-  const size = 1024;
-  const color = document.createElement("canvas");
-  const rough = document.createElement("canvas");
-  const height = document.createElement("canvas");
-  const alpha = document.createElement("canvas");
-  color.width = rough.width = height.width = alpha.width = size;
-  color.height = rough.height = height.height = alpha.height = size;
-  const c = color.getContext("2d")!;
-  const r = rough.getContext("2d")!;
-  const h = height.getContext("2d")!;
-  const a = alpha.getContext("2d")!;
-  c.fillStyle = "#08090c";
-  c.fillRect(0, 0, size, size);
-  r.fillStyle = "#6e6e6e";
-  r.fillRect(0, 0, size, size);
-  h.fillStyle = "#787878";
-  h.fillRect(0, 0, size, size);
-  a.fillStyle = "#fbfbfb";
-  a.fillRect(0, 0, size, size);
-  for (let i = 0; i < 22000; i++) {
-    const x = Math.random() * size;
-    const y = Math.random() * size;
-    const n = 12 + Math.random() * 22;
-    c.fillStyle = `rgba(${n},${n + 1},${n + 3},${0.18 + Math.random() * 0.28})`;
-    c.fillRect(x, y, 1 + Math.random() * 2, 1 + Math.random() * 2);
-    const rv = 110 + Math.random() * 70;
-    r.fillStyle = `rgb(${rv},${rv},${rv})`;
-    r.fillRect(x, y, 2, 2);
-    const hv = 110 + Math.random() * 40;
-    h.fillStyle = `rgb(${hv},${hv},${hv})`;
-    h.fillRect(x, y, 2, 2);
-  }
-  for (let i = 0; i < 36; i++) {
-    const x = Math.random() * size;
-    const y = Math.random() * size;
-    const rw = 28 + Math.random() * 90;
-    const rh = 16 + Math.random() * 48;
-    const rot = Math.random() * 0.9;
-    const rg = r.createRadialGradient(x, y, 2, x, y, rw);
-    rg.addColorStop(0, "rgb(16,16,16)");
-    rg.addColorStop(0.55, "rgb(48,48,48)");
-    rg.addColorStop(1, "rgba(168,168,168,0)");
-    r.fillStyle = rg;
-    r.beginPath();
-    r.ellipse(x, y, rw, rh, rot, 0, Math.PI * 2);
-    r.fill();
-    const cg = c.createRadialGradient(x, y, 2, x, y, rw);
-    cg.addColorStop(0, "rgba(8,10,14,0.55)");
-    cg.addColorStop(1, "rgba(8,10,14,0)");
-    c.fillStyle = cg;
-    c.beginPath();
-    c.ellipse(x, y, rw, rh, rot, 0, Math.PI * 2);
-    c.fill();
-  }
-  const hd = h.getImageData(0, 0, size, size);
-  const nd = h.createImageData(size, size);
-  const src = hd.data;
-  const dst = nd.data;
-  const at = (x: number, y: number) => src[(((y + size) % size) * size + ((x + size) % size)) * 4];
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      const dx = at(x + 1, y) - at(x - 1, y);
-      const dy = at(x, y + 1) - at(x, y - 1);
-      const nx = -dx / 255;
-      const ny = -dy / 255;
-      const nz = 1;
-      const len = Math.hypot(nx, ny, nz) || 1;
-      const i = (y * size + x) * 4;
-      dst[i] = Math.round((nx / len) * 127 + 128);
-      dst[i + 1] = Math.round((ny / len) * 127 + 128);
-      dst[i + 2] = Math.round((nz / len) * 127 + 128);
-      dst[i + 3] = 255;
-    }
-  }
-  h.putImageData(nd, 0, 0);
-  const map = new THREE.CanvasTexture(color);
-  const roughMap = new THREE.CanvasTexture(rough);
-  const normal = new THREE.CanvasTexture(height);
-  const alphaMap = new THREE.CanvasTexture(alpha);
-  for (const tex of [map, roughMap, normal, alphaMap]) {
-    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-    tex.repeat.set(6, 5);
-    tex.anisotropy = 8;
-  }
-  map.colorSpace = THREE.SRGBColorSpace;
-  return { map, rough: roughMap, normal, alpha: alphaMap };
-}
-
 function makeAsphalt(root: THREE.Group): THREE.Mesh {
-  const maps = asphaltMaps();
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(78, 68),
-    new THREE.MeshPhysicalMaterial({
-      color: 0x07080b,
-      map: maps.map,
-      roughness: 0.78,
-      roughnessMap: maps.rough,
-      metalness: 0.01,
-      normalMap: maps.normal,
-      normalScale: new THREE.Vector2(0.22, 0.22),
-      envMapIntensity: 0.12,
-      clearcoat: 0.015,
-      clearcoatRoughness: 0.78,
+    new THREE.MeshStandardMaterial({
+      color: 0x101214,
+      map: asphaltColor(),
+      roughness: 0.92,
+      roughnessMap: asphaltRough(),
+      metalness: 0.02,
+      envMapIntensity: 0.16,
     }),
   );
   ground.rotation.x = -Math.PI / 2;
@@ -156,15 +58,13 @@ function makeAsphalt(root: THREE.Group): THREE.Mesh {
 }
 
 export function addLotMirror(root: THREE.Group, _renderer: THREE.WebGLRenderer): void {
-  const sheen = new THREE.MeshPhysicalMaterial({
-    color: 0x07080b,
-    roughness: 0.62,
-    metalness: 0.02,
-    clearcoat: 0.02,
-    clearcoatRoughness: 0.72,
-    envMapIntensity: 0.12,
+  const sheen = new THREE.MeshStandardMaterial({
+    color: 0x1a1410,
+    roughness: 0.7,
+    metalness: 0.04,
+    envMapIntensity: 0.22,
     transparent: true,
-    opacity: 0.03,
+    opacity: 0.08,
   });
   for (const [x, z, w, d] of [
     [-10.6, 2.8, 9.4, 18.0],
@@ -234,12 +134,18 @@ function roundedRectShape(w: number, d: number, r: number): THREE.Shape {
 }
 
 function addCanopyAt(root: THREE.Group, cx: number, cz: number, w: number, d: number, y: number, shadow: boolean): void {
-  const shell = mat(0xf7f4ee, { roughness: 0.34, metalness: 0.1, envMapIntensity: 0.48 });
+  const panels = creamPanels();
+  const shell = mat(0xf7f4ee, {
+    roughness: 0.38,
+    metalness: 0.08,
+    envMapIntensity: 0.42,
+    map: panels,
+  });
   const under = new THREE.MeshStandardMaterial({
-    color: 0xefe8d8,
-    emissive: 0xc49a58,
-    emissiveIntensity: 0.32,
-    roughness: 0.55,
+    color: 0xf0d8b0,
+    emissive: 0xd48830,
+    emissiveIntensity: 0.55,
+    roughness: 0.5,
     metalness: 0.02,
   });
   const topGeo = new THREE.ExtrudeGeometry(roundedRectShape(w, d, 1.35), {
@@ -288,11 +194,11 @@ function addCanopyAt(root: THREE.Group, cx: number, cz: number, w: number, d: nu
   const well = mat(0x3a3e44, { roughness: 0.58 });
   const lamp = new THREE.MeshStandardMaterial({
     color: 0xffe8c0,
-    emissive: 0xf0c070,
-    emissiveIntensity: 0.85,
+    emissive: 0xf0a848,
+    emissiveIntensity: 1.15,
     toneMapped: false,
   });
-  const zs = [cz - d * 0.28, cz, cz + d * 0.28];
+  const zs = [cz - d * 0.32, cz - d * 0.12, cz + d * 0.12, cz + d * 0.32];
   for (const z of zs) {
     const recess = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.05, 16), well);
     recess.position.set(cx, y - 0.1, z);
@@ -301,7 +207,12 @@ function addCanopyAt(root: THREE.Group, cx: number, cz: number, w: number, d: nu
     disc.position.set(cx, y - 0.14, z);
     root.add(recess, disc);
   }
-  const light = new THREE.SpotLight(0xf4d8a0, shadow ? 38 : 26, 11, 0.58, 0.62, 1.35);
+  for (let i = -2; i <= 2; i++) {
+    const seam = new THREE.Mesh(new THREE.BoxGeometry(w - 1.6, 0.01, 0.035), mat(0xe4d8c4, { roughness: 0.55 }));
+    seam.position.set(cx, y + 0.59, cz + i * (d * 0.16));
+    root.add(seam);
+  }
+  const light = new THREE.SpotLight(0xf2c878, shadow ? 32 : 22, 12, 0.62, 0.58, 1.25);
   light.position.set(cx, y - 0.16, cz);
   light.target.position.set(cx, 0, cz);
   light.castShadow = shadow;
@@ -334,16 +245,23 @@ function addPavilion(root: THREE.Group): THREE.Box3 {
   const g = new THREE.Group();
   g.position.set(PAVILION.x, 0, PAVILION.z);
   g.rotation.y = PAVILION.yaw;
-  const wall = mat(0xf8f4ec, { roughness: 0.42, metalness: 0.04, envMapIntensity: 0.38, emissive: 0x2a2418, emissiveIntensity: 0.05 });
+  const wall = mat(0xf8f4ec, {
+    roughness: 0.48,
+    metalness: 0.03,
+    envMapIntensity: 0.32,
+    map: stucco(),
+    emissive: 0x3a2a18,
+    emissiveIntensity: 0.06,
+  });
   const glass = new THREE.MeshPhysicalMaterial({
-    color: 0x6a8898,
-    roughness: 0.06,
-    metalness: 0.08,
-    transmission: 0.12,
+    color: 0x8aa8b8,
+    roughness: 0.04,
+    metalness: 0.12,
+    transmission: 0.18,
     transparent: true,
-    opacity: 0.34,
-    thickness: 0.06,
-    envMapIntensity: 0.85,
+    opacity: 0.38,
+    thickness: 0.05,
+    envMapIntensity: 1.15,
     side: THREE.DoubleSide,
   });
   const W = PAVILION.w;
@@ -362,11 +280,13 @@ function addPavilion(root: THREE.Group): THREE.Box3 {
   side.rotation.y = Math.PI / 2;
   g.add(front, side);
 
-  const warm = new THREE.MeshBasicMaterial({ color: 0xf0a040 });
+  const warm = new THREE.MeshBasicMaterial({ color: 0xf2a040, toneMapped: false });
   const backLit = new THREE.Mesh(new THREE.PlaneGeometry(D - 0.5, paneH - 0.1), warm);
   backLit.position.set(-W / 2 + 0.2, H * 0.5, 0);
   backLit.rotation.y = Math.PI / 2;
-  g.add(backLit);
+  const inside = new THREE.Mesh(new THREE.PlaneGeometry(W - 1.0, paneH - 0.2), warm);
+  inside.position.set(0, H * 0.5, 0.35);
+  g.add(backLit, inside);
   const lampMat = new THREE.MeshBasicMaterial({ color: 0xffb050 });
   for (const [x, z] of [
     [-1.5, 0.7],
@@ -383,7 +303,7 @@ function addPavilion(root: THREE.Group): THREE.Box3 {
   g.add(box(0.6, 0.85, 0.6, shade, -0.15, 0.55, 1.05));
   addPerson(g, -1.4, -0.4, 1.4, 1.56);
   addPerson(g, -1.25, 0.55, 1.7, 1.6);
-  const spill = new THREE.PointLight(0xe89a2e, 14, 8, 1.6);
+  const spill = new THREE.PointLight(0xf0a040, 18, 9, 1.45);
   spill.position.set(-0.3, 2.0, 0);
   g.add(spill);
 
@@ -439,7 +359,7 @@ function addPalm(root: THREE.Group, x: number, z: number, h = 5.2): void {
 }
 
 function addAgave(root: THREE.Group, x: number, z: number, scale = 1): void {
-  const succulent = mat(0x4a5a30, { roughness: 0.72 });
+  const succulent = mat(0x5a7a38, { roughness: 0.7 });
   const rock = mat(0x8a8070, { roughness: 0.88 });
   for (let i = 0; i < 8; i++) {
     const blade = new THREE.Mesh(new THREE.ConeGeometry(0.045 * scale, 0.55 * scale, 5), succulent);
@@ -459,21 +379,7 @@ function addAgave(root: THREE.Group, x: number, z: number, scale = 1): void {
 }
 
 function gravelMap(): THREE.CanvasTexture {
-  const c = document.createElement("canvas");
-  c.width = c.height = 256;
-  const ctx = c.getContext("2d")!;
-  ctx.fillStyle = "#c4b394";
-  ctx.fillRect(0, 0, 256, 256);
-  for (let i = 0; i < 2400; i++) {
-    const n = 150 + Math.random() * 70;
-    ctx.fillStyle = `rgb(${n},${n - 18},${n - 40})`;
-    ctx.fillRect(Math.random() * 256, Math.random() * 256, 2, 2);
-  }
-  const tex = new THREE.CanvasTexture(c);
-  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-  tex.repeat.set(4, 2);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
+  return gravel();
 }
 
 function addDesertBed(root: THREE.Group, x: number, z: number, w: number, d: number): void {
@@ -484,9 +390,9 @@ function addDesertBed(root: THREE.Group, x: number, z: number, w: number, d: num
   const gravel = new THREE.Mesh(
     new THREE.PlaneGeometry(w - 0.28, d - 0.28),
     new THREE.MeshStandardMaterial({
-      color: 0xd2c4a4,
+      color: 0xe0d0a8,
       map: gravelMap(),
-      roughness: 0.92,
+      roughness: 0.94,
       metalness: 0.02,
     }),
   );

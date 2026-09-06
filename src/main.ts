@@ -38,17 +38,17 @@ const pips = document.querySelectorAll("#pips i");
 const renderer = createRenderer(canvas);
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x1c1824);
-scene.fog = new THREE.Fog(0x1e1a22, 72, 175);
-scene.add(new THREE.AmbientLight(0xc4c0c4, 0.16));
-const fill = new THREE.DirectionalLight(0xffd090, 0.82);
-fill.position.set(-26, 12, -11);
+scene.background = new THREE.Color(0x2a2430);
+scene.fog = new THREE.Fog(0x2c2834, 78, 180);
+scene.add(new THREE.AmbientLight(0xc8c0b8, 0.18));
+const fill = new THREE.DirectionalLight(0xffc070, 0.95);
+fill.position.set(-28, 11, -12);
 configureKeyLight(fill);
 scene.add(fill);
-const rim = new THREE.DirectionalLight(0x9ab4d0, 0.62);
+const rim = new THREE.DirectionalLight(0x88a0bc, 0.42);
 rim.position.set(18, 10, 20);
 scene.add(rim);
-const skyFill = new THREE.DirectionalLight(0x6a7a94, 0.12);
+const skyFill = new THREE.DirectionalLight(0x6a8098, 0.16);
 skyFill.position.set(4, 18, -8);
 scene.add(skyFill);
 
