@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { Reflector } from "three/addons/objects/Reflector.js";
 import { C } from "../brand";
 import { BAYS, BAY_SIZE, KIOSK, PAVILION } from "./layout";
 
@@ -35,22 +36,31 @@ function box(
   return mesh;
 }
 
-function asphaltMaps(): { map: THREE.CanvasTexture; rough: THREE.CanvasTexture; normal: THREE.CanvasTexture } {
+function asphaltMaps(): {
+  map: THREE.CanvasTexture;
+  rough: THREE.CanvasTexture;
+  normal: THREE.CanvasTexture;
+  alpha: THREE.CanvasTexture;
+} {
   const size = 1024;
   const color = document.createElement("canvas");
   const rough = document.createElement("canvas");
   const height = document.createElement("canvas");
-  color.width = rough.width = height.width = size;
-  color.height = rough.height = height.height = size;
+  const alpha = document.createElement("canvas");
+  color.width = rough.width = height.width = alpha.width = size;
+  color.height = rough.height = height.height = alpha.height = size;
   const c = color.getContext("2d")!;
   const r = rough.getContext("2d")!;
   const h = height.getContext("2d")!;
-  c.fillStyle = "#1a1c20";
+  const a = alpha.getContext("2d")!;
+  c.fillStyle = "#16181c";
   c.fillRect(0, 0, size, size);
-  r.fillStyle = "#a8a8a8";
+  r.fillStyle = "#7a7a7a";
   r.fillRect(0, 0, size, size);
   h.fillStyle = "#787878";
   h.fillRect(0, 0, size, size);
+  a.fillStyle = "#f2f2f2";
+  a.fillRect(0, 0, size, size);
   for (let i = 0; i < 22000; i++) {
     const x = Math.random() * size;
     const y = Math.random() * size;
@@ -79,12 +89,20 @@ function asphaltMaps(): { map: THREE.CanvasTexture; rough: THREE.CanvasTexture; 
     r.ellipse(x, y, rw, rh, rot, 0, Math.PI * 2);
     r.fill();
     const cg = c.createRadialGradient(x, y, 2, x, y, rw);
-    cg.addColorStop(0, "rgba(14,16,20,0.62)");
-    cg.addColorStop(1, "rgba(14,16,20,0)");
+    cg.addColorStop(0, "rgba(10,12,16,0.7)");
+    cg.addColorStop(1, "rgba(10,12,16,0)");
     c.fillStyle = cg;
     c.beginPath();
     c.ellipse(x, y, rw, rh, rot, 0, Math.PI * 2);
     c.fill();
+    const ag = a.createRadialGradient(x, y, 2, x, y, rw);
+    ag.addColorStop(0, "rgb(58,58,58)");
+    ag.addColorStop(0.45, "rgb(92,92,92)");
+    ag.addColorStop(1, "rgba(242,242,242,0)");
+    a.fillStyle = ag;
+    a.beginPath();
+    a.ellipse(x, y, rw, rh, rot, 0, Math.PI * 2);
+    a.fill();
   }
   const hd = h.getImageData(0, 0, size, size);
   const nd = h.createImageData(size, size);
@@ -110,13 +128,14 @@ function asphaltMaps(): { map: THREE.CanvasTexture; rough: THREE.CanvasTexture; 
   const map = new THREE.CanvasTexture(color);
   const roughMap = new THREE.CanvasTexture(rough);
   const normal = new THREE.CanvasTexture(height);
-  for (const tex of [map, roughMap, normal]) {
+  const alphaMap = new THREE.CanvasTexture(alpha);
+  for (const tex of [map, roughMap, normal, alphaMap]) {
     tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-    tex.repeat.set(8, 7);
+    tex.repeat.set(6, 5);
     tex.anisotropy = 8;
   }
   map.colorSpace = THREE.SRGBColorSpace;
-  return { map, rough: roughMap, normal };
+  return { map, rough: roughMap, normal, alpha: alphaMap };
 }
 
 function makeAsphalt(root: THREE.Group): THREE.Mesh {
@@ -124,44 +143,41 @@ function makeAsphalt(root: THREE.Group): THREE.Mesh {
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(56, 48),
     new THREE.MeshPhysicalMaterial({
-      color: 0x26282c,
+      color: 0x1c1e22,
       map: maps.map,
-      roughness: 0.38,
+      roughness: 0.22,
       roughnessMap: maps.rough,
-      metalness: 0.04,
+      metalness: 0.06,
       normalMap: maps.normal,
-      normalScale: new THREE.Vector2(0.28, 0.28),
-      envMapIntensity: 1.42,
-      clearcoat: 0.64,
-      clearcoatRoughness: 0.18,
+      normalScale: new THREE.Vector2(0.22, 0.22),
+      envMapIntensity: 1.65,
+      clearcoat: 0.78,
+      clearcoatRoughness: 0.12,
+      transparent: true,
+      opacity: 1,
+      alphaMap: maps.alpha,
+      depthWrite: true,
     }),
   );
   ground.rotation.x = -Math.PI / 2;
+  ground.position.y = 0.01;
   ground.receiveShadow = true;
   root.add(ground);
-  const wet = new THREE.MeshPhysicalMaterial({
-    color: 0x1a1c20,
-    roughness: 0.16,
-    metalness: 0.02,
-    clearcoat: 0.72,
-    clearcoatRoughness: 0.16,
-    envMapIntensity: 1.55,
-    transparent: true,
-    opacity: 0.42,
-  });
-  for (const [x, z, w, d] of [
-    [0.2, -2.4, 4.8, 2.6],
-    [-3.4, -0.6, 3.6, 2.2],
-    [2.2, 0.8, 3.2, 1.8],
-    [-6.2, 1.4, 2.8, 1.6],
-  ] as const) {
-    const patch = new THREE.Mesh(new THREE.PlaneGeometry(w, d), wet);
-    patch.rotation.x = -Math.PI / 2;
-    patch.position.set(x, 0.012, z);
-    patch.receiveShadow = true;
-    root.add(patch);
-  }
   return ground;
+}
+
+export function addLotMirror(root: THREE.Group, renderer: THREE.WebGLRenderer): void {
+  const px = Math.min(768, Math.max(512, renderer.domElement.width || 768));
+  const mirror = new Reflector(new THREE.PlaneGeometry(40, 34), {
+    clipBias: 0.03,
+    textureWidth: px,
+    textureHeight: px,
+    color: new THREE.Color(0x6a7078),
+  });
+  mirror.rotation.x = -Math.PI / 2;
+  mirror.position.y = 0.001;
+  mirror.name = "lotMirror";
+  root.add(mirror);
 }
 
 function addLaneMarks(root: THREE.Group): void {
@@ -177,35 +193,20 @@ function addLaneMarks(root: THREE.Group): void {
 
 function addBayOutline(root: THREE.Group, x: number, z: number): THREE.Object3D {
   const g = new THREE.Group();
-  g.position.set(x, 0.016, z);
-  const glow = new THREE.MeshStandardMaterial({
-    color: C.cyan,
-    emissive: C.cyan,
-    emissiveIntensity: 2.1,
-    toneMapped: false,
-  });
-  const t = 0.055;
+  g.position.set(x, 0.02, z);
+  const glow = new THREE.MeshBasicMaterial({ color: 0x00d4f5, toneMapped: false });
+  const halo = new THREE.MeshBasicMaterial({ color: 0x00d4f5, transparent: true, opacity: 0.28, toneMapped: false, depthWrite: false });
+  const t = 0.03;
   const { w, d } = BAY_SIZE;
-  g.add(box(w, 0.02, t, glow, 0, 0, d / 2));
-  g.add(box(w, 0.02, t, glow, 0, 0, -d / 2));
-  g.add(box(t, 0.02, d, glow, w / 2, 0, 0));
-  g.add(box(t, 0.02, d, glow, -w / 2, 0, 0));
-  const wash = new THREE.Mesh(
-    new THREE.PlaneGeometry(w * 0.92, d * 0.92),
-    new THREE.MeshPhysicalMaterial({
-      color: 0x00d4f5,
-      transparent: true,
-      opacity: 0.045,
-      roughness: 0.18,
-      metalness: 0.02,
-      clearcoat: 0.6,
-      clearcoatRoughness: 0.2,
-      envMapIntensity: 1.1,
-    }),
-  );
-  wash.rotation.x = -Math.PI / 2;
-  wash.position.y = 0.004;
-  g.add(wash);
+  for (const [bw, bh, bd, bx, by, bz] of [
+    [w, 0.018, t, 0, 0, d / 2],
+    [w, 0.018, t, 0, 0, -d / 2],
+    [t, 0.018, d, w / 2, 0, 0],
+    [t, 0.018, d, -w / 2, 0, 0],
+  ] as const) {
+    g.add(box(bw, bh, bd, glow, bx, by, bz));
+    g.add(box(bw + 0.04, bh + 0.01, bd + 0.04, halo, bx, by, bz));
+  }
   const anchor = new THREE.Object3D();
   anchor.position.set(0, 0.4, 0);
   anchor.userData.kind = "bay";
@@ -240,35 +241,30 @@ function screenTexture(): THREE.CanvasTexture {
 }
 
 function addPedestal(root: THREE.Group, x: number, z: number): void {
-  const cream = mat(0xf4f1ea, { roughness: 0.2, metalness: 0.08, clearcoat: 0.4, clearcoatRoughness: 0.28 });
-  const px = x - 1.08;
-  const pz = z - 2.08;
-  root.add(box(0.38, 2.12, 0.28, cream, px, 1.07, pz));
-  root.add(box(0.42, 0.05, 0.32, cream, px, 2.14, pz));
+  const cream = mat(0xf6f3ec, { roughness: 0.18, metalness: 0.06, clearcoat: 0.35, clearcoatRoughness: 0.32 });
+  const px = x - 1.12;
+  const pz = z - 2.15;
+  root.add(box(0.3, 2.48, 0.2, cream, px, 1.25, pz));
+  root.add(box(0.34, 0.04, 0.24, cream, px, 2.5, pz));
   const ui = screenTexture();
   const screen = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.3, 0.62),
+    new THREE.PlaneGeometry(0.24, 0.78),
     new THREE.MeshStandardMaterial({
       map: ui,
-      color: 0xb8ffff,
+      color: 0xd8ffff,
       emissive: 0x00e8ff,
-      emissiveIntensity: 2.8,
+      emissiveIntensity: 3.4,
       emissiveMap: ui,
       toneMapped: false,
     }),
   );
-  screen.position.set(px, 1.42, pz - 0.15);
+  screen.position.set(px, 1.58, pz - 0.11);
   screen.rotation.y = Math.PI;
-  const side = new THREE.MeshStandardMaterial({
-    color: C.cyan,
-    emissive: C.cyan,
-    emissiveIntensity: 1.7,
-    toneMapped: false,
-  });
+  const side = new THREE.MeshBasicMaterial({ color: 0x8ef7ff, toneMapped: false });
   root.add(screen);
-  root.add(box(0.018, 1.75, 0.05, side, px + 0.2, 1.02, pz));
-  root.add(box(0.018, 1.75, 0.05, side, px - 0.2, 1.02, pz));
-  root.add(box(0.12, 0.14, 0.16, mat(0x1e1e24), px + 0.18, 0.86, pz - 0.02));
+  root.add(box(0.014, 2.05, 0.04, side, px + 0.155, 1.2, pz));
+  root.add(box(0.014, 2.05, 0.04, side, px - 0.155, 1.2, pz));
+  root.add(box(0.1, 0.12, 0.14, mat(0x1e1e24), px + 0.14, 0.92, pz - 0.02));
 }
 
 function addCanopy(root: THREE.Group): void {
@@ -281,18 +277,13 @@ function addCanopy(root: THREE.Group): void {
     root.add(box(24.0, 0.03, 0.42, slat, 0, 5.1, -2.8 + i * 0.92));
   }
 
-  const cyan = new THREE.MeshStandardMaterial({
-    color: C.cyan,
-    emissive: C.cyan,
-    emissiveIntensity: 2.55,
-    toneMapped: false,
-  });
-  const cyanBloom = new THREE.MeshBasicMaterial({ color: 0x00d4f5, transparent: true, opacity: 0.3 });
+  const cyan = new THREE.MeshBasicMaterial({ color: 0x00d4f5, toneMapped: false });
+  const cyanBloom = new THREE.MeshBasicMaterial({ color: 0x00d4f5, transparent: true, opacity: 0.38, toneMapped: false, depthWrite: false });
   const edges: Array<[number, number, number, number, number, number]> = [
-    [24.8, 0.1, 0.1, 0, 5.1, 9.72],
-    [24.8, 0.12, 0.12, 0, 5.1, -3.52],
-    [0.1, 0.1, 13.3, 12.38, 5.1, 3.1],
-    [0.1, 0.1, 13.3, -12.38, 5.1, 3.1],
+    [24.8, 0.2, 0.16, 0, 5.12, 9.72],
+    [24.8, 0.2, 0.16, 0, 5.12, -3.52],
+    [0.16, 0.2, 13.3, 12.38, 5.12, 3.1],
+    [0.16, 0.2, 13.3, -12.38, 5.12, 3.1],
   ];
   for (const [w, h, d, x, y, z] of edges) {
     root.add(box(w, h, d, cyan, x, y, z));
@@ -361,14 +352,14 @@ function addPavilion(root: THREE.Group): THREE.Box3 {
   g.rotation.y = PAVILION.yaw;
   const wall = mat(0x2a2824, { roughness: 0.55, metalness: 0.08 });
   const glass = new THREE.MeshPhysicalMaterial({
-    color: 0x1c1612,
-    roughness: 0.06,
+    color: 0x1a1612,
+    roughness: 0.05,
     metalness: 0.04,
-    transmission: 0.04,
+    transmission: 0.08,
     transparent: true,
-    opacity: 0.12,
-    thickness: 0.05,
-    envMapIntensity: 0.55,
+    opacity: 0.16,
+    thickness: 0.06,
+    envMapIntensity: 0.7,
     side: THREE.DoubleSide,
   });
   const W = 6.6;
@@ -404,7 +395,7 @@ function addPavilion(root: THREE.Group): THREE.Box3 {
   lot.rotation.y = Math.PI / 2;
   g.add(front, rear, lot);
 
-  const warm = new THREE.MeshBasicMaterial({ color: 0xd4843c });
+  const warm = new THREE.MeshBasicMaterial({ color: 0xe89648 });
   const backLit = new THREE.Mesh(new THREE.PlaneGeometry(D - 0.3, paneH - 0.1), warm);
   backLit.position.set(-W / 2 + 0.18, H * 0.5, 0);
   backLit.rotation.y = Math.PI / 2;
@@ -432,6 +423,9 @@ function addPavilion(root: THREE.Group): THREE.Box3 {
   addPerson(g, -1.55, -0.55, 1.4, 1.56);
   addPerson(g, -1.45, 0.65, 1.7, 1.6);
   addPerson(g, 0.15, -1.2, 0.2, 1.78);
+  const spill = new THREE.PointLight(0xffb060, 18, 9, 1.6);
+  spill.position.set(-0.4, 2.1, 0);
+  g.add(spill);
 
   root.add(g);
   return new THREE.Box3().setFromCenterAndSize(
@@ -455,37 +449,37 @@ function addKiosk(root: THREE.Group): THREE.Object3D {
 }
 
 function addPlanters(root: THREE.Group): void {
-  const stone = mat(0x4a4844, { roughness: 0.78, metalness: 0.04 });
-  const trunk = mat(0x241810, { roughness: 0.88 });
-  const leafA = mat(0x2a3820, { roughness: 0.82 });
-  const leafB = mat(0x354828, { roughness: 0.8 });
+  const stone = mat(0x8a8680, { roughness: 0.72, metalness: 0.04 });
+  const trunk = mat(0x2a2218, { roughness: 0.9 });
+  const frond = mat(0x1c2816, { roughness: 0.78 });
+  const succulent = mat(0x3a4a28, { roughness: 0.7 });
   for (const [x, z] of [
-    [-13.4, -3.6],
-    [13.4, -3.6],
-    [-13.4, 10.2],
-    [13.4, 10.2],
-    [-7.2, 11.6],
-    [7.2, 11.6],
-    [-16.4, 6.2],
-    [10.6, 11.4],
-    [-4.2, 12.2],
-    [3.8, 12.4],
+    [-14.2, 11.8],
+    [-6.4, 12.4],
+    [2.2, 12.5],
+    [10.4, 12.2],
+    [14.6, 6.4],
+    [-16.2, 5.4],
   ]) {
-    root.add(box(1.55, 0.32, 0.95, stone, x, 0.16, z));
-    const bole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.11, 1.35, 7), trunk);
-    bole.position.set(x, 0.92, z);
-    bole.rotation.z = 0.08;
+    root.add(box(1.15, 0.28, 1.15, stone, x, 0.14, z));
+    const bole = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.09, 3.4, 8), trunk);
+    bole.position.set(x, 1.85, z);
+    bole.castShadow = true;
     root.add(bole);
     for (let i = 0; i < 7; i++) {
-      const leaf = i % 2 ? leafA : leafB;
-      const frond = new THREE.Mesh(new THREE.SphereGeometry(0.38 + (i % 3) * 0.06, 7, 6), leaf);
-      frond.scale.set(1, 0.55 + (i % 2) * 0.15, 0.85);
-      frond.position.set(
-        x + Math.cos(i * 0.95) * 0.22,
-        1.35 + (i % 3) * 0.16,
-        z + Math.sin(i * 0.95) * 0.22,
-      );
-      root.add(frond);
+      const leaf = new THREE.Mesh(new THREE.ConeGeometry(0.08, 1.55, 5), frond);
+      leaf.position.set(x, 3.35, z);
+      leaf.rotation.z = 0.85;
+      leaf.rotation.y = i * 0.9;
+      leaf.castShadow = true;
+      root.add(leaf);
+    }
+    for (let i = 0; i < 3; i++) {
+      const agave = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.42, 5), succulent);
+      agave.position.set(x + Math.cos(i * 2.1) * 0.32, 0.42, z + Math.sin(i * 2.1) * 0.32);
+      agave.rotation.z = 0.55;
+      agave.rotation.y = i;
+      root.add(agave);
     }
   }
 }

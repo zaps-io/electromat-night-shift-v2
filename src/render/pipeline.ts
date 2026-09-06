@@ -25,7 +25,7 @@ export function createRenderer(canvas: HTMLCanvasElement): THREE.WebGLRenderer {
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.08;
+  renderer.toneMappingExposure = 1.12;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   return renderer;
 }
@@ -46,10 +46,10 @@ export function createNightProbe(renderer: THREE.WebGLRenderer): THREE.Texture {
     [7.4, 5.05, 3.15, 0xffe8c0, 0.72],
     [-8, 5.1, 0.35, 0xffc878, 0.38],
     [8, 5.1, 5.85, 0xffc878, 0.38],
-    [0, 5.08, -3.5, 0x00d4f5, 0.42],
-    [0, 5.08, 9.7, 0x00d4f5, 0.48],
-    [-12.35, 5.08, 3.1, 0x00d4f5, 0.34],
-    [12.35, 5.08, 3.1, 0x00d4f5, 0.34],
+    [0, 5.08, -3.5, 0x00d4f5, 0.58],
+    [0, 5.08, 9.7, 0x00d4f5, 0.62],
+    [-12.35, 5.08, 3.1, 0x00d4f5, 0.46],
+    [12.35, 5.08, 3.1, 0x00d4f5, 0.46],
     [-6, 5.08, -3.5, 0x00d4f5, 0.28],
     [6, 5.08, -3.5, 0x00d4f5, 0.28],
     [-10.55, 1.4, 2.55, 0xb86c32, 0.38],
@@ -79,11 +79,11 @@ export function createPipeline(
   });
   composer.addPass(new RenderPass(scene, camera));
   const bloom = new BloomEffect({
-    intensity: 0.17,
-    luminanceThreshold: 0.64,
-    luminanceSmoothing: 0.2,
+    intensity: 0.22,
+    luminanceThreshold: 0.56,
+    luminanceSmoothing: 0.18,
     mipmapBlur: true,
-    radius: 0.4,
+    radius: 0.46,
   });
   const vignette = new VignetteEffect({
     eskil: false,

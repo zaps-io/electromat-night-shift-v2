@@ -16,7 +16,7 @@ import { configureKeyLight, createNightProbe, createPipeline, createRenderer } f
 import { hullDebug, loadCarPrototypes, syncCars, type CarView } from "./world/cars";
 import { KIOSK } from "./world/layout";
 import { buildSkyline } from "./world/skyline";
-import { buildStation } from "./world/station";
+import { addLotMirror, buildStation } from "./world/station";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#view")!;
 const titleEl = document.querySelector("#title")!;
@@ -34,10 +34,10 @@ const pips = document.querySelectorAll("#pips i");
 const renderer = createRenderer(canvas);
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0c1018);
-scene.fog = new THREE.Fog(0x0c1018, 32, 88);
-scene.add(new THREE.AmbientLight(0xb8c0c8, 0.12));
-const fill = new THREE.DirectionalLight(0xffd2a8, 1.15);
+scene.background = new THREE.Color(0x080b10);
+scene.fog = new THREE.Fog(0x080b10, 42, 110);
+scene.add(new THREE.AmbientLight(0xb8c0c8, 0.1));
+const fill = new THREE.DirectionalLight(0xffd2a8, 1.22);
 fill.position.set(-10, 14, -4);
 configureKeyLight(fill);
 scene.add(fill);
@@ -49,6 +49,7 @@ cans.position.set(-1, 18, 3);
 scene.add(cans);
 
 const station = buildStation();
+addLotMirror(station.root, renderer);
 scene.add(station.root);
 scene.add(buildSkyline());
 
@@ -96,8 +97,8 @@ function dropIn(): void {
   setHum(true);
   if (state.phase === "title") seedOpeningLot(state);
   hideTitle();
-  walker.place(2.65, -8.55, 0.22, -0.06, 1.5);
-  walker.lookAt(-5.15, 0.72, 3.35);
+  walker.place(3.05, -9.25, 0.18, -0.08, 1.46);
+  walker.lookAt(-3.95, 1.62, 3.45);
 }
 
 function restart(): void {

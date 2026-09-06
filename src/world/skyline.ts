@@ -90,6 +90,13 @@ export function buildSkyline(): THREE.Group {
     root.add(side);
   }
 
+  const curb = new THREE.Mesh(
+    new THREE.BoxGeometry(48, 0.42, 0.28),
+    new THREE.MeshStandardMaterial({ color: 0xc4c0b8, roughness: 0.62, metalness: 0.04 }),
+  );
+  curb.position.set(0, 0.2, 14.35);
+  root.add(curb);
+
   const hemi = new THREE.HemisphereLight(0xc8d0dc, C.charcoal, 0.22);
   const moon = new THREE.DirectionalLight(0x8aa0c8, 0.22);
   moon.position.set(-18, 28, 8);

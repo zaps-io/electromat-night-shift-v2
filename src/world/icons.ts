@@ -20,22 +20,26 @@ export function makeAttentionIcon(): THREE.Sprite {
   c.width = 256;
   c.height = 256;
   const ctx = c.getContext("2d")!;
-  const g = ctx.createRadialGradient(128, 128, 12, 128, 128, 126);
-  g.addColorStop(0, "rgba(232,154,46,1)");
-  g.addColorStop(0.38, "rgba(232,154,46,0.92)");
-  g.addColorStop(1, "rgba(232,154,46,0)");
-  ctx.fillStyle = g;
+  ctx.clearRect(0, 0, 256, 256);
+  const glow = ctx.createRadialGradient(128, 128, 36, 128, 128, 124);
+  glow.addColorStop(0, "rgba(232,154,46,0.55)");
+  glow.addColorStop(0.55, "rgba(232,154,46,0.12)");
+  glow.addColorStop(1, "rgba(232,154,46,0)");
+  ctx.fillStyle = glow;
   ctx.fillRect(0, 0, 256, 256);
   ctx.fillStyle = "#E89A2E";
   ctx.beginPath();
-  ctx.arc(128, 128, 58, 0, Math.PI * 2);
+  ctx.arc(128, 128, 46, 0, Math.PI * 2);
   ctx.fill();
+  ctx.lineWidth = 7;
+  ctx.strokeStyle = "#FFE7B0";
+  ctx.stroke();
   ctx.fillStyle = "#1E1E24";
-  ctx.font = "900 118px sans-serif";
+  ctx.font = "900 92px sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText("!", 128, 138);
-  return sprite(new THREE.CanvasTexture(c), 1.08, 1.08, "attention");
+  ctx.fillText("!", 128, 136);
+  return sprite(new THREE.CanvasTexture(c), 0.78, 0.78, "attention");
 }
 
 export function makeBatteryIcon(): THREE.Sprite {
@@ -43,31 +47,32 @@ export function makeBatteryIcon(): THREE.Sprite {
   c.width = 320;
   c.height = 200;
   const ctx = c.getContext("2d")!;
-  const g = ctx.createRadialGradient(160, 100, 10, 160, 100, 150);
-  g.addColorStop(0, "rgba(0,212,245,0.75)");
+  ctx.clearRect(0, 0, 320, 200);
+  const g = ctx.createRadialGradient(160, 100, 16, 160, 100, 140);
+  g.addColorStop(0, "rgba(0,212,245,0.42)");
   g.addColorStop(1, "rgba(0,212,245,0)");
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, 320, 200);
   ctx.fillStyle = "#00D4F5";
-  round(ctx, 36, 48, 210, 104, 16);
+  round(ctx, 48, 54, 188, 92, 10);
   ctx.fill();
-  ctx.fillRect(240, 78, 22, 44);
-  ctx.fillStyle = "#062028";
-  round(ctx, 48, 60, 186, 80, 10);
+  ctx.fillRect(236, 80, 18, 40);
+  ctx.fillStyle = "#041418";
+  round(ctx, 58, 64, 168, 72, 7);
   ctx.fill();
-  ctx.fillStyle = "#00D4F5";
-  for (let i = 0; i < 4; i++) ctx.fillRect(58 + i * 44, 72, 34, 56);
-  ctx.fillStyle = "#E8FBFF";
+  ctx.fillStyle = "#7CF6FF";
+  for (let i = 0; i < 4; i++) ctx.fillRect(68 + i * 38, 74, 30, 52);
+  ctx.fillStyle = "#F4FFFF";
   ctx.beginPath();
-  ctx.moveTo(150, 58);
-  ctx.lineTo(128, 102);
-  ctx.lineTo(152, 102);
-  ctx.lineTo(140, 142);
+  ctx.moveTo(154, 62);
+  ctx.lineTo(134, 100);
+  ctx.lineTo(154, 100);
+  ctx.lineTo(144, 138);
   ctx.lineTo(180, 92);
-  ctx.lineTo(156, 92);
+  ctx.lineTo(158, 92);
   ctx.closePath();
   ctx.fill();
-  return sprite(new THREE.CanvasTexture(c), 1.22, 0.76, "battery");
+  return sprite(new THREE.CanvasTexture(c), 0.92, 0.58, "battery");
 }
 
 function round(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
