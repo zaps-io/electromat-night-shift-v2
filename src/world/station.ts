@@ -1,6 +1,6 @@
 import * as THREE from "three";
-import { Reflector } from "three/addons/objects/Reflector.js";
 import { C } from "../brand";
+import { makeAttentionIcon } from "./icons";
 import { BAYS, BAY_SIZE, KIOSK, PAVILION } from "./layout";
 
 export interface Station {
@@ -104,6 +104,25 @@ function asphaltMaps(): {
     a.ellipse(x, y, rw, rh, rot, 0, Math.PI * 2);
     a.fill();
   }
+  for (let i = 0; i < 22; i++) {
+    const x = Math.random() * size;
+    const y = Math.random() * size;
+    const rw = 90 + Math.random() * 180;
+    const rh = 8 + Math.random() * 14;
+    const rot = -0.15 + Math.random() * 0.3;
+    r.fillStyle = "rgba(12,12,12,0.85)";
+    r.beginPath();
+    r.ellipse(x, y, rw, rh, rot, 0, Math.PI * 2);
+    r.fill();
+    c.fillStyle = "rgba(8,10,14,0.45)";
+    c.beginPath();
+    c.ellipse(x, y, rw, rh, rot, 0, Math.PI * 2);
+    c.fill();
+    a.fillStyle = "rgb(90,90,90)";
+    a.beginPath();
+    a.ellipse(x, y, rw, rh, rot, 0, Math.PI * 2);
+    a.fill();
+  }
   const hd = h.getImageData(0, 0, size, size);
   const nd = h.createImageData(size, size);
   const src = hd.data;
@@ -143,16 +162,16 @@ function makeAsphalt(root: THREE.Group): THREE.Mesh {
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(56, 48),
     new THREE.MeshPhysicalMaterial({
-      color: 0x101214,
+      color: 0x0c0e12,
       map: maps.map,
-      roughness: 0.18,
+      roughness: 0.14,
       roughnessMap: maps.rough,
-      metalness: 0.1,
+      metalness: 0.12,
       normalMap: maps.normal,
-      normalScale: new THREE.Vector2(0.14, 0.14),
-      envMapIntensity: 2.15,
-      clearcoat: 0.82,
-      clearcoatRoughness: 0.06,
+      normalScale: new THREE.Vector2(0.12, 0.12),
+      envMapIntensity: 2.45,
+      clearcoat: 0.92,
+      clearcoatRoughness: 0.045,
     }),
   );
   ground.rotation.x = -Math.PI / 2;
@@ -162,39 +181,22 @@ function makeAsphalt(root: THREE.Group): THREE.Mesh {
   return ground;
 }
 
-export function addLotMirror(root: THREE.Group, renderer: THREE.WebGLRenderer): void {
-  const px = renderer.domElement.width > 1600 ? 512 : 384;
-  const color = new THREE.Color(0x1a2228);
-  const puddles: Array<[number, number, number, number]> = [
-    [0.4, 2.4, 7.2, 2.6],
-    [-1.6, -4.4, 4.4, 1.9],
-  ];
-  for (const [x, z, w, d] of puddles) {
-    const mirror = new Reflector(new THREE.PlaneGeometry(w, d), {
-      clipBias: 0.035,
-      textureWidth: px,
-      textureHeight: px,
-      color,
-    });
-    mirror.rotation.x = -Math.PI / 2;
-    mirror.position.set(x, 0.012, z);
-    mirror.name = "lotPuddle";
-    root.add(mirror);
-  }
+export function addLotMirror(root: THREE.Group, _renderer: THREE.WebGLRenderer): void {
   const sheen = new THREE.MeshPhysicalMaterial({
-    color: 0x0c0e12,
-    roughness: 0.07,
-    metalness: 0.14,
+    color: 0x0a0c10,
+    roughness: 0.06,
+    metalness: 0.16,
     clearcoat: 1,
-    clearcoatRoughness: 0.035,
-    envMapIntensity: 2.6,
+    clearcoatRoughness: 0.03,
+    envMapIntensity: 2.8,
     transparent: true,
-    opacity: 0.48,
+    opacity: 0.42,
   });
   for (const [x, z, w, d] of [
-    [-3.2, 3.8, 6.4, 2.2],
-    [6.4, 3.6, 5.6, 2.0],
-    [1.2, -6.8, 4.2, 1.6],
+    [-3.2, 3.8, 8.2, 2.4],
+    [6.4, 3.6, 7.2, 2.2],
+    [0.2, -5.8, 5.6, 2.0],
+    [-6.4, -2.2, 4.4, 1.6],
   ] as const) {
     const patch = new THREE.Mesh(new THREE.PlaneGeometry(w, d), sheen);
     patch.rotation.x = -Math.PI / 2;
@@ -700,6 +702,62 @@ function addStreetlights(root: THREE.Group): void {
   }
 }
 
+function addImpostorSedan(
+  root: THREE.Group,
+  x: number,
+  z: number,
+  yaw: number,
+  paint: number,
+  waiting: boolean,
+): void {
+  const g = new THREE.Group();
+  g.position.set(x, 0, z);
+  g.rotation.y = yaw;
+  const body = mat(paint, { roughness: 0.22, metalness: 0.28, envMapIntensity: 1.4 });
+  const dark = mat(0x111214, { roughness: 0.7 });
+  g.add(box(4.15, 0.72, 1.78, body, 0, 0.62, 0));
+  g.add(box(1.85, 0.48, 1.62, body, -0.25, 1.18, 0));
+  g.add(box(1.55, 0.28, 1.7, dark, -0.22, 1.22, 0));
+  for (const [wx, wz] of [
+    [-1.28, 0.72],
+    [-1.28, -0.72],
+    [1.28, 0.72],
+    [1.28, -0.72],
+  ] as const) {
+    const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.22, 8), dark);
+    wheel.rotation.z = Math.PI / 2;
+    wheel.position.set(wx, 0.32, wz);
+    g.add(wheel);
+  }
+  const bar = new THREE.Mesh(
+    new THREE.BoxGeometry(0.04, 0.04, 1.42),
+    new THREE.MeshBasicMaterial({ color: 0xff241c, toneMapped: false }),
+  );
+  bar.position.set(-2.06, 0.78, 0);
+  g.add(bar);
+  if (waiting) {
+    const mark = makeAttentionIcon();
+    mark.position.set(0, 2.05, 0);
+    g.add(mark);
+  } else {
+    const glow = new THREE.Mesh(
+      new THREE.CircleGeometry(0.08, 12),
+      new THREE.MeshBasicMaterial({ color: 0x5ef6ff, toneMapped: false }),
+    );
+    glow.position.set(1.55, 0.72, 0.9);
+    g.add(glow);
+  }
+  root.add(g);
+}
+
+function addDistantDensity(root: THREE.Group): void {
+  addImpostorSedan(root, 10.8, 4.2, -Math.PI / 2, 0xe8e2d4, false);
+  addImpostorSedan(root, 16.4, 6.2, -Math.PI / 2, 0x2a2e34, false);
+  addImpostorSedan(root, -0.4, -10.6, -Math.PI / 2 + 0.94, 0x1c2026, true);
+  addImpostorSedan(root, -11.2, -0.2, -Math.PI / 2 + 0.36, 0xc8ccd0, true);
+  addImpostorSedan(root, 2.2, -12.6, -Math.PI / 2 + 1.05, 0x14161c, true);
+}
+
 export function buildStation(): Station {
   const root = new THREE.Group();
   const ground = makeAsphalt(root);
@@ -717,6 +775,7 @@ export function buildStation(): Station {
     bayAnchors.push(anchor);
     addPedestal(root, bay.x, bay.z);
   }
+  addDistantDensity(root);
 
   return {
     root,
