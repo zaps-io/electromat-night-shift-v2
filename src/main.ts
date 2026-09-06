@@ -38,8 +38,8 @@ const pips = document.querySelectorAll("#pips i");
 const renderer = createRenderer(canvas);
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x1c1610);
-scene.fog = new THREE.Fog(0x1c1610, 46, 128);
+scene.background = new THREE.Color(0x3a2818);
+scene.fog = new THREE.Fog(0x3a2818, 58, 150);
 scene.add(new THREE.AmbientLight(0xffe2c4, 0.3));
 const fill = new THREE.DirectionalLight(0xffc070, 1.18);
 fill.position.set(-22, 11, -9);

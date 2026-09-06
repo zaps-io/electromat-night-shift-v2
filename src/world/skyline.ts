@@ -7,11 +7,11 @@ function duskSky(): THREE.CanvasTexture {
   c.height = 256;
   const ctx = c.getContext("2d")!;
   const g = ctx.createLinearGradient(0, 0, 0, 256);
-  g.addColorStop(0, "#1a2438");
-  g.addColorStop(0.42, "#4a3a38");
-  g.addColorStop(0.68, "#c47838");
-  g.addColorStop(0.86, "#e8a050");
-  g.addColorStop(1, "#f0c888");
+  g.addColorStop(0, "#243048");
+  g.addColorStop(0.36, "#6a4038");
+  g.addColorStop(0.58, "#d47830");
+  g.addColorStop(0.78, "#f0a848");
+  g.addColorStop(1, "#ffd090");
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, 16, 256);
   const tex = new THREE.CanvasTexture(c);

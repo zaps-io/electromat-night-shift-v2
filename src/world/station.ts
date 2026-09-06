@@ -267,9 +267,9 @@ function addCanopyAt(root: THREE.Group, cx: number, cz: number, w: number, d: nu
   soffit.receiveShadow = true;
   root.add(soffit);
 
-  const fasciaZ = cz - d * 0.5 + 0.08;
-  const fascia = new THREE.Mesh(new THREE.BoxGeometry(w - 1.6, 0.52, 0.16), shell);
-  fascia.position.set(cx, y + 0.02, fasciaZ);
+  const fasciaZ = cz - d * 0.5 - 0.1;
+  const fascia = new THREE.Mesh(new THREE.BoxGeometry(w - 1.35, 0.78, 0.2), shell);
+  fascia.position.set(cx, y + 0.06, fasciaZ);
   fascia.castShadow = true;
   fascia.userData.canopyFascia = true;
   root.add(fascia);
@@ -332,7 +332,7 @@ function addPavilion(root: THREE.Group): THREE.Box3 {
   const g = new THREE.Group();
   g.position.set(PAVILION.x, 0, PAVILION.z);
   g.rotation.y = PAVILION.yaw;
-  const wall = mat(0xf3eee4, { roughness: 0.48, metalness: 0.05, envMapIntensity: 0.32 });
+  const wall = mat(0xf6f1e6, { roughness: 0.46, metalness: 0.05, envMapIntensity: 0.34, emissive: 0x3a3428, emissiveIntensity: 0.08 });
   const glass = new THREE.MeshPhysicalMaterial({
     color: 0x3a2818,
     roughness: 0.1,
@@ -471,8 +471,8 @@ function gravelMap(): THREE.CanvasTexture {
 
 function addDesertBed(root: THREE.Group, x: number, z: number, w: number, d: number): void {
   const curb = mat(0xeee8dc, { roughness: 0.55, metalness: 0.04 });
-  const bed = new THREE.Mesh(new RoundedBoxGeometry(w, 0.22, d, 2, 0.06), curb);
-  bed.position.set(x, 0.11, z);
+  const bed = new THREE.Mesh(new RoundedBoxGeometry(w, 0.32, d, 2, 0.06), curb);
+  bed.position.set(x, 0.16, z);
   bed.receiveShadow = true;
   const gravel = new THREE.Mesh(
     new THREE.PlaneGeometry(w - 0.28, d - 0.28),
@@ -484,7 +484,7 @@ function addDesertBed(root: THREE.Group, x: number, z: number, w: number, d: num
     }),
   );
   gravel.rotation.x = -Math.PI / 2;
-  gravel.position.set(x, 0.23, z);
+  gravel.position.set(x, 0.33, z);
   root.add(bed, gravel);
   const cols = 3;
   const rows = 2;
@@ -498,8 +498,8 @@ function addDesertBed(root: THREE.Group, x: number, z: number, w: number, d: num
 }
 
 function addPlanters(root: THREE.Group): void {
-  addDesertBed(root, -8.4, -15.4, 8.6, 2.35);
-  addDesertBed(root, 8.4, -15.4, 8.6, 2.35);
+  addDesertBed(root, -8.6, -15.2, 9.2, 2.6);
+  addDesertBed(root, 8.6, -15.2, 9.2, 2.6);
   const walk = mat(0xc8c2b4, { roughness: 0.7 });
   const sidewalk = box(36, 0.08, 1.8, walk, 0, 0.03, -17.2);
   sidewalk.castShadow = false;

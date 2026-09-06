@@ -78,9 +78,9 @@ export async function addBrandSignage(root: THREE.Group): Promise<void> {
   const red = await loadBrandTexture("zaps-wordmark-only-red.svg");
 
   for (const canopy of CANOPIES) {
-    const fasciaZ = canopy.z - canopy.d * 0.5 + 0.02;
-    const mark = signPlate(3.85, 0.86, red);
-    mark.position.set(canopy.x, canopy.y + 0.08, fasciaZ);
+    const fasciaZ = canopy.z - canopy.d * 0.5 - 0.22;
+    const mark = signPlate(7.1, 1.58, red);
+    mark.position.set(canopy.x, canopy.y + 0.1, fasciaZ);
     mark.rotation.y = Math.PI;
     root.add(mark);
   }

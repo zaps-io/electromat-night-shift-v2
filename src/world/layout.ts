@@ -33,13 +33,13 @@ export const CANOPIES = [
 
 /** Eye-level: street planters, twin cream canopies, lounge left. */
 export const START_SHOT = {
-  x: -3.8,
-  z: -12.6,
+  x: -6.2,
+  z: -18.6,
   eyeY: 1.56,
-  yaw: 0.08,
-  pitch: 0.08,
-  lookAt: { x: -2.2, y: 2.35, z: 3.4 },
-  fov: 60,
+  yaw: 0.12,
+  pitch: 0.06,
+  lookAt: { x: -4.4, y: 2.55, z: 2.6 },
+  fov: 58,
 } as const;
 
 /** Elevated 3/4: both canopies, lounge, desert beds, dusk neighbors. */
@@ -63,10 +63,10 @@ export const REAR_SHOT = {
 /** Close fascia: official red Zaps on the left canopy. */
 export const CANOPY_SHOT = {
   x: -7.2,
-  z: -7.6,
-  eyeY: 1.72,
+  z: -11.4,
+  eyeY: 2.35,
   yaw: 0,
-  pitch: 0.42,
-  lookAt: { x: -7.2, y: 5.08, z: -3.28 },
-  fov: 42,
+  pitch: 0.22,
+  lookAt: { x: -7.2, y: 5.22, z: -3.5 },
+  fov: 40,
 } as const;
