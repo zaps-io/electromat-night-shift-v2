@@ -404,26 +404,34 @@ function addPavilion(root: THREE.Group): THREE.Box3 {
   lot.rotation.y = Math.PI / 2;
   g.add(front, rear, lot);
 
-  const warm = new THREE.MeshBasicMaterial({ color: 0xc47838 });
-  const backLit = new THREE.Mesh(new THREE.PlaneGeometry(D - 0.55, paneH - 0.2), warm);
-  backLit.position.set(-W / 2 + 0.2, H * 0.48, 0.1);
+  const warm = new THREE.MeshBasicMaterial({ color: 0xd4843c });
+  const backLit = new THREE.Mesh(new THREE.PlaneGeometry(D - 0.3, paneH - 0.1), warm);
+  backLit.position.set(-W / 2 + 0.18, H * 0.5, 0);
   backLit.rotation.y = Math.PI / 2;
   g.add(backLit);
+  const lampMat = new THREE.MeshBasicMaterial({ color: 0xffc878 });
+  for (const [x, z] of [
+    [-1.6, 0.9],
+    [-1.4, -0.8],
+    [0.2, 0.15],
+  ] as const) {
+    const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.09, 10, 8), lampMat);
+    bulb.position.set(x, 2.72, z);
+    g.add(bulb);
+  }
 
   const shade = new THREE.MeshBasicMaterial({ color: 0x050403 });
-  g.add(box(3.2, 0.42, 0.86, shade, 0.1, 0.44, 0.35));
-  g.add(box(3.1, 0.2, 0.78, shade, 0.1, 0.72, 0.35));
-  g.add(box(3.1, 0.7, 0.14, shade, 0.1, 1.12, 0.68));
-  g.add(box(0.62, 0.9, 0.62, shade, -1.7, 0.58, -1.15));
-  g.add(box(0.62, 0.16, 0.62, shade, -1.7, 1.1, -1.15));
-  g.add(box(0.62, 0.9, 0.62, shade, 1.55, 0.58, -1.2));
-  g.add(box(0.62, 0.16, 0.62, shade, 1.55, 1.1, -1.2));
-  g.add(box(1.35, 0.08, 0.7, shade, 0.05, 0.72, -0.85));
-  g.add(box(0.1, 1.25, 0.85, shade, -2.55, 1.35, 0.05));
-  g.add(box(0.1, 1.25, 0.85, shade, 2.45, 1.35, 0.1));
-  addPerson(g, -1.05, -0.15, 0.2, 1.56);
-  addPerson(g, 0.85, -0.2, -0.15, 1.6);
-  addPerson(g, 2.05, -1.15, 2.8, 1.78);
+  g.add(box(0.86, 0.42, 3.1, shade, -1.85, 0.44, 0.05));
+  g.add(box(0.78, 0.2, 3.0, shade, -1.85, 0.72, 0.05));
+  g.add(box(0.14, 0.7, 3.0, shade, -2.18, 1.12, 0.05));
+  g.add(box(0.62, 0.9, 0.62, shade, -0.35, 0.58, -1.25));
+  g.add(box(0.62, 0.16, 0.62, shade, -0.35, 1.1, -1.25));
+  g.add(box(0.62, 0.9, 0.62, shade, -0.25, 0.58, 1.2));
+  g.add(box(0.62, 0.16, 0.62, shade, -0.25, 1.1, 1.2));
+  g.add(box(0.7, 0.08, 1.35, shade, -0.7, 0.72, 0));
+  addPerson(g, -1.55, -0.55, 1.4, 1.56);
+  addPerson(g, -1.45, 0.65, 1.7, 1.6);
+  addPerson(g, 0.15, -1.2, 0.2, 1.78);
 
   root.add(g);
   return new THREE.Box3().setFromCenterAndSize(
