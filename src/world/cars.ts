@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { SEDAN_INLET, buildSedanParts } from "../cars/sedan";
 import { SUV_INLET, buildSuvParts } from "../cars/suv";
 import type { BuiltPart } from "../cars/types";
@@ -7,6 +8,9 @@ import type { GameState, Guest, HullKind } from "../game/state";
 import { arrivedGuests } from "../game/shift";
 import { BAYS, WAIT_ORDER, WAIT_SLOTS } from "./layout";
 import { makeAttentionIcon, makeBatteryIcon } from "./icons";
+
+/** Live guests that keep the full clearcoat Taycan. Everyone else is a cheap LOD clone. */
+export const FULL_PBR_IDS = new Set(["hale", "ruiz", "vora", "chen", "peck"]);
 
 export interface CarView {
   root: THREE.Group;
@@ -421,11 +425,252 @@ export async function loadCarPrototypes(): Promise<void> {
   } else {
     await loadHull("suv", "ev-suv.glb", buildSuvParts);
   }
+  buildLodTemplate();
 }
 
-export function hullDebug(): { source?: string; meshCount?: number } {
+type LodBucket = "paint" | "glass" | "dark" | "lamp" | "tail";
+
+const lodPaintMats = new Map<number, THREE.MeshStandardMaterial>();
+const lodGlass = new THREE.MeshStandardMaterial({
+  name: "LodGlass",
+  color: 0x14181c,
+  roughness: 0.1,
+  metalness: 0.08,
+  transparent: true,
+  opacity: 0.36,
+});
+const lodDark = new THREE.MeshStandardMaterial({
+  name: "LodDark",
+  color: 0x121316,
+  roughness: 0.88,
+  metalness: 0.12,
+});
+const lodLamp = new THREE.MeshStandardMaterial({
+  name: "LodLamp",
+  color: 0xfff1d4,
+  emissive: 0xffe2a8,
+  emissiveIntensity: 1.05,
+  toneMapped: false,
+});
+const lodTail = new THREE.MeshBasicMaterial({
+  name: "LodTail",
+  color: 0xff241c,
+  toneMapped: false,
+});
+
+let lodTemplate: THREE.Group | null = null;
+const lodFillerRoots: THREE.Group[] = [];
+
+function lodPaint(color: number): THREE.MeshStandardMaterial {
+  let mat = lodPaintMats.get(color);
+  if (!mat) {
+    mat = new THREE.MeshStandardMaterial({
+      name: "LodPaint",
+      color,
+      roughness: 0.36,
+      metalness: 0.5,
+      envMapIntensity: 1.1,
+    });
+    lodPaintMats.set(color, mat);
+  }
+  return mat;
+}
+
+function lodBucket(mesh: THREE.Mesh): LodBucket | "skip" {
+  if (!mesh.visible) return "skip";
+  const n = `${mesh.name} ${labelOf(mesh)}`.toLowerCase();
+  if (
+    n.includes("seat") ||
+    n.includes("carpet") ||
+    n.includes("steer") ||
+    n.includes("leather") ||
+    n.includes("alcantara") ||
+    n.includes("burmester")
+  ) {
+    return "skip";
+  }
+  if (n.includes("lightbar") || isTailName(n)) return "tail";
+  if (n.includes("chargeport") || n.includes("ring") || isHeadName(n)) return "lamp";
+  if (isGlassName(n) || n.includes("window") || n.includes("glass")) return "glass";
+  if (
+    n.includes("wheel") ||
+    n.includes("tire") ||
+    n.includes("disc") ||
+    n.includes("caliper") ||
+    n.includes("brake") ||
+    n.includes("rubber") ||
+    n.includes("interior") ||
+    n.includes("chrome")
+  ) {
+    return "dark";
+  }
+  return "paint";
+}
+
+function geoForMerge(mesh: THREE.Mesh): THREE.BufferGeometry | null {
+  if (!mesh.geometry?.getAttribute("position")) return null;
+  let geo = mesh.geometry.clone();
+  geo.applyMatrix4(mesh.matrixWorld);
+  if (geo.index) geo = geo.toNonIndexed();
+  const clean = new THREE.BufferGeometry();
+  clean.setAttribute("position", geo.getAttribute("position"));
+  clean.computeVertexNormals();
+  return clean;
+}
+
+function buildLodTemplate(): void {
+  if (lodTemplate || !prototypes.sedan) return;
+  const src = prototypes.sedan;
+  src.updateMatrixWorld(true);
+  const buckets: Record<LodBucket, THREE.BufferGeometry[]> = {
+    paint: [],
+    glass: [],
+    dark: [],
+    lamp: [],
+    tail: [],
+  };
+  src.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    const kind = lodBucket(mesh);
+    if (kind === "skip") return;
+    const geo = geoForMerge(mesh);
+    if (geo) buckets[kind].push(geo);
+  });
+
+  const merged = new THREE.Group();
+  merged.userData.lod = true;
+  const mats: Record<LodBucket, THREE.Material> = {
+    paint: lodPaint(0xb8bcc4),
+    glass: lodGlass,
+    dark: lodDark,
+    lamp: lodLamp,
+    tail: lodTail,
+  };
+  let mergedOk = true;
+  for (const kind of Object.keys(buckets) as LodBucket[]) {
+    const list = buckets[kind];
+    if (!list.length) continue;
+    const geo = mergeGeometries(list, false);
+    if (!geo) {
+      mergedOk = false;
+      break;
+    }
+    const mesh = new THREE.Mesh(geo, mats[kind]);
+    mesh.castShadow = false;
+    mesh.receiveShadow = false;
+    mesh.userData.lodBucket = kind;
+    if (kind === "paint") mesh.userData.lodPaint = true;
+    merged.add(mesh);
+    for (const extra of list) extra.dispose();
+  }
+  if (mergedOk && merged.children.length) {
+    lodTemplate = merged;
+    return;
+  }
+
+  const cheap = src.clone(true);
+  cheap.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    mesh.castShadow = false;
+    mesh.receiveShadow = false;
+    const kind = lodBucket(mesh);
+    if (kind === "skip") {
+      mesh.visible = false;
+      return;
+    }
+    mesh.material = mats[kind];
+    if (kind === "paint") mesh.userData.lodPaint = true;
+  });
+  lodTemplate = cheap;
+}
+
+function applyLodPaint(root: THREE.Object3D, color: number): void {
+  const paint = lodPaint(color);
+  root.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (mesh.isMesh && mesh.userData.lodPaint) mesh.material = paint;
+  });
+}
+
+function makeLodHull(color: number, hull: HullKind): THREE.Group {
+  if (!lodTemplate) buildLodTemplate();
+  const body = lodTemplate!.clone(true);
+  applyLodPaint(body, color);
+  if (hull === "suv") body.scale.set(1.02, 1.1, 1.04);
+  return body;
+}
+
+/** Distant / queue fillers. Last entry is dropped first if WebGL context is lost. */
+export const LOD_FILLERS = [
+  { x: 10.8, z: 4.2, yaw: -Math.PI / 2, paint: 0xe8e2d4, waiting: false },
+  { x: -11.2, z: -0.2, yaw: -Math.PI / 2 + 0.36, paint: 0xc8ccd0, waiting: true },
+  { x: 2.2, z: -12.6, yaw: -Math.PI / 2 + 1.05, paint: 0x14161c, waiting: true },
+  { x: -14.6, z: -6.8, yaw: -Math.PI / 2 + 0.22, paint: 0x3a4048, waiting: true },
+  { x: 16.4, z: 6.2, yaw: -Math.PI / 2, paint: 0x2a2e34, waiting: false },
+] as const;
+
+export let lodFillerBudget = 4;
+
+export function addLodFillers(scene: THREE.Object3D, count = lodFillerBudget): void {
+  if (!lodTemplate) buildLodTemplate();
+  while (lodFillerRoots.length) {
+    const prev = lodFillerRoots.pop();
+    prev?.parent?.remove(prev);
+  }
+  const n = Math.max(0, Math.min(count, LOD_FILLERS.length));
+  lodFillerBudget = n;
+  for (const spec of LOD_FILLERS.slice(0, n)) {
+    const root = new THREE.Group();
+    root.add(makeLodHull(spec.paint, "sedan"));
+    root.position.set(spec.x, 0, spec.z);
+    root.rotation.y = spec.yaw;
+    root.userData.kind = "lod-filler";
+    if (spec.waiting) {
+      const mark = makeAttentionIcon();
+      mark.position.set(0, 2.02, 0);
+      root.add(mark);
+    } else {
+      const glow = new THREE.Mesh(
+        new THREE.CircleGeometry(0.09, 14),
+        new THREE.MeshBasicMaterial({ color: 0x5ef6ff, toneMapped: false }),
+      );
+      glow.position.set(1.72, 0.74, 0.88);
+      root.add(glow);
+      const battery = makeBatteryIcon();
+      battery.position.set(0.1, 1.92, 0.08);
+      root.add(battery);
+    }
+    scene.add(root);
+    lodFillerRoots.push(root);
+  }
+}
+
+export function trimLodFillers(drop = 1): number {
+  for (let i = 0; i < drop && lodFillerRoots.length; i++) {
+    const root = lodFillerRoots.pop();
+    root?.parent?.remove(root);
+  }
+  lodFillerBudget = lodFillerRoots.length;
+  return lodFillerBudget;
+}
+
+export function hullDebug(): {
+  source?: string;
+  meshCount?: number;
+  lodMeshes?: number;
+  lodFillers?: number;
+  fullPbr?: string[];
+} {
   const u = prototypes.sedan?.userData ?? {};
-  return { source: u.source, meshCount: u.meshCount };
+  return {
+    source: u.source,
+    meshCount: u.meshCount,
+    lodMeshes: lodTemplate?.children.length,
+    lodFillers: lodFillerRoots.length,
+    fullPbr: [...FULL_PBR_IDS],
+  };
 }
 
 function tintPaint(root: THREE.Object3D, color: number): void {
@@ -460,12 +705,8 @@ function makeCable(inlet: { x: number; y: number; z: number }): THREE.Mesh {
   return mesh;
 }
 
-export function spawnCar(guest: Guest): CarView {
+function finishCar(root: THREE.Group, guest: Guest, inletPos: { x: number; y: number; z: number }): CarView {
   const kind = guest.hull ?? "sedan";
-  const template = prototypes[kind] ?? prototypes.sedan!;
-  const inletPos = inletByKind[kind] ?? (kind === "suv" ? SUV_INLET : SEDAN_INLET);
-  const root = template.clone(true);
-  tintPaint(root, guest.paint);
   root.userData.guestId = guest.id;
   root.userData.kind = "car";
 
@@ -510,6 +751,24 @@ export function spawnCar(guest: Guest): CarView {
   root.add(portGlow);
 
   return { root, inlet, driver, attention, battery, cable, portGlow };
+}
+
+function spawnLodCar(guest: Guest): CarView {
+  const kind = guest.hull ?? "sedan";
+  const root = new THREE.Group();
+  root.add(makeLodHull(guest.paint, kind));
+  const inletPos = inletByKind[kind] ?? (kind === "suv" ? SUV_INLET : SEDAN_INLET);
+  return finishCar(root, guest, inletPos);
+}
+
+export function spawnCar(guest: Guest): CarView {
+  if (!FULL_PBR_IDS.has(guest.id)) return spawnLodCar(guest);
+  const kind = guest.hull ?? "sedan";
+  const template = prototypes[kind] ?? prototypes.sedan!;
+  const inletPos = inletByKind[kind] ?? (kind === "suv" ? SUV_INLET : SEDAN_INLET);
+  const root = template.clone(true);
+  tintPaint(root, guest.paint);
+  return finishCar(root, guest, inletPos);
 }
 
 export function placeGuest(view: CarView, guest: Guest, now: number): void {

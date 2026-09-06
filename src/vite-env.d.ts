@@ -6,7 +6,13 @@ interface ElectromatApi {
   place: (x: number, z: number, yaw?: number, pitch?: number, eyeY?: number) => void;
   lookAt: (x: number, y: number, z: number) => void;
   capture: (w?: number, h?: number) => string;
-  hullDebug: () => { source?: string; meshCount?: number };
+  hullDebug: () => {
+    source?: string;
+    meshCount?: number;
+    lodMeshes?: number;
+    lodFillers?: number;
+    fullPbr?: string[];
+  };
   state: import("./game/state").GameState;
 }
 

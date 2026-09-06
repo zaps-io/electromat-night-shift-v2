@@ -23,12 +23,12 @@ export const KIOSK = { x: 13.6, z: 1.4 };
 /** Glass lounge under the left canopy, facing the approach. */
 export const PAVILION = { x: -12.8, z: 3.8, yaw: -0.18 };
 
-/** Elevated wide-still camera: queue left, occupied bays under canopy, city drop. */
+/** Elevated 3/4 wide still: corner of the lot, queue left, canopy + city beyond. */
 export const WIDE_SHOT = {
-  x: -11.6,
-  z: -17.2,
-  eyeY: 13.8,
-  yaw: -0.22,
-  pitch: -0.64,
-  lookAt: { x: 2.4, y: 1.35, z: 5.6 },
+  x: -13.2,
+  z: -15.6,
+  eyeY: 12.4,
+  yaw: -0.16,
+  pitch: -0.54,
+  lookAt: { x: 1.8, y: 1.28, z: 5.1 },
 } as const;

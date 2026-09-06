@@ -1,6 +1,5 @@
 import * as THREE from "three";
 import { C } from "../brand";
-import { makeAttentionIcon } from "./icons";
 import { BAYS, BAY_SIZE, KIOSK, PAVILION } from "./layout";
 
 export interface Station {
@@ -702,62 +701,6 @@ function addStreetlights(root: THREE.Group): void {
   }
 }
 
-function addImpostorSedan(
-  root: THREE.Group,
-  x: number,
-  z: number,
-  yaw: number,
-  paint: number,
-  waiting: boolean,
-): void {
-  const g = new THREE.Group();
-  g.position.set(x, 0, z);
-  g.rotation.y = yaw;
-  const body = mat(paint, { roughness: 0.22, metalness: 0.28, envMapIntensity: 1.4 });
-  const dark = mat(0x111214, { roughness: 0.7 });
-  g.add(box(4.15, 0.72, 1.78, body, 0, 0.62, 0));
-  g.add(box(1.85, 0.48, 1.62, body, -0.25, 1.18, 0));
-  g.add(box(1.55, 0.28, 1.7, dark, -0.22, 1.22, 0));
-  for (const [wx, wz] of [
-    [-1.28, 0.72],
-    [-1.28, -0.72],
-    [1.28, 0.72],
-    [1.28, -0.72],
-  ] as const) {
-    const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.22, 8), dark);
-    wheel.rotation.z = Math.PI / 2;
-    wheel.position.set(wx, 0.32, wz);
-    g.add(wheel);
-  }
-  const bar = new THREE.Mesh(
-    new THREE.BoxGeometry(0.04, 0.04, 1.42),
-    new THREE.MeshBasicMaterial({ color: 0xff241c, toneMapped: false }),
-  );
-  bar.position.set(-2.06, 0.78, 0);
-  g.add(bar);
-  if (waiting) {
-    const mark = makeAttentionIcon();
-    mark.position.set(0, 2.05, 0);
-    g.add(mark);
-  } else {
-    const glow = new THREE.Mesh(
-      new THREE.CircleGeometry(0.08, 12),
-      new THREE.MeshBasicMaterial({ color: 0x5ef6ff, toneMapped: false }),
-    );
-    glow.position.set(1.55, 0.72, 0.9);
-    g.add(glow);
-  }
-  root.add(g);
-}
-
-function addDistantDensity(root: THREE.Group): void {
-  addImpostorSedan(root, 10.8, 4.2, -Math.PI / 2, 0xe8e2d4, false);
-  addImpostorSedan(root, 16.4, 6.2, -Math.PI / 2, 0x2a2e34, false);
-  addImpostorSedan(root, -0.4, -10.6, -Math.PI / 2 + 0.94, 0x1c2026, true);
-  addImpostorSedan(root, -11.2, -0.2, -Math.PI / 2 + 0.36, 0xc8ccd0, true);
-  addImpostorSedan(root, 2.2, -12.6, -Math.PI / 2 + 1.05, 0x14161c, true);
-}
-
 export function buildStation(): Station {
   const root = new THREE.Group();
   const ground = makeAsphalt(root);
@@ -775,7 +718,6 @@ export function buildStation(): Station {
     bayAnchors.push(anchor);
     addPedestal(root, bay.x, bay.z);
   }
-  addDistantDensity(root);
 
   return {
     root,
