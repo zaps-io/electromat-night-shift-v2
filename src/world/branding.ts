@@ -54,6 +54,7 @@ export async function addBrandSignage(root: THREE.Group): Promise<void> {
   root.add(fascia);
   const canopyMark = signPlate(5.6, 1.86, cream);
   canopyMark.position.set(0, 5.4, -4.01);
+  canopyMark.rotation.y = Math.PI;
   root.add(canopyMark);
 
   const stripe = new THREE.Mesh(

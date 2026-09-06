@@ -25,7 +25,7 @@ export function createRenderer(canvas: HTMLCanvasElement): THREE.WebGLRenderer {
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.02;
+  renderer.toneMappingExposure = 0.96;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   return renderer;
 }
@@ -79,11 +79,11 @@ export function createPipeline(
   });
   composer.addPass(new RenderPass(scene, camera));
   const bloom = new BloomEffect({
-    intensity: 0.13,
-    luminanceThreshold: 0.64,
-    luminanceSmoothing: 0.28,
+    intensity: 0.1,
+    luminanceThreshold: 0.7,
+    luminanceSmoothing: 0.32,
     mipmapBlur: true,
-    radius: 0.38,
+    radius: 0.32,
   });
   const vignette = new VignetteEffect({
     eskil: false,

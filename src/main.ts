@@ -40,7 +40,7 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x080b10);
 scene.fog = new THREE.Fog(0x080b10, 42, 110);
 scene.add(new THREE.AmbientLight(0xb8c0c8, 0.12));
-const fill = new THREE.DirectionalLight(0xffd2a8, 0.95);
+const fill = new THREE.DirectionalLight(0xffd2a8, 0.72);
 fill.position.set(-10, 14, -4);
 configureKeyLight(fill);
 scene.add(fill);

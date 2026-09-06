@@ -40,11 +40,11 @@ function paintMaterial(color: THREE.Color): THREE.MeshPhysicalMaterial {
   return new THREE.MeshPhysicalMaterial({
     name: "Paint",
     color,
-    metalness: 0.18,
-    roughness: 0.22,
-    clearcoat: 0.38,
-    clearcoatRoughness: 0.16,
-    envMapIntensity: 1.05,
+    metalness: 0.14,
+    roughness: 0.3,
+    clearcoat: 0.22,
+    clearcoatRoughness: 0.24,
+    envMapIntensity: 0.72,
   });
 }
 
@@ -155,7 +155,7 @@ function dressSedan(root: THREE.Object3D): void {
       }
       if (isHeadName(mn)) {
         m.emissive?.setHex(0xfff4dc);
-        m.emissiveIntensity = 1.6;
+        m.emissiveIntensity = 0.72;
         m.toneMapped = false;
         return;
       }

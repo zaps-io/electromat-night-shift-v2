@@ -163,14 +163,14 @@ function makeAsphalt(root: THREE.Group): THREE.Mesh {
     new THREE.MeshPhysicalMaterial({
       color: 0x0c0e12,
       map: maps.map,
-      roughness: 0.36,
+      roughness: 0.52,
       roughnessMap: maps.rough,
-      metalness: 0.06,
+      metalness: 0.04,
       normalMap: maps.normal,
-      normalScale: new THREE.Vector2(0.16, 0.16),
-      envMapIntensity: 0.82,
-      clearcoat: 0.22,
-      clearcoatRoughness: 0.28,
+      normalScale: new THREE.Vector2(0.2, 0.2),
+      envMapIntensity: 0.38,
+      clearcoat: 0.08,
+      clearcoatRoughness: 0.46,
     }),
   );
   ground.rotation.x = -Math.PI / 2;
@@ -183,13 +183,13 @@ function makeAsphalt(root: THREE.Group): THREE.Mesh {
 export function addLotMirror(root: THREE.Group, _renderer: THREE.WebGLRenderer): void {
   const sheen = new THREE.MeshPhysicalMaterial({
     color: 0x0a0c10,
-    roughness: 0.28,
-    metalness: 0.08,
-    clearcoat: 0.22,
-    clearcoatRoughness: 0.34,
-    envMapIntensity: 0.72,
+    roughness: 0.42,
+    metalness: 0.04,
+    clearcoat: 0.08,
+    clearcoatRoughness: 0.5,
+    envMapIntensity: 0.32,
     transparent: true,
-    opacity: 0.16,
+    opacity: 0.08,
   });
   for (const [x, z, w, d] of [
     [-3.2, 3.8, 8.2, 2.4],
@@ -426,8 +426,8 @@ function addCanopy(root: THREE.Group): void {
       }
     }
   };
-  hang([-7.2, 0, 7.2], [4.2], 240, true);
-  hang([-3.6, 3.6, 10.8], [4.2], 150, false);
+  hang([-7.2, 0, 7.2], [4.2], 150, true);
+  hang([-3.6, 3.6, 10.8], [4.2], 95, false);
 }
 
 function addPerson(g: THREE.Group, x: number, z: number, yaw: number, h = 1.7): void {
