@@ -1,6 +1,5 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { sedanizeConcept } from "../cars/notch-kit";
 import { SEDAN_INLET, buildSedanParts } from "../cars/sedan";
 import { SUV_INLET } from "../cars/suv";
 import type { BuiltPart } from "../cars/types";
@@ -90,61 +89,71 @@ function dressAuthored(root: THREE.Object3D): void {
   });
 }
 
-function dressConcept(root: THREE.Object3D): void {
+function dressSedan(root: THREE.Object3D): void {
   root.traverse((o) => {
     const mesh = o as THREE.Mesh;
     if (!mesh.isMesh) return;
     mesh.castShadow = true;
     mesh.receiveShadow = true;
-    const label = labelOf(mesh);
-    if (label.includes("license")) {
-      mesh.visible = false;
-      return;
-    }
     eachMat(mesh, (m) => {
       const mn = (m.name ?? "").toLowerCase();
-      if (mn.includes("paint")) {
-        m.normalMap = null;
-        if (m.normalScale) m.normalScale.set(0, 0);
-        m.clearcoat = 1;
-        m.clearcoatRoughness = 0.008;
-        m.roughness = 0.04;
-        m.metalness = 0.1;
-        m.envMapIntensity = 3.15;
-      } else if (mn.includes("glass") || label.includes("window") || label.includes("windshield")) {
-        m.roughness = 0.02;
-        m.envMapIntensity = 1.9;
-        if ("transmission" in m) m.transmission = Math.max(m.transmission ?? 0, 0.9);
-      } else if (mn.includes("rim")) {
-        m.metalness = 1;
-        m.roughness = 0.055;
-        m.envMapIntensity = 2.7;
-        m.color?.setHex(0xe2e6ea);
-      } else if (mn.includes("brakelight") || label.includes("taillight")) {
-        if (m.emissive) {
-          m.emissive.setHex(0xe63225);
-          m.emissiveIntensity = 2.8;
-        }
+      const hex = m.color?.getHex?.() ?? 0;
+      const em = m.emissive?.getHex?.() ?? 0;
+      const metal = m.metalness ?? 0;
+      const rough = m.roughness ?? 0.5;
+      if (mn.includes("018") || (metal > 0.35 && metal < 0.62 && rough < 0.18 && hex < 0x222222)) {
+        const paint = new THREE.MeshPhysicalMaterial({
+          name: "Paint",
+          color: m.color?.clone?.() ?? new THREE.Color(0x1e1e24),
+          metalness: 0.08,
+          roughness: 0.16,
+          clearcoat: 0.92,
+          clearcoatRoughness: 0.06,
+          envMapIntensity: 2.05,
+        });
+        mesh.material = Array.isArray(mesh.material)
+          ? mesh.material.map((old) => (old === m ? paint : old))
+          : paint;
+        return;
+      } else if (em > 0x800000) {
+        m.emissive?.setHex(0xe63225);
+        m.emissiveIntensity = Math.max(m.emissiveIntensity, 2.1);
         m.toneMapped = false;
+      } else if (hex > 0x880000 && metal < 0.1 && rough < 0.08) {
+        m.emissive?.setHex(0xe63225);
+        m.emissiveIntensity = 1.8;
+        m.toneMapped = false;
+      } else if ((metal < 0.08 && rough < 0.08 && hex < 0x111111) || mn.includes("019") || mn.includes("003")) {
+        m.name = "Glass";
+        m.roughness = 0.04;
+        m.metalness = 0.04;
+        m.transparent = true;
+        m.opacity = 0.38;
+        if ("transmission" in m) m.transmission = 0.55;
+        m.envMapIntensity = 1.6;
+      } else if (metal > 0.85 && rough < 0.12) {
+        m.name = "Chrome";
+        m.metalness = 0.95;
+        m.roughness = 0.12;
+        m.envMapIntensity = 2.1;
       }
     });
-    if (/body|paint|panel|hood|pillar|door/.test(label) && !/window|glass|wheel|tire|rim|brake/.test(label)) {
-      mesh.geometry = mesh.geometry.clone();
-      mesh.geometry.computeVertexNormals();
-    }
   });
 }
 
-function fitConcept(scene: THREE.Group, kind: HullKind): THREE.Group {
+function fitSedan(scene: THREE.Group, kind: HullKind): THREE.Group {
   const wrap = new THREE.Group();
-  scene.rotation.y = Math.PI / 2;
-  scene.scale.setScalar(1);
   wrap.add(scene);
   wrap.updateMatrixWorld(true);
-  const box = new THREE.Box3().setFromObject(wrap);
+  const box = new THREE.Box3();
   const size = new THREE.Vector3();
+  box.setFromObject(wrap);
   box.getSize(size);
-  const target = kind === "suv" ? 5.2 : 4.92;
+  if (size.z > size.x) scene.rotation.y = Math.PI / 2;
+  wrap.updateMatrixWorld(true);
+  box.setFromObject(wrap);
+  box.getSize(size);
+  const target = kind === "suv" ? 5.15 : 4.88;
   scene.scale.setScalar(target / Math.max(0.2, size.x));
   wrap.updateMatrixWorld(true);
   box.setFromObject(wrap);
@@ -252,7 +261,8 @@ function partsToGroup(parts: BuiltPart[]): THREE.Group {
 
 async function loadHull(kind: HullKind, file: string, fallback: () => BuiltPart[]): Promise<THREE.Group> {
   if (prototypes[kind]) return prototypes[kind]!;
-  const url = `${import.meta.env.BASE_URL}cars/${file}`;
+  const folder = file.includes("generic-electric") ? "models" : "cars";
+  const url = `${import.meta.env.BASE_URL}${folder}/${file}`;
   try {
     const gltf = await loader.loadAsync(url);
     const meshCount = { n: 0 };
@@ -260,13 +270,8 @@ async function loadHull(kind: HullKind, file: string, fallback: () => BuiltPart[
       if ((o as THREE.Mesh).isMesh) meshCount.n += 1;
     });
     if (meshCount.n > 20) {
-      const fitted = fitConcept(gltf.scene, kind);
-      dressConcept(fitted);
-      try {
-        sedanizeConcept(fitted);
-      } catch (err) {
-        console.warn("sedanizeConcept failed, keeping CarConcept base", err);
-      }
+      const fitted = fitSedan(gltf.scene, kind);
+      dressSedan(fitted);
       inletByKind[kind] = addEvCues(fitted);
       prototypes[kind] = fitted;
       fitted.userData.meshCount = meshCount.n;
@@ -290,7 +295,7 @@ async function loadHull(kind: HullKind, file: string, fallback: () => BuiltPart[
 }
 
 export async function loadCarPrototypes(): Promise<void> {
-  await loadHull("sedan", "ev-concept.glb", buildSedanParts);
+  await loadHull("sedan", "generic-electric-sedan.glb", buildSedanParts);
   prototypes.suv = prototypes.sedan;
   inletByKind.suv = inletByKind.sedan ?? SUV_INLET;
 }

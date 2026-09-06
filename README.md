@@ -11,7 +11,7 @@ This is a clean restart. It does not clone or depend on `zaps-io/electromat-nigh
 Default `startNight()` lot view (no local build required):
 
 - [`docs/shots/startnight-lot.png`](docs/shots/startnight-lot.png) — HUD `ZOEY · STATION MASTER`, cyan bays, charging EVs
-- [`docs/shots/lot-rear34.png`](docs/shots/lot-rear34.png) — rear 3/4 of the CarConcept + sealed notch kit
+- [`docs/shots/lot-rear34.png`](docs/shots/lot-rear34.png) — rear 3/4 of the Sketchfab generic 4-door EV sedan
 - [`docs/shots/v2b-lot.png`](docs/shots/v2b-lot.png) — wider canopy / pavilion / occupancy
 
 ## GitHub Pages
@@ -39,7 +39,7 @@ Site line: **DRIVE IN. CHARGE UP. ZIP OUT.**
 
 ## Visual bar
 
-Cinematic WebGL lot (Unreal-style approximation, no Unreal install): ACES Filmic + PCF-soft shadows, night PMREM probe, `postprocessing` bloom / vignette / SMAA, MeshPhysical wet asphalt (albedo + roughness + ripple — not a chrome reflector). Dark wood-panel canopy with recessed cans and cyan edge, white pedestals with blue screens, glass lounge with warm furniture silhouettes, fence-line skyline, orange `!` and cyan battery pips. Guest cars are the Khronos / Unity Fan **CarConcept** GLB (CC0) with a sealed notch kit: closed doors, see-through glass, belt, round arches, silver spokes, hip outboard of the door, short closed trunk deck, painted C-pillar, wraparound red bar, clearcoat reflecting the canopy. No faceted loft, no open side panels.
+Cinematic WebGL lot (Unreal-style approximation, no Unreal install): ACES Filmic + PCF-soft shadows, night PMREM probe, `postprocessing` bloom / vignette / SMAA, MeshPhysical wet asphalt (albedo + roughness + ripple — not a chrome reflector). Dark wood-panel canopy with recessed cans and cyan edge, white pedestals with blue screens, glass lounge with warm furniture silhouettes, fence-line skyline, orange `!` and cyan battery pips. Guest cars are **Generic Electric sedan vector** by Antonis_zks on Sketchfab (CC BY 4.0) — a true 4-door notchback EV with wet-night clearcoat. See `public/models/generic-electric-sedan.ATTRIBUTION.txt`.
 
 Official cream/red Zaps wordmarks only. Palette: `#E63225` `#1E1E24` `#E89A2E` `#00D4F5` `#F5F0E8`.
 
