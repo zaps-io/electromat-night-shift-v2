@@ -62,7 +62,7 @@ export function buildSkyline(): THREE.Group {
   const fenceMat = new THREE.MeshBasicMaterial({
     map: chainTexture(),
     transparent: true,
-    opacity: 0.92,
+    opacity: 0.72,
     side: THREE.DoubleSide,
     depthWrite: false,
   });

@@ -331,7 +331,7 @@ function makeCable(inlet: { x: number; y: number; z: number }): THREE.Mesh {
     new THREE.MeshStandardMaterial({
       color: 0x00d4f5,
       emissive: 0x00d4f5,
-      emissiveIntensity: 2.05,
+      emissiveIntensity: 2.45,
       toneMapped: false,
     }),
   );

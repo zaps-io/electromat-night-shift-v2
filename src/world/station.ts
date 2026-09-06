@@ -131,14 +131,36 @@ function makeAsphalt(root: THREE.Group): THREE.Mesh {
       metalness: 0.04,
       normalMap: maps.normal,
       normalScale: new THREE.Vector2(0.28, 0.28),
-      envMapIntensity: 1.28,
-      clearcoat: 0.58,
-      clearcoatRoughness: 0.22,
+      envMapIntensity: 1.42,
+      clearcoat: 0.64,
+      clearcoatRoughness: 0.18,
     }),
   );
   ground.rotation.x = -Math.PI / 2;
   ground.receiveShadow = true;
   root.add(ground);
+  const wet = new THREE.MeshPhysicalMaterial({
+    color: 0x1a1c20,
+    roughness: 0.16,
+    metalness: 0.02,
+    clearcoat: 0.72,
+    clearcoatRoughness: 0.16,
+    envMapIntensity: 1.55,
+    transparent: true,
+    opacity: 0.42,
+  });
+  for (const [x, z, w, d] of [
+    [0.2, -2.4, 4.8, 2.6],
+    [-3.4, -0.6, 3.6, 2.2],
+    [2.2, 0.8, 3.2, 1.8],
+    [-6.2, 1.4, 2.8, 1.6],
+  ] as const) {
+    const patch = new THREE.Mesh(new THREE.PlaneGeometry(w, d), wet);
+    patch.rotation.x = -Math.PI / 2;
+    patch.position.set(x, 0.012, z);
+    patch.receiveShadow = true;
+    root.add(patch);
+  }
   return ground;
 }
 
@@ -328,14 +350,14 @@ function addPavilion(root: THREE.Group): THREE.Box3 {
   g.position.set(PAVILION.x, 0, PAVILION.z);
   const wall = mat(0xefeae0, { roughness: 0.38, metalness: 0.08 });
   const glass = new THREE.MeshPhysicalMaterial({
-    color: 0x3a2a1c,
-    roughness: 0.1,
-    metalness: 0.06,
-    transmission: 0.16,
+    color: 0x2a1c12,
+    roughness: 0.14,
+    metalness: 0.05,
+    transmission: 0.1,
     transparent: true,
-    opacity: 0.4,
+    opacity: 0.48,
     thickness: 0.1,
-    envMapIntensity: 0.85,
+    envMapIntensity: 0.7,
   });
   g.add(box(6.2, 0.16, 4.6, wall, 0, 0.08, 0));
   g.add(box(6.0, 0.14, 4.4, wall, 0, 3.12, 0));
@@ -363,15 +385,15 @@ function addPavilion(root: THREE.Group): THREE.Box3 {
   const warmWall = new THREE.Mesh(
     new THREE.PlaneGeometry(4.1, 2.5),
     new THREE.MeshStandardMaterial({
-      color: 0xffc070,
-      emissive: 0xffb060,
-      emissiveIntensity: 0.72,
+      color: 0xc88840,
+      emissive: 0xc87830,
+      emissiveIntensity: 0.38,
     }),
   );
   warmWall.position.set(-2.88, 1.5, 0);
   warmWall.rotation.y = Math.PI / 2;
   g.add(warmWall);
-  const lamp = new THREE.PointLight(0xffb060, 7.5, 7, 1.6);
+  const lamp = new THREE.PointLight(0xffb060, 2.8, 6, 1.8);
   lamp.position.set(-0.4, 2.15, 0);
   g.add(lamp);
 
