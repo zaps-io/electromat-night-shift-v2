@@ -19,10 +19,10 @@ export const PAVILION = { x: -12.4, z: 3.8, yaw: -0.2 };
 
 /** Elevated wide-still camera: queue left, occupied bays under canopy, city drop. */
 export const WIDE_SHOT = {
-  x: 5.8,
-  z: -20.2,
-  eyeY: 14.6,
-  yaw: 0.16,
-  pitch: -0.74,
-  lookAt: { x: -2.2, y: 1.2, z: 4.8 },
+  x: 6.6,
+  z: -21.2,
+  eyeY: 15.6,
+  yaw: 0.14,
+  pitch: -0.72,
+  lookAt: { x: -1.6, y: 1.45, z: 6.4 },
 } as const;
