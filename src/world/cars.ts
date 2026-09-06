@@ -35,11 +35,11 @@ function paintMaterial(color: THREE.Color): THREE.MeshPhysicalMaterial {
   return new THREE.MeshPhysicalMaterial({
     name: "Paint",
     color,
-    metalness: 0.22,
-    roughness: 0.16,
+    metalness: 0.28,
+    roughness: 0.12,
     clearcoat: 1,
-    clearcoatRoughness: 0.045,
-    envMapIntensity: 2.4,
+    clearcoatRoughness: 0.035,
+    envMapIntensity: 2.65,
   });
 }
 
@@ -94,11 +94,17 @@ function dressAuthored(root: THREE.Object3D): void {
 }
 
 function isPaintName(mn: string): boolean {
-  return mn === "primary" || mn.startsWith("primary") || mn.includes("018") || mn === "paint";
+  return (
+    mn === "primary" ||
+    mn.startsWith("primary") ||
+    mn.includes("018") ||
+    mn === "paint" ||
+    mn === "wire_027177027"
+  );
 }
 
 function isGlassName(mn: string): boolean {
-  return mn.includes("glass") || mn.includes("019") || mn.includes("003");
+  return (mn.includes("glass") && !mn.includes("red")) || mn.includes("019") || mn.includes("003") || mn.includes("winds");
 }
 
 function isTailName(mn: string): boolean {
@@ -109,7 +115,9 @@ function isTailName(mn: string): boolean {
     mn.includes("satin_red") ||
     mn.includes("tembus_red") ||
     mn.includes("taillight") ||
-    mn.includes("bodytaillight")
+    mn.includes("bodytaillight") ||
+    mn.includes("redlight") ||
+    mn.includes("glassred")
   );
 }
 
@@ -137,13 +145,7 @@ function dressSedan(root: THREE.Object3D): void {
         return;
       }
       if (isTailName(mn) || em > 0x800000 || (hex > 0x880000 && metal < 0.15 && rough < 0.2)) {
-        m.name = "LightBar";
-        m.color?.setHex(0xe63225);
-        m.emissive?.setHex(0xe63225);
-        m.emissiveIntensity = 3.4;
-        m.toneMapped = false;
-        m.roughness = 0.22;
-        m.metalness = 0.15;
+        mesh.visible = false;
         return;
       }
       if (isHeadName(mn)) {
@@ -186,7 +188,13 @@ function hideCabinAndCards(root: THREE.Object3D): void {
       n.includes("steer") ||
       n.includes("dvor") ||
       n.includes("suspensi") ||
-      n.includes("belt.")
+      n.includes("belt") ||
+      n.includes("leather") ||
+      n.includes("alcantara") ||
+      n.includes("stitch") ||
+      n.includes("burmester") ||
+      n.startsWith("int") ||
+      n.includes(" int")
     ) {
       mesh.visible = false;
       return;
@@ -206,10 +214,10 @@ function lightAxis(root: THREE.Object3D): number {
   root.traverse((o) => {
     const mesh = o as THREE.Mesh;
     if (!mesh.isMesh) return;
-    const n = mesh.name.toLowerCase();
+    const n = `${mesh.name} ${(mesh.material as THREE.Material)?.name ?? ""}`.toLowerCase();
     const b = new THREE.Box3().setFromObject(mesh);
     const cx = (b.min.x + b.max.x) * 0.5;
-    if (isHeadName(n) || n.includes("front")) {
+    if (isHeadName(n) || n.includes("front") || n.includes("blueglass")) {
       front += cx;
       fn += 1;
     }
@@ -242,7 +250,7 @@ function fitSedan(scene: THREE.Group, kind: HullKind): THREE.Group {
   wrap.updateMatrixWorld(true);
   box.setFromObject(wrap);
   box.getSize(size);
-  const target = kind === "suv" ? 5.05 : 4.72;
+  const target = kind === "suv" ? 5.05 : 4.95;
   scene.scale.setScalar(target / Math.max(0.2, size.x));
   wrap.updateMatrixWorld(true);
   box.setFromObject(wrap);
@@ -260,9 +268,9 @@ function fitSedan(scene: THREE.Group, kind: HullKind): THREE.Group {
 
 function makeCrossover(sedan: THREE.Group): THREE.Group {
   const wrap = sedan.clone(true);
-  wrap.scale.y *= 1.18;
-  wrap.scale.x *= 1.03;
-  wrap.scale.z *= 1.06;
+  wrap.scale.y *= 1.1;
+  wrap.scale.x *= 1.02;
+  wrap.scale.z *= 1.04;
   wrap.updateMatrixWorld(true);
   const box = new THREE.Box3().setFromObject(wrap);
   wrap.position.y -= box.min.y + 0.03;
@@ -273,49 +281,44 @@ function makeCrossover(sedan: THREE.Group): THREE.Group {
 
 function addEvCues(root: THREE.Group): { x: number; y: number; z: number } {
   const box = new THREE.Box3().setFromObject(root);
-  {
-    let yBar = 0.92;
-    root.traverse((o) => {
-      if (/BodyTaillights$|light_night|breaklight/i.test(o.name)) {
-        const b = new THREE.Box3().setFromObject(o);
-        yBar = (b.min.y + b.max.y) * 0.5;
-      }
-    });
-    const xRear = box.min.x - 0.018;
-    const half = Math.min(1.22, (box.max.z - box.min.z) * 0.49);
-    const geo = new THREE.BufferGeometry();
-    const pos: number[] = [];
-    const idx: number[] = [];
-    const segs = 36;
-    const halfH = 0.014;
-    for (let i = 0; i < segs; i++) {
-      const t0 = i / segs;
-      const t1 = (i + 1) / segs;
-      const wrap = (t: number) => {
-        const u = t * 2 - 1;
-        const corner = Math.max(0, (Math.abs(u) - 0.72) / 0.28);
-        return { x: xRear + corner * 0.16, y: yBar, z: u * (half - corner * 0.08) };
-      };
-      const a = wrap(t0);
-      const b = wrap(t1);
-      const base = pos.length / 3;
-      pos.push(a.x, a.y - halfH, a.z, b.x, b.y - halfH, b.z, b.x, b.y + halfH, b.z, a.x, a.y + halfH, a.z);
-      idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
-    }
-    geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
-    geo.setIndex(idx);
-    geo.computeVertexNormals();
-    const bar = new THREE.Mesh(
-      geo,
-      new THREE.MeshBasicMaterial({
-        name: "LightBar",
-        color: 0xff2a22,
-        toneMapped: false,
-      }),
-    );
-    bar.castShadow = false;
-    root.add(bar);
-  }
+  let yBar = THREE.MathUtils.lerp(box.min.y, box.max.y, 0.58);
+  const lamps = new THREE.Box3();
+  let hasLamps = false;
+  root.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    const n = `${mesh.name} ${(mesh.material as THREE.Material)?.name ?? ""}`.toLowerCase();
+    if (!isTailName(n)) return;
+    const b = new THREE.Box3().setFromObject(mesh);
+    if (!hasLamps) {
+      lamps.copy(b);
+      hasLamps = true;
+    } else lamps.union(b);
+  });
+  if (hasLamps) yBar = (lamps.min.y + lamps.max.y) * 0.5;
+  const xRear = box.min.x + 0.012;
+  const half = Math.min(1.18, (box.max.z - box.min.z) * 0.47);
+  const bar = new THREE.Mesh(
+    new THREE.BoxGeometry(0.018, 0.016, half * 2),
+    new THREE.MeshBasicMaterial({ name: "LightBar", color: 0xff241c, toneMapped: false }),
+  );
+  bar.position.set(xRear, yBar, 0);
+  bar.castShadow = false;
+  root.add(bar);
+  const glow = new THREE.Mesh(
+    new THREE.BoxGeometry(0.01, 0.028, half * 2 + 0.04),
+    new THREE.MeshBasicMaterial({
+      name: "LightBar",
+      color: 0xff2a22,
+      transparent: true,
+      opacity: 0.42,
+      toneMapped: false,
+      depthWrite: false,
+    }),
+  );
+  glow.position.set(xRear - 0.006, yBar, 0);
+  glow.castShadow = false;
+  root.add(glow);
 
   const inlet = {
     x: box.min.x + 0.16,
@@ -363,7 +366,9 @@ function partsToGroup(parts: BuiltPart[]): THREE.Group {
 }
 
 function folderOf(file: string): string {
-  return file.includes("tesla") || file.includes("generic-electric") ? "models" : "cars";
+  return file.includes("tesla") || file.includes("generic-electric") || file.includes("taycan") || file.includes("porsche")
+    ? "models"
+    : "cars";
 }
 
 async function loadHull(kind: HullKind, file: string, fallback: () => BuiltPart[]): Promise<THREE.Group> {
@@ -401,9 +406,9 @@ async function loadHull(kind: HullKind, file: string, fallback: () => BuiltPart[
 }
 
 export async function loadCarPrototypes(): Promise<void> {
-  await loadHull("sedan", "tesla-model-3-2018.glb", buildSedanParts);
+  await loadHull("sedan", "porsche-taycan-2020.glb", buildSedanParts);
   const src = prototypes.sedan?.userData.source ?? "";
-  if (src.includes("tesla")) {
+  if (src.includes("taycan") || src.includes("porsche")) {
     prototypes.suv = makeCrossover(prototypes.sedan!);
     inletByKind.suv = inletByKind.sedan ?? SUV_INLET;
   } else {

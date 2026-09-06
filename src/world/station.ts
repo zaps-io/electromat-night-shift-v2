@@ -270,42 +270,92 @@ function addPedestal(root: THREE.Group, x: number, z: number): void {
   root.add(box(0.1, 0.12, 0.14, mat(0x1e1e24), px + 0.14, 0.92, pz - 0.02));
 }
 
+function roundedRectShape(w: number, d: number, r: number): THREE.Shape {
+  const hw = w * 0.5;
+  const hd = d * 0.5;
+  const rad = Math.min(r, hw, hd);
+  const s = new THREE.Shape();
+  s.moveTo(-hw + rad, -hd);
+  s.lineTo(hw - rad, -hd);
+  s.absarc(hw - rad, -hd + rad, rad, -Math.PI / 2, 0, false);
+  s.lineTo(hw, hd - rad);
+  s.absarc(hw - rad, hd - rad, rad, 0, Math.PI / 2, false);
+  s.lineTo(-hw + rad, hd);
+  s.absarc(-hw + rad, hd - rad, rad, Math.PI / 2, Math.PI, false);
+  s.lineTo(-hw, -hd + rad);
+  s.absarc(-hw + rad, -hd + rad, rad, Math.PI, Math.PI * 1.5, false);
+  return s;
+}
+
 function addCanopy(root: THREE.Group): void {
-  const shell = mat(0x1c1e22, { roughness: 0.55, metalness: 0.08 });
-  const under = mat(0x14100c, { roughness: 0.92, metalness: 0.02 });
-  root.add(box(24.8, 0.2, 13.4, shell, 0, 5.32, 3.1));
-  root.add(box(24.2, 0.1, 12.9, under, 0, 5.14, 3.1));
-  const slat = mat(0x1a140f, { roughness: 0.88, metalness: 0.02, envMapIntensity: 0.2 });
-  for (let i = 0; i < 14; i++) {
-    root.add(box(24.0, 0.03, 0.42, slat, 0, 5.1, -2.8 + i * 0.92));
-  }
-
-  const cyan = new THREE.MeshBasicMaterial({ color: 0x00d4f5, toneMapped: false });
-  const cyanBloom = new THREE.MeshBasicMaterial({ color: 0x00d4f5, transparent: true, opacity: 0.38, toneMapped: false, depthWrite: false });
-  const edges: Array<[number, number, number, number, number, number]> = [
-    [24.8, 0.2, 0.16, 0, 5.12, 9.72],
-    [24.8, 0.2, 0.16, 0, 5.12, -3.52],
-    [0.16, 0.2, 13.3, 12.38, 5.12, 3.1],
-    [0.16, 0.2, 13.3, -12.38, 5.12, 3.1],
-  ];
-  for (const [w, h, d, x, y, z] of edges) {
-    root.add(box(w, h, d, cyan, x, y, z));
-    root.add(box(w + 0.22, h + 0.26, d + 0.22, cyanBloom, x, y, z));
-  }
-
-  const innerLed = new THREE.MeshStandardMaterial({
-    color: 0xfff0d0,
-    emissive: 0xffe0a8,
-    emissiveIntensity: 1.35,
-    toneMapped: false,
+  const shell = mat(0xf2eee6, { roughness: 0.38, metalness: 0.06, envMapIntensity: 0.7 });
+  const under = mat(0xe4dfd6, { roughness: 0.62, metalness: 0.04 });
+  const topGeo = new THREE.ExtrudeGeometry(roundedRectShape(24.6, 13.2, 1.55), {
+    depth: 0.2,
+    bevelEnabled: true,
+    bevelThickness: 0.05,
+    bevelSize: 0.1,
+    bevelSegments: 2,
+    curveSegments: 10,
   });
-  root.add(box(23.6, 0.03, 0.05, innerLed, 0, 5.06, 9.15));
-  root.add(box(23.6, 0.03, 0.05, innerLed, 0, 5.06, -2.95));
+  topGeo.rotateX(-Math.PI / 2);
+  const top = new THREE.Mesh(topGeo, shell);
+  top.position.set(0, 5.22, 3.1);
+  top.castShadow = true;
+  top.receiveShadow = true;
+  root.add(top);
+  const underGeo = new THREE.ExtrudeGeometry(roundedRectShape(23.8, 12.5, 1.35), {
+    depth: 0.08,
+    bevelEnabled: false,
+    curveSegments: 8,
+  });
+  underGeo.rotateX(-Math.PI / 2);
+  const soffit = new THREE.Mesh(underGeo, under);
+  soffit.position.set(0, 5.12, 3.1);
+  soffit.receiveShadow = true;
+  root.add(soffit);
 
-  const col = mat(0x2c2e32, { metalness: 0.22, roughness: 0.48, envMapIntensity: 0.55 });
-  for (const x of [-11.2, -3.7, 3.7, 11.2]) {
-    for (const z of [-2.2, 8.2]) {
-      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.13, 5.15, 20), col);
+  const pts: THREE.Vector3[] = [];
+  const hw = 12.15;
+  const hd = 6.45;
+  const rad = 1.45;
+  const steps = 7;
+  const arc = (cx: number, cz: number, a0: number, a1: number) => {
+    for (let i = 0; i <= steps; i++) {
+      const t = a0 + ((a1 - a0) * i) / steps;
+      pts.push(new THREE.Vector3(cx + Math.cos(t) * rad, 0, cz + Math.sin(t) * rad));
+    }
+  };
+  for (let x = -hw + rad; x <= hw - rad; x += 0.8) pts.push(new THREE.Vector3(x, 0, -hd));
+  arc(hw - rad, -hd + rad, -Math.PI / 2, 0);
+  for (let z = -hd + rad; z <= hd - rad; z += 0.8) pts.push(new THREE.Vector3(hw, 0, z));
+  arc(hw - rad, hd - rad, 0, Math.PI / 2);
+  for (let x = hw - rad; x >= -hw + rad; x -= 0.8) pts.push(new THREE.Vector3(x, 0, hd));
+  arc(-hw + rad, hd - rad, Math.PI / 2, Math.PI);
+  for (let z = hd - rad; z >= -hd + rad; z -= 0.8) pts.push(new THREE.Vector3(-hw, 0, z));
+  arc(-hw + rad, -hd + rad, Math.PI, Math.PI * 1.5);
+  const curve = new THREE.CatmullRomCurve3(pts, true);
+  const cyan = new THREE.MeshBasicMaterial({ color: 0x00d4f5, toneMapped: false });
+  const edge = new THREE.Mesh(new THREE.TubeGeometry(curve, 160, 0.055, 8, true), cyan);
+  edge.position.set(0, 5.14, 3.1);
+  root.add(edge);
+  const bloom = new THREE.Mesh(
+    new THREE.TubeGeometry(curve, 160, 0.11, 8, true),
+    new THREE.MeshBasicMaterial({ color: 0x00d4f5, transparent: true, opacity: 0.32, toneMapped: false, depthWrite: false }),
+  );
+  bloom.position.set(0, 5.14, 3.1);
+  root.add(bloom);
+
+  const innerLed = new THREE.MeshBasicMaterial({ color: 0xfff4dc, toneMapped: false });
+  const inner = new THREE.Mesh(new THREE.TubeGeometry(curve, 120, 0.02, 6, true), innerLed);
+  inner.position.set(0, 5.08, 3.1);
+  inner.scale.set(0.94, 1, 0.94);
+  root.add(inner);
+
+  const col = mat(0xf0ece4, { metalness: 0.08, roughness: 0.42, envMapIntensity: 0.5 });
+  for (const x of [-10.6, -3.5, 3.5, 10.6]) {
+    for (const z of [-1.8, 7.8]) {
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.12, 5.15, 20), col);
       post.position.set(x, 2.52, z);
       post.castShadow = true;
       root.add(post);
@@ -457,12 +507,8 @@ function addPlanters(root: THREE.Group): void {
   const frond = mat(0x1c2816, { roughness: 0.78 });
   const succulent = mat(0x3a4a28, { roughness: 0.7 });
   for (const [x, z] of [
-    [-14.2, 11.8],
-    [-6.4, 12.4],
-    [2.2, 12.5],
-    [10.4, 12.2],
-    [14.6, 6.4],
-    [-16.2, 5.4],
+    [-8.2, 13.1],
+    [6.4, 13.2],
   ]) {
     root.add(box(1.15, 0.28, 1.15, stone, x, 0.14, z));
     const bole = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.09, 3.4, 8), trunk);

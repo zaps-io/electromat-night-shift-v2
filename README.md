@@ -11,7 +11,7 @@ This is a clean restart. It does not clone or depend on `zaps-io/electromat-nigh
 Default `startNight()` lot view (no local build required):
 
 - [`docs/shots/startnight-lot.png`](docs/shots/startnight-lot.png) — HUD `ZOEY · STATION MASTER`, cyan bays, charging EVs
-- [`docs/shots/lot-rear34.png`](docs/shots/lot-rear34.png) — rear 3/4 of the Sketchfab Tesla Model 3 guest hull
+- [`docs/shots/lot-rear34.png`](docs/shots/lot-rear34.png) — rear 3/4 of the Sketchfab 2020 Porsche Taycan guest hull
 - [`docs/shots/v2b-lot.png`](docs/shots/v2b-lot.png) — wider canopy / pavilion / occupancy
 
 ## GitHub Pages
@@ -39,7 +39,7 @@ Site line: **DRIVE IN. CHARGE UP. ZIP OUT.**
 
 ## Visual bar
 
-Cinematic WebGL lot (Unreal-style approximation, no Unreal install): ACES Filmic + PCF-soft shadows, night PMREM probe, `postprocessing` bloom / vignette / SMAA, wet asphalt with puddle Reflector under an alpha-mapped surface (not a full-lot chrome mirror). Matte charcoal canopy with recessed cans and a thick cyan edge, tall white pedestals with blue screens, glass lounge with warm furniture silhouettes, fence-line skyline, orange `!` and cyan battery pips. Guest cars are **Tesla 2018 Model 3** by Ameer Studio on Sketchfab (CC BY 4.0) — a 4-door EV with wet-night clearcoat. See `public/models/tesla-model-3-2018.ATTRIBUTION.txt`.
+Cinematic WebGL lot (Unreal-style approximation, no Unreal install): ACES Filmic + PCF-soft shadows, night PMREM probe, `postprocessing` bloom / vignette / SMAA, wet asphalt with two puddle Reflectors (not a full-lot chrome mirror). White rounded canopy with recessed cans and a cyan edge, tall white pedestals with blue screens, glass lounge with warm furniture silhouettes, fence-line skyline, orange `!` and cyan battery pips. Guest cars are **2020 Porsche Taycan** by martin002 on Sketchfab (CC BY 4.0) — a 4-door EV with wet-night clearcoat and a single thin red LED bar. See `public/models/porsche-taycan-2020.ATTRIBUTION.txt`.
 
 Official cream/red Zaps wordmarks only. Palette: `#E63225` `#1E1E24` `#E89A2E` `#00D4F5` `#F5F0E8`.
 

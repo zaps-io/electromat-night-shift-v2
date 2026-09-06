@@ -1,0 +1,6 @@
+Title: 2020 Porsche Taycan
+Author: martin002
+Source: https://sketchfab.com/3d-models/875072396ef541e3b106152e6dea6978
+License: CC Attribution (http://creativecommons.org/licenses/by/4.0/)
+UID: 875072396ef541e3b106152e6dea6978
+Faces: 369603
