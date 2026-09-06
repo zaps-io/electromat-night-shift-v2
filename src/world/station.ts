@@ -163,14 +163,11 @@ function makeAsphalt(root: THREE.Group): THREE.Mesh {
 }
 
 export function addLotMirror(root: THREE.Group, renderer: THREE.WebGLRenderer): void {
-  const px = Math.min(512, Math.max(384, Math.floor((renderer.domElement.width || 512) * 0.45)));
+  const px = renderer.domElement.width > 1600 ? 512 : 384;
   const color = new THREE.Color(0x3a4048);
   const puddles: Array<[number, number, number, number]> = [
-    [1.1, -5.8, 4.6, 2.4],
-    [-3.2, -3.6, 3.4, 1.8],
-    [0.4, -1.4, 3.8, 1.6],
-    [-5.4, 1.2, 2.8, 1.4],
-    [4.2, -4.2, 2.6, 1.5],
+    [1.2, -5.6, 5.2, 2.6],
+    [-2.8, -2.2, 3.6, 1.7],
   ];
   for (const [x, z, w, d] of puddles) {
     const mirror = new Reflector(new THREE.PlaneGeometry(w, d), {
