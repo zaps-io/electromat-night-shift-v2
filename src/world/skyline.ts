@@ -106,12 +106,26 @@ export function buildSkyline(): THREE.Group {
   const postMat = new THREE.MeshStandardMaterial({ color: 0x4a4e54, roughness: 0.5, metalness: 0.25 });
   const rail = new THREE.MeshStandardMaterial({ color: 0x5a5e64, roughness: 0.4, metalness: 0.35 });
   const drop = new THREE.Mesh(
-    new THREE.PlaneGeometry(56, 18),
+    new THREE.PlaneGeometry(72, 28),
     new THREE.MeshStandardMaterial({ color: 0x121418, roughness: 0.9 }),
   );
-  drop.rotation.x = -Math.PI / 2.6;
-  drop.position.set(0, -4.2, 22);
+  drop.rotation.x = -Math.PI / 2.55;
+  drop.position.set(0, -5.4, 26);
   root.add(drop);
+  const valley = new THREE.Mesh(
+    new THREE.PlaneGeometry(220, 36),
+    new THREE.MeshBasicMaterial({
+      map: cityCarpet(),
+      transparent: true,
+      opacity: 0.72,
+      fog: false,
+      toneMapped: false,
+      depthWrite: false,
+    }),
+  );
+  valley.rotation.x = -Math.PI / 2.7;
+  valley.position.set(0, -7.2, 38);
+  root.add(valley);
 
   for (const z of [15.6]) {
     const fence = new THREE.Mesh(new THREE.PlaneGeometry(52, 1.15), fenceMat);

@@ -582,7 +582,7 @@ function addPlanterArc(
     wall.rotation.y = -mid - Math.PI / 2;
     root.add(wall);
     pts.push(new THREE.Vector3(x, 0.58, z));
-    addSucculents(root, x + Math.cos(mid) * 0.42, z + Math.sin(mid) * 0.42);
+    if (i % 2 === 0) addSucculents(root, x + Math.cos(mid) * 0.42, z + Math.sin(mid) * 0.42);
   }
   if (pts.length > 2) {
     const rail = new THREE.Mesh(
@@ -651,9 +651,12 @@ function addStreetlights(root: THREE.Group): void {
     pole.position.set(x, 2.7, z);
     const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.05, 20), lamp);
     disc.position.set(x, 5.42, z);
-    const glow = new THREE.PointLight(0xffc878, 2.6, 8, 1.8);
-    glow.position.set(x, 5.2, z);
-    root.add(pole, disc, glow);
+    root.add(pole, disc);
+    if (x === -16.8 || x === -1.2 || x === 12.6) {
+      const glow = new THREE.PointLight(0xffc878, 2.4, 8, 1.8);
+      glow.position.set(x, 5.2, z);
+      root.add(glow);
+    }
   }
 }
 
