@@ -328,9 +328,9 @@ function addCanopy(root: THREE.Group): void {
   stripBloom.scale.set(0.972, 1, 0.972);
   root.add(stripBloom);
   const red = new THREE.MeshBasicMaterial({ color: C.red, toneMapped: false });
-  const fascia = new THREE.Mesh(new THREE.TubeGeometry(curve, 160, 0.018, 6, true), red);
-  fascia.position.set(0, 5.28, 3.1);
-  fascia.scale.set(1.002, 1, 1.002);
+  const fascia = new THREE.Mesh(new THREE.TubeGeometry(curve, 160, 0.042, 6, true), red);
+  fascia.position.set(0, 5.32, 3.1);
+  fascia.scale.set(1.01, 1, 1.01);
   root.add(fascia);
 
   const col = mat(C.chrome, { metalness: 0.72, roughness: 0.34, envMapIntensity: 0.55 });

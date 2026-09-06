@@ -65,13 +65,12 @@ function amberBoard(): THREE.CanvasTexture {
 
 /** Official red wordmark on cream pylon + amber status. Logos on Zeus faces. */
 export async function addBrandSignage(root: THREE.Group): Promise<void> {
-  const [red, cream] = await Promise.all([
+  const [red] = await Promise.all([
     loadBrandTexture("wordmark-red.svg"),
-    loadBrandTexture("wordmark-cream-vector.svg"),
   ]);
 
-  const canopyMark = signPlate(4.8, 1.58, cream);
-  canopyMark.position.set(0, 5.42, -4.02);
+  const canopyMark = signPlate(5.2, 1.72, red);
+  canopyMark.position.set(0, 5.48, -4.08);
   canopyMark.rotation.y = Math.PI;
   root.add(canopyMark);
 
