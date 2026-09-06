@@ -347,10 +347,10 @@ function addCanopy(root: THREE.Group): void {
 
 function addPerson(g: THREE.Group, x: number, z: number, yaw: number, h = 1.7): void {
   const dark = new THREE.MeshBasicMaterial({ color: 0x0c0a09 });
-  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.17, h * 0.42, 4, 8), dark);
+  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.2, h * 0.44, 4, 8), dark);
   body.position.set(x, h * 0.52, z);
   body.rotation.y = yaw;
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.125, 10, 8), dark);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 8), dark);
   head.position.set(x, h * 0.9, z);
   g.add(body, head);
 }
@@ -359,7 +359,7 @@ function addPavilion(root: THREE.Group): THREE.Box3 {
   const g = new THREE.Group();
   g.position.set(PAVILION.x, 0, PAVILION.z);
   g.rotation.y = PAVILION.yaw;
-  const wall = mat(0xefeae0, { roughness: 0.4, metalness: 0.06 });
+  const wall = mat(0xc8b49a, { roughness: 0.48, metalness: 0.05 });
   const glass = new THREE.MeshPhysicalMaterial({
     color: 0x1c1612,
     roughness: 0.06,
@@ -371,9 +371,9 @@ function addPavilion(root: THREE.Group): THREE.Box3 {
     envMapIntensity: 0.55,
     side: THREE.DoubleSide,
   });
-  const W = 7.2;
-  const D = 4.5;
-  const H = 3.28;
+  const W = 6.6;
+  const D = 4.15;
+  const H = 3.2;
   g.add(box(W, 0.14, D, wall, 0, 0.07, 0));
   g.add(box(W - 0.08, 0.12, D - 0.08, wall, 0, H, 0));
   g.add(box(0.16, H, D - 0.1, wall, -W / 2 + 0.02, H * 0.5, 0));
@@ -404,7 +404,7 @@ function addPavilion(root: THREE.Group): THREE.Box3 {
   lot.rotation.y = Math.PI / 2;
   g.add(front, rear, lot);
 
-  const warm = new THREE.MeshBasicMaterial({ color: 0x9a6230 });
+  const warm = new THREE.MeshBasicMaterial({ color: 0xc47838 });
   const backLit = new THREE.Mesh(new THREE.PlaneGeometry(D - 0.55, paneH - 0.2), warm);
   backLit.position.set(-W / 2 + 0.2, H * 0.48, 0.1);
   backLit.rotation.y = Math.PI / 2;
@@ -428,7 +428,7 @@ function addPavilion(root: THREE.Group): THREE.Box3 {
   root.add(g);
   return new THREE.Box3().setFromCenterAndSize(
     new THREE.Vector3(PAVILION.x, 1.6, PAVILION.z),
-    new THREE.Vector3(8.2, 3.4, 7.4),
+    new THREE.Vector3(7.8, 3.4, 8.6),
   );
 }
 

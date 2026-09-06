@@ -52,7 +52,7 @@ export function createNightProbe(renderer: THREE.WebGLRenderer): THREE.Texture {
     [12.35, 5.08, 3.1, 0x00d4f5, 0.34],
     [-6, 5.08, -3.5, 0x00d4f5, 0.28],
     [6, 5.08, -3.5, 0x00d4f5, 0.28],
-    [-10.15, 1.4, 1.35, 0x8a5828, 0.4],
+    [-10.55, 1.4, 2.55, 0xb86c32, 0.38],
     [-16.8, 4.4, 0.4, 0xffc878, 0.22],
     [12.6, 4.4, 8.4, 0xffc878, 0.22],
   ] as const) {

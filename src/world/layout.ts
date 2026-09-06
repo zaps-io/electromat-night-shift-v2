@@ -13,4 +13,4 @@ export const WAIT_SLOTS = [
 export const BAY_SIZE = { w: 2.7, d: 5.6 };
 export const KIOSK = { x: 12.4, z: 1.2 };
 /** Left of bay 1, pulled into the default startNight frustum. Long glass faces the player. */
-export const PAVILION = { x: -10.15, z: 1.35, yaw: -0.38 };
+export const PAVILION = { x: -10.55, z: 2.55, yaw: -1.18 };
