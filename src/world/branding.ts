@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { C } from "../brand";
+import { CANOPIES, KIOSK } from "./layout";
 import { applyZeusLogos } from "./zeus";
 
 function trimAlpha(src: HTMLCanvasElement): THREE.CanvasTexture {
@@ -73,79 +73,25 @@ function signPlate(w: number, h: number, tex: THREE.Texture): THREE.Mesh {
   return mesh;
 }
 
-function amberBoard(): THREE.CanvasTexture {
-  const c = document.createElement("canvas");
-  c.width = 256;
-  c.height = 160;
-  const ctx = c.getContext("2d")!;
-  ctx.fillStyle = "#1E1E24";
-  ctx.fillRect(0, 0, 256, 160);
-  ctx.fillStyle = "#E89A2E";
-  ctx.globalAlpha = 0.22;
-  for (let y = 8; y < 152; y += 7) {
-    for (let x = 8; x < 248; x += 7) ctx.fillRect(x, y, 4, 4);
-  }
-  ctx.globalAlpha = 1;
-  ctx.font = "800 28px 'Arial Narrow', Arial, sans-serif";
-  ctx.textAlign = "center";
-  ctx.fillText("0.42 / kWh", 128, 58);
-  ctx.font = "700 18px 'Arial Narrow', Arial, sans-serif";
-  ctx.fillText("BAYS OPEN  4", 128, 96);
-  ctx.fillText("NIGHT SHIFT", 128, 128);
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
-}
-
-/** Official Drive vector wordmark on canopy, pylon, kiosk, and Slim Zeus faces. */
+/** Official Drive red vector on both canopy fascias, lounge, and Slim Zeus. */
 export async function addBrandSignage(root: THREE.Group): Promise<void> {
   const red = await loadBrandTexture("zaps-wordmark-only-red.svg");
 
-  const canopyMark = signPlate(5.6, 1.15, red);
-  canopyMark.position.set(0, 5.52, -4.16);
-  canopyMark.rotation.y = Math.PI;
-  root.add(canopyMark);
+  for (const canopy of CANOPIES) {
+    const fasciaZ = canopy.z - canopy.d * 0.5 + 0.02;
+    const mark = signPlate(3.85, 0.86, red);
+    mark.position.set(canopy.x, canopy.y + 0.08, fasciaZ);
+    mark.rotation.y = Math.PI;
+    root.add(mark);
+  }
 
-  const g = new THREE.Group();
-  g.position.set(-11.0, 0, -6.2);
-  g.rotation.y = 0.7;
-  const creamBody = new THREE.MeshStandardMaterial({
-    color: C.cream,
-    roughness: 0.38,
-    metalness: 0.03,
-    emissive: 0x8a8478,
-    emissiveIntensity: 0.58,
-  });
-  const post = new THREE.Mesh(new THREE.BoxGeometry(0.42, 3.75, 1.18), creamBody);
-  post.position.y = 1.88;
-  const cap = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.12, 1.24), creamBody);
-  cap.position.y = 3.78;
-  const redBand = new THREE.Mesh(
-    new THREE.BoxGeometry(0.46, 0.1, 1.2),
-    new THREE.MeshBasicMaterial({ color: C.red, toneMapped: false }),
-  );
-  redBand.position.y = 3.18;
-  const mark = signPlate(1.05, 0.28, red);
-  mark.position.set(0.22, 2.72, 0);
-  mark.rotation.y = Math.PI / 2;
-  const board = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.98, 0.6),
-    new THREE.MeshStandardMaterial({
-      map: amberBoard(),
-      color: 0xffffff,
-      emissive: C.amber,
-      emissiveIntensity: 1.3,
-      emissiveMap: amberBoard(),
-      toneMapped: false,
-    }),
-  );
-  board.position.set(0.22, 1.7, 0);
-  board.rotation.y = Math.PI / 2;
-  g.add(post, cap, redBand, mark, board);
-  root.add(g);
+  const loungeMark = signPlate(1.35, 0.3, red);
+  loungeMark.position.set(-18.8, 2.72, 1.52);
+  loungeMark.rotation.y = Math.PI;
+  root.add(loungeMark);
 
-  const kioskMark = signPlate(0.52, 0.14, red);
-  kioskMark.position.set(13.6, 2.02, 1.14);
+  const kioskMark = signPlate(0.5, 0.12, red);
+  kioskMark.position.set(KIOSK.x, 1.92, KIOSK.z - 0.2);
   root.add(kioskMark);
 
   applyZeusLogos(root, red);

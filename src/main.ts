@@ -14,7 +14,7 @@ import {
 import { Walker } from "./input/walker";
 import { configureKeyLight, createNightProbe, createPipeline, createRenderer } from "./render/pipeline";
 import { addLodFillers, hullDebug, loadCarPrototypes, syncCars, trimLodFillers, type CarView } from "./world/cars";
-import { KIOSK, REAR_SHOT, START_SHOT, WIDE_SHOT } from "./world/layout";
+import { CANOPY_SHOT, KIOSK, REAR_SHOT, START_SHOT, WIDE_SHOT } from "./world/layout";
 import { addBrandSignage } from "./world/branding";
 import { makeAttendantHand, tickHand } from "./world/hand";
 import { buildSkyline } from "./world/skyline";
@@ -38,18 +38,18 @@ const pips = document.querySelectorAll("#pips i");
 const renderer = createRenderer(canvas);
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x080b10);
-scene.fog = new THREE.Fog(0x080b10, 42, 110);
-scene.add(new THREE.AmbientLight(0xc8ccd0, 0.26));
-const fill = new THREE.DirectionalLight(0xffe8d2, 1.02);
-fill.position.set(-10, 14, -4);
+scene.background = new THREE.Color(0x1c1610);
+scene.fog = new THREE.Fog(0x1c1610, 46, 128);
+scene.add(new THREE.AmbientLight(0xffe2c4, 0.3));
+const fill = new THREE.DirectionalLight(0xffc070, 1.18);
+fill.position.set(-22, 11, -9);
 configureKeyLight(fill);
 scene.add(fill);
-const rim = new THREE.DirectionalLight(0x7eb8c8, 0.18);
-rim.position.set(12, 9, 16);
+const rim = new THREE.DirectionalLight(0x7a90b0, 0.14);
+rim.position.set(14, 8, 16);
 scene.add(rim);
-const cans = new THREE.DirectionalLight(0xffe4b8, 0.32);
-cans.position.set(-1, 18, 3);
+const cans = new THREE.DirectionalLight(0xffe4b8, 0.26);
+cans.position.set(-1, 16, 2);
 scene.add(cans);
 
 const station = buildStation();
@@ -367,6 +367,11 @@ async function saveShots(): Promise<void> {
   walker.lookAt(WIDE_SHOT.lookAt.x, WIDE_SHOT.lookAt.y, WIDE_SHOT.lookAt.z);
   await new Promise((r) => setTimeout(r, 200));
   await post("/workspace/docs/shots/lot-wide.png", capture(1280, 800));
+  walker.setFov(CANOPY_SHOT.fov);
+  walker.place(CANOPY_SHOT.x, CANOPY_SHOT.z, CANOPY_SHOT.yaw, CANOPY_SHOT.pitch, CANOPY_SHOT.eyeY);
+  walker.lookAt(CANOPY_SHOT.lookAt.x, CANOPY_SHOT.lookAt.y, CANOPY_SHOT.lookAt.z);
+  await new Promise((r) => setTimeout(r, 200));
+  await post("/workspace/docs/shots/canopy-fascia.png", capture(1280, 800));
 }
 
 if (params.has("saveshots")) void saveShots();
