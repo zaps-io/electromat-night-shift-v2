@@ -1,53 +1,72 @@
 export const BAYS = [
-  { id: 1, x: -7.2, z: 4.2 },
-  { id: 2, x: -3.6, z: 4.2 },
-  { id: 3, x: 0.0, z: 4.2 },
-  { id: 4, x: 3.6, z: 4.2 },
-  { id: 5, x: 7.2, z: 4.2 },
-  { id: 6, x: 10.8, z: 4.2 },
+  { id: 1, x: -10.8, z: 4.4 },
+  { id: 2, x: -7.2, z: 4.4 },
+  { id: 3, x: -3.6, z: 4.4 },
+  { id: 4, x: 3.6, z: 4.4 },
+  { id: 5, x: 7.2, z: 4.4 },
+  { id: 6, x: 10.8, z: 4.4 },
 ] as const;
 
-/** Queue hugging the left planter curve, Peck first. */
+/** Queue in the center aisle, Peck first, facing into the lot. */
 export const WAIT_SLOTS = [
-  { x: -9.4, z: -2.6, yaw: 0.48 },
-  { x: -7.6, z: -4.8, yaw: 0.6 },
-  { x: -5.4, z: -7.0, yaw: 0.72 },
-  { x: -3.0, z: -9.0, yaw: 0.84 },
-  { x: -0.4, z: -10.6, yaw: 0.94 },
+  { x: -1.15, z: -3.6, yaw: 0.18 },
+  { x: -0.95, z: -6.4, yaw: 0.12 },
+  { x: -0.75, z: -9.0, yaw: 0.08 },
+  { x: -0.55, z: -11.4, yaw: 0.06 },
+  { x: -0.35, z: -13.6, yaw: 0.04 },
 ] as const;
 
 export const WAIT_ORDER = ["peck", "ng", "kim", "das", "ortiz"] as const;
 
 export const BAY_SIZE = { w: 2.85, d: 5.9 };
-export const KIOSK = { x: 13.6, z: 1.4 };
-/** Glass lounge under the left canopy, facing the approach. */
-export const PAVILION = { x: -12.8, z: 3.8, yaw: -0.18 };
 
-/** Eye-level startNight: canopy soffit, lounge spill, pedestals, queue. */
+/** Pay terminal on the lounge south glass. */
+export const KIOSK = { x: -18.6, z: 1.05 };
+
+/** Modular lounge left of the twin canopies. */
+export const PAVILION = { x: -18.8, z: 3.6, yaw: 0 };
+
+export const CANOPIES = [
+  { x: -7.2, z: 3.55, w: 13.4, d: 13.8, y: 5.18 },
+  { x: 7.2, z: 3.55, w: 13.4, d: 13.8, y: 5.18 },
+] as const;
+
+/** Eye-level: street planters, twin cream canopies, lounge left. */
 export const START_SHOT = {
-  x: -4.6,
-  z: -10.4,
+  x: -6.2,
+  z: -18.6,
   eyeY: 1.56,
-  yaw: 0.2,
-  pitch: 0.1,
-  lookAt: { x: -10.2, y: 2.15, z: 1.4 },
-  fov: 60,
+  yaw: 0.12,
+  pitch: 0.06,
+  lookAt: { x: -4.4, y: 2.55, z: 2.6 },
+  fov: 58,
 } as const;
 
-/** Elevated 3/4 wide still: queue left, canopy span, city in the upper third. */
+/** Elevated 3/4: both canopies, lounge, desert beds, dusk neighbors. */
 export const WIDE_SHOT = {
-  x: -14.6,
-  z: -19.4,
-  eyeY: 10.6,
-  yaw: -0.28,
-  pitch: -0.42,
-  lookAt: { x: 2.8, y: 1.15, z: 5.6 },
-  fov: 48,
+  x: -17.8,
+  z: -21.2,
+  eyeY: 11.4,
+  yaw: -0.2,
+  pitch: -0.46,
+  lookAt: { x: 1.2, y: 1.35, z: 4.2 },
+  fov: 46,
 } as const;
 
 export const REAR_SHOT = {
-  x: -5.4,
-  z: -1.6,
-  lookAt: { x: -4.2, y: 1.2, z: 2.85 },
+  x: -8.6,
+  z: -1.35,
+  lookAt: { x: -7.2, y: 1.2, z: 2.95 },
   fov: 58,
+} as const;
+
+/** Close fascia: official red Zaps on the left canopy. */
+export const CANOPY_SHOT = {
+  x: -7.2,
+  z: -11.4,
+  eyeY: 2.35,
+  yaw: 0,
+  pitch: 0.22,
+  lookAt: { x: -7.2, y: 5.22, z: -3.5 },
+  fov: 40,
 } as const;
