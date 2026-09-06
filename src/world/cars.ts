@@ -35,11 +35,11 @@ function paintMaterial(color: THREE.Color): THREE.MeshPhysicalMaterial {
   return new THREE.MeshPhysicalMaterial({
     name: "Paint",
     color,
-    metalness: 0.28,
-    roughness: 0.12,
+    metalness: 0.24,
+    roughness: 0.14,
     clearcoat: 1,
-    clearcoatRoughness: 0.035,
-    envMapIntensity: 2.65,
+    clearcoatRoughness: 0.04,
+    envMapIntensity: 2.15,
   });
 }
 
