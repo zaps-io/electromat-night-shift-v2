@@ -271,22 +271,9 @@ function makeCrossover(sedan: THREE.Group): THREE.Group {
   return wrap;
 }
 
-function hasWideLed(root: THREE.Object3D): boolean {
-  let found = false;
-  root.traverse((o) => {
-    const mesh = o as THREE.Mesh;
-    if (!mesh.isMesh) return;
-    const n = mesh.name.toLowerCase();
-    if (!isTailName(n) && !n.includes("rear") && !n.includes("light_night")) return;
-    const b = new THREE.Box3().setFromObject(mesh);
-    if (b.max.z - b.min.z > 1.05) found = true;
-  });
-  return found;
-}
-
 function addEvCues(root: THREE.Group): { x: number; y: number; z: number } {
   const box = new THREE.Box3().setFromObject(root);
-  if (!hasWideLed(root)) {
+  {
     let yBar = 0.92;
     root.traverse((o) => {
       if (/BodyTaillights$|light_night|breaklight/i.test(o.name)) {
@@ -300,7 +287,7 @@ function addEvCues(root: THREE.Group): { x: number; y: number; z: number } {
     const pos: number[] = [];
     const idx: number[] = [];
     const segs = 36;
-    const halfH = 0.012;
+    const halfH = 0.014;
     for (let i = 0; i < segs; i++) {
       const t0 = i / segs;
       const t1 = (i + 1) / segs;
@@ -320,11 +307,9 @@ function addEvCues(root: THREE.Group): { x: number; y: number; z: number } {
     geo.computeVertexNormals();
     const bar = new THREE.Mesh(
       geo,
-      new THREE.MeshStandardMaterial({
+      new THREE.MeshBasicMaterial({
         name: "LightBar",
-        color: 0xe63225,
-        emissive: 0xe63225,
-        emissiveIntensity: 3.2,
+        color: 0xff2a22,
         toneMapped: false,
       }),
     );

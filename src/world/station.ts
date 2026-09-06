@@ -59,7 +59,7 @@ function asphaltMaps(): {
   r.fillRect(0, 0, size, size);
   h.fillStyle = "#787878";
   h.fillRect(0, 0, size, size);
-  a.fillStyle = "#f2f2f2";
+  a.fillStyle = "#fbfbfb";
   a.fillRect(0, 0, size, size);
   for (let i = 0; i < 22000; i++) {
     const x = Math.random() * size;
@@ -74,7 +74,7 @@ function asphaltMaps(): {
     h.fillStyle = `rgb(${hv},${hv},${hv})`;
     h.fillRect(x, y, 2, 2);
   }
-  for (let i = 0; i < 90; i++) {
+  for (let i = 0; i < 48; i++) {
     const x = Math.random() * size;
     const y = Math.random() * size;
     const rw = 32 + Math.random() * 110;
@@ -96,9 +96,9 @@ function asphaltMaps(): {
     c.ellipse(x, y, rw, rh, rot, 0, Math.PI * 2);
     c.fill();
     const ag = a.createRadialGradient(x, y, 2, x, y, rw);
-    ag.addColorStop(0, "rgb(58,58,58)");
-    ag.addColorStop(0.45, "rgb(92,92,92)");
-    ag.addColorStop(1, "rgba(242,242,242,0)");
+    ag.addColorStop(0, "rgb(118,118,118)");
+    ag.addColorStop(0.4, "rgb(168,168,168)");
+    ag.addColorStop(1, "rgba(251,251,251,0)");
     a.fillStyle = ag;
     a.beginPath();
     a.ellipse(x, y, rw, rh, rot, 0, Math.PI * 2);
@@ -145,39 +145,45 @@ function makeAsphalt(root: THREE.Group): THREE.Mesh {
     new THREE.MeshPhysicalMaterial({
       color: 0x1c1e22,
       map: maps.map,
-      roughness: 0.22,
+      roughness: 0.3,
       roughnessMap: maps.rough,
-      metalness: 0.06,
+      metalness: 0.05,
       normalMap: maps.normal,
-      normalScale: new THREE.Vector2(0.22, 0.22),
-      envMapIntensity: 1.65,
-      clearcoat: 0.78,
-      clearcoatRoughness: 0.12,
-      transparent: true,
-      opacity: 1,
-      alphaMap: maps.alpha,
-      depthWrite: true,
+      normalScale: new THREE.Vector2(0.2, 0.2),
+      envMapIntensity: 1.5,
+      clearcoat: 0.58,
+      clearcoatRoughness: 0.16,
     }),
   );
   ground.rotation.x = -Math.PI / 2;
-  ground.position.y = 0.01;
+  ground.position.y = 0.004;
   ground.receiveShadow = true;
   root.add(ground);
   return ground;
 }
 
 export function addLotMirror(root: THREE.Group, renderer: THREE.WebGLRenderer): void {
-  const px = Math.min(768, Math.max(512, renderer.domElement.width || 768));
-  const mirror = new Reflector(new THREE.PlaneGeometry(40, 34), {
-    clipBias: 0.03,
-    textureWidth: px,
-    textureHeight: px,
-    color: new THREE.Color(0x6a7078),
-  });
-  mirror.rotation.x = -Math.PI / 2;
-  mirror.position.y = 0.001;
-  mirror.name = "lotMirror";
-  root.add(mirror);
+  const px = Math.min(512, Math.max(384, Math.floor((renderer.domElement.width || 512) * 0.45)));
+  const color = new THREE.Color(0x3a4048);
+  const puddles: Array<[number, number, number, number]> = [
+    [1.1, -5.8, 4.6, 2.4],
+    [-3.2, -3.6, 3.4, 1.8],
+    [0.4, -1.4, 3.8, 1.6],
+    [-5.4, 1.2, 2.8, 1.4],
+    [4.2, -4.2, 2.6, 1.5],
+  ];
+  for (const [x, z, w, d] of puddles) {
+    const mirror = new Reflector(new THREE.PlaneGeometry(w, d), {
+      clipBias: 0.035,
+      textureWidth: px,
+      textureHeight: px,
+      color,
+    });
+    mirror.rotation.x = -Math.PI / 2;
+    mirror.position.set(x, 0.012, z);
+    mirror.name = "lotPuddle";
+    root.add(mirror);
+  }
 }
 
 function addLaneMarks(root: THREE.Group): void {
@@ -253,7 +259,7 @@ function addPedestal(root: THREE.Group, x: number, z: number): void {
       map: ui,
       color: 0xd8ffff,
       emissive: 0x00e8ff,
-      emissiveIntensity: 3.4,
+      emissiveIntensity: 2.4,
       emissiveMap: ui,
       toneMapped: false,
     }),
