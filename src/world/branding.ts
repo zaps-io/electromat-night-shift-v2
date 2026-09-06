@@ -1,7 +1,8 @@
 import * as THREE from "three";
 import { C } from "../brand";
+import { applyZeusLogos } from "./zeus";
 
-function brandTexture(file: string): Promise<THREE.CanvasTexture> {
+export function loadBrandTexture(file: string): Promise<THREE.CanvasTexture> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
@@ -22,61 +23,94 @@ function brandTexture(file: string): Promise<THREE.CanvasTexture> {
   });
 }
 
-function signPlate(w: number, h: number, tex: THREE.Texture, glow = false): THREE.Mesh {
-  const mat = new THREE.MeshBasicMaterial({
-    map: tex,
-    transparent: true,
-    toneMapped: false,
-    side: THREE.DoubleSide,
-    depthWrite: false,
-  });
-  if (glow) {
-    mat.color = new THREE.Color(0xffffff);
-  }
-  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
+function signPlate(w: number, h: number, tex: THREE.Texture): THREE.Mesh {
+  const mesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(w, h),
+    new THREE.MeshBasicMaterial({
+      map: tex,
+      transparent: true,
+      toneMapped: false,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    }),
+  );
   mesh.castShadow = false;
   mesh.raycast = () => {};
   return mesh;
 }
 
-/** Official SVG wordmarks on canopy fascia + approach pylon. Red = identity. */
+function amberBoard(): THREE.CanvasTexture {
+  const c = document.createElement("canvas");
+  c.width = 256;
+  c.height = 160;
+  const ctx = c.getContext("2d")!;
+  ctx.fillStyle = "#1E1E24";
+  ctx.fillRect(0, 0, 256, 160);
+  ctx.fillStyle = "#E89A2E";
+  ctx.globalAlpha = 0.22;
+  for (let y = 8; y < 152; y += 7) {
+    for (let x = 8; x < 248; x += 7) ctx.fillRect(x, y, 4, 4);
+  }
+  ctx.globalAlpha = 1;
+  ctx.font = "800 28px 'Arial Narrow', Arial, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText("0.42 / kWh", 128, 58);
+  ctx.font = "700 18px 'Arial Narrow', Arial, sans-serif";
+  ctx.fillText("BAYS OPEN  4", 128, 96);
+  ctx.fillText("NIGHT SHIFT", 128, 128);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+/** Official red wordmark on cream pylon + amber status. Logos on Zeus faces. */
 export async function addBrandSignage(root: THREE.Group): Promise<void> {
-  const [red, cream] = await Promise.all([
-    brandTexture("wordmark-red.svg"),
-    brandTexture("wordmark-cream-vector.svg"),
+  const [red] = await Promise.all([
+    loadBrandTexture("wordmark-red.svg"),
   ]);
 
-  const fascia = new THREE.Mesh(
-    new THREE.BoxGeometry(6.4, 1.15, 0.08),
-    new THREE.MeshStandardMaterial({ color: C.charcoal, roughness: 0.55, metalness: 0.08 }),
-  );
-  fascia.position.set(0, 5.38, -3.95);
-  root.add(fascia);
-  const canopyMark = signPlate(5.6, 1.86, cream);
-  canopyMark.position.set(0, 5.4, -4.01);
+  const canopyMark = signPlate(5.2, 1.72, red);
+  canopyMark.position.set(0, 5.48, -4.08);
   canopyMark.rotation.y = Math.PI;
   root.add(canopyMark);
 
-  const stripe = new THREE.Mesh(
-    new THREE.BoxGeometry(6.4, 0.035, 0.09),
+  const g = new THREE.Group();
+  g.position.set(-15.4, 0, -12.2);
+  g.rotation.y = 0.46;
+  const creamBody = new THREE.MeshStandardMaterial({
+    color: C.cream,
+    roughness: 0.48,
+    metalness: 0.06,
+  });
+  const post = new THREE.Mesh(new THREE.BoxGeometry(0.28, 3.15, 0.86), creamBody);
+  post.position.y = 1.58;
+  const cap = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.08, 0.9), creamBody);
+  cap.position.y = 3.18;
+  const redBand = new THREE.Mesh(
+    new THREE.BoxGeometry(0.3, 0.04, 0.88),
     new THREE.MeshBasicMaterial({ color: C.red, toneMapped: false }),
   );
-  stripe.position.set(0, 4.78, -3.95);
-  root.add(stripe);
-
-  const pylon = new THREE.Mesh(
-    new THREE.BoxGeometry(0.22, 2.35, 0.72),
-    new THREE.MeshStandardMaterial({ color: C.charcoal, roughness: 0.5, metalness: 0.1 }),
+  redBand.position.y = 2.72;
+  const mark = signPlate(0.72, 0.24, red);
+  mark.position.set(0.155, 2.42, 0);
+  mark.rotation.y = Math.PI / 2;
+  const board = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.62, 0.38),
+    new THREE.MeshStandardMaterial({
+      map: amberBoard(),
+      emissive: C.amber,
+      emissiveIntensity: 0.55,
+      toneMapped: false,
+    }),
   );
-  pylon.position.set(-15.2, 1.18, -11.4);
-  pylon.rotation.y = 0.42;
-  root.add(pylon);
-  const pylonMark = signPlate(1.55, 0.52, red);
-  pylonMark.position.set(-15.05, 1.85, -11.18);
-  pylonMark.rotation.y = 0.42;
-  root.add(pylonMark);
+  board.position.set(0.155, 1.55, 0);
+  board.rotation.y = Math.PI / 2;
+  g.add(post, cap, redBand, mark, board);
+  root.add(g);
 
-  const kioskMark = signPlate(0.58, 0.2, cream);
+  const kioskMark = signPlate(0.58, 0.2, red);
   kioskMark.position.set(13.6, 2.02, 1.14);
   root.add(kioskMark);
+
+  applyZeusLogos(root, red);
 }

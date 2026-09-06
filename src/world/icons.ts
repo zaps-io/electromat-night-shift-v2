@@ -22,12 +22,12 @@ export function makeAttentionIcon(): THREE.Sprite {
   const ctx = c.getContext("2d")!;
   ctx.clearRect(0, 0, 256, 256);
   const glow = ctx.createRadialGradient(128, 128, 28, 128, 128, 128);
-  glow.addColorStop(0, "rgba(255,168,48,0.72)");
-  glow.addColorStop(0.45, "rgba(232,154,46,0.22)");
+  glow.addColorStop(0, "rgba(232,154,46,0.7)");
+  glow.addColorStop(0.45, "rgba(232,154,46,0.2)");
   glow.addColorStop(1, "rgba(232,154,46,0)");
   ctx.fillStyle = glow;
   ctx.fillRect(0, 0, 256, 256);
-  ctx.fillStyle = "#F0A030";
+  ctx.fillStyle = "#E89A2E";
   ctx.beginPath();
   ctx.arc(128, 128, 48, 0, Math.PI * 2);
   ctx.fill();
