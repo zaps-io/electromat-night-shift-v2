@@ -206,9 +206,9 @@ function addEvCues(root: THREE.Group): { x: number; y: number; z: number } {
   root.add(bar);
 
   const inlet = {
-    x: THREE.MathUtils.lerp(box.min.x, box.max.x, 0.62),
-    y: THREE.MathUtils.lerp(box.min.y, box.max.y, 0.42),
-    z: box.max.z - 0.04,
+    x: box.min.x + 0.14,
+    y: THREE.MathUtils.lerp(box.min.y, box.max.y, 0.46),
+    z: box.max.z - 0.03,
   };
   const port = new THREE.Mesh(
     new THREE.CircleGeometry(0.055, 20),
@@ -316,22 +316,20 @@ function tintPaint(root: THREE.Object3D, color: number): void {
 function makeCable(inlet: { x: number; y: number; z: number }): THREE.Mesh {
   const geo = new THREE.TubeGeometry(
     new THREE.CatmullRomCurve3([
-      new THREE.Vector3(2.35, 1.05, 0.12),
-      new THREE.Vector3(1.55, 1.32, 0.35),
-      new THREE.Vector3(0.85, 1.05, 0.7),
+      new THREE.Vector3(-2.08, 0.9, 0.92),
+      new THREE.Vector3(-1.72, 1.18, 0.78),
+      new THREE.Vector3(-0.55, 1.02, 0.55),
       new THREE.Vector3(inlet.x, inlet.y, inlet.z),
     ]),
-    20,
-    0.032,
-    8,
+    28,
+    0.046,
+    10,
     false,
   );
   return new THREE.Mesh(
     geo,
-    new THREE.MeshStandardMaterial({
+    new THREE.MeshBasicMaterial({
       color: 0x00d4f5,
-      emissive: 0x00d4f5,
-      emissiveIntensity: 1.4,
       toneMapped: false,
     }),
   );
@@ -360,11 +358,11 @@ export function spawnCar(guest: Guest): CarView {
   root.add(driver);
 
   const attention = makeAttentionIcon();
-  attention.position.set(0, kind === "suv" ? 2.15 : 1.92, 0);
+  attention.position.set(0, kind === "suv" ? 2.28 : 2.08, 0);
   root.add(attention);
 
   const battery = makeBatteryIcon();
-  battery.position.set(0.15, kind === "suv" ? 2.0 : 1.78, 0.1);
+  battery.position.set(0.1, kind === "suv" ? 2.18 : 1.98, 0.08);
   battery.visible = false;
   root.add(battery);
 
@@ -392,7 +390,7 @@ export function placeGuest(view: CarView, guest: Guest, now: number): void {
   view.attention.visible = needs;
   view.battery.visible = onCharge;
   view.cable.visible = guest.plugged && !guest.served;
-  view.attention.position.y = (guest.hull === "suv" ? 2.15 : 1.92) + Math.sin(now * 3) * 0.05;
+  view.attention.position.y = (guest.hull === "suv" ? 2.28 : 2.08) + Math.sin(now * 3) * 0.05;
 }
 
 export function syncCars(map: Map<string, CarView>, scene: THREE.Scene, state: GameState, now: number): void {
