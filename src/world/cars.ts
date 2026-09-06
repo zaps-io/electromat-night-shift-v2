@@ -8,6 +8,7 @@ import type { GameState, Guest, HullKind } from "../game/state";
 import { arrivedGuests } from "../game/shift";
 import { BAYS, WAIT_ORDER, WAIT_SLOTS } from "./layout";
 import { makeAttentionIcon, makeBatteryIcon } from "./icons";
+import { rubber } from "./tex";
 
 /** Live guests that keep the full clearcoat Taycan. Everyone else is a cheap LOD clone. */
 export const FULL_PBR_IDS = new Set(["hale", "ruiz", "vora", "chen", "peck"]);
@@ -40,11 +41,11 @@ function paintMaterial(color: THREE.Color): THREE.MeshPhysicalMaterial {
   return new THREE.MeshPhysicalMaterial({
     name: "Paint",
     color,
-    metalness: 0.2,
-    roughness: 0.2,
-    clearcoat: 0.46,
-    clearcoatRoughness: 0.16,
-    envMapIntensity: 0.78,
+    metalness: 0.22,
+    roughness: 0.14,
+    clearcoat: 0.72,
+    clearcoatRoughness: 0.1,
+    envMapIntensity: 0.95,
   });
 }
 
@@ -142,6 +143,19 @@ function dressSedan(root: THREE.Object3D): void {
       const em = m.emissive?.getHex?.() ?? 0;
       const metal = m.metalness ?? 0;
       const rough = m.roughness ?? 0.5;
+      if (mn.includes("tire") || mn.includes("wheel") || mn.includes("rubber")) {
+        const tire = new THREE.MeshStandardMaterial({
+          name: "Rubber",
+          color: 0x1a1a1e,
+          map: rubber(),
+          roughness: 0.94,
+          metalness: 0.02,
+        });
+        mesh.material = Array.isArray(mesh.material)
+          ? mesh.material.map((old) => (old === m ? tire : old))
+          : tire;
+        return;
+      }
       if (isPaintName(mn) || (metal > 0.35 && metal < 0.62 && rough < 0.18 && hex < 0x222222)) {
         const paint = paintMaterial(m.color?.clone?.() ?? new THREE.Color(0x1e1e24));
         mesh.material = Array.isArray(mesh.material)
@@ -357,7 +371,7 @@ function partsToGroup(parts: BuiltPart[]): THREE.Group {
     paint: paintMaterial(new THREE.Color(0xf4f1ea)),
     glass: new THREE.MeshPhysicalMaterial({ name: "Glass", color: 0x151c22, metalness: 0.15, roughness: 0.04, transparent: true, opacity: 0.28, transmission: 0.7 }),
     chrome: new THREE.MeshPhysicalMaterial({ name: "Chrome", color: 0xc5c9ce, metalness: 0.9, roughness: 0.16 }),
-    rubber: new THREE.MeshStandardMaterial({ name: "Rubber", color: 0x111114, roughness: 0.92 }),
+    rubber: new THREE.MeshStandardMaterial({ name: "Rubber", color: 0x1a1a1e, map: rubber(), roughness: 0.94, metalness: 0.02 }),
     light: new THREE.MeshStandardMaterial({ name: "LightBar", color: 0xe63225, emissive: 0xe63225, emissiveIntensity: 2.6, toneMapped: false }),
     interior: new THREE.MeshStandardMaterial({ name: "Interior", color: 0x141418, roughness: 0.7 }),
     port: new THREE.MeshStandardMaterial({ name: "ChargePort", color: 0x00d4f5, emissive: 0x00d4f5, emissiveIntensity: 2.2, toneMapped: false }),
@@ -441,9 +455,10 @@ const lodGlass = new THREE.MeshStandardMaterial({
 });
 const lodDark = new THREE.MeshStandardMaterial({
   name: "LodDark",
-  color: 0x121316,
-  roughness: 0.88,
-  metalness: 0.12,
+  color: 0x161618,
+  map: rubber(),
+  roughness: 0.92,
+  metalness: 0.04,
 });
 const lodLamp = new THREE.MeshStandardMaterial({
   name: "LodLamp",
@@ -467,9 +482,9 @@ function lodPaint(color: number): THREE.MeshStandardMaterial {
     mat = new THREE.MeshStandardMaterial({
       name: "LodPaint",
       color,
-      roughness: 0.24,
-      metalness: 0.42,
-      envMapIntensity: 1.25,
+      roughness: 0.2,
+      metalness: 0.38,
+      envMapIntensity: 1.35,
     });
     lodPaintMats.set(color, mat);
   }

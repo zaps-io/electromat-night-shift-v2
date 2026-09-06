@@ -33,10 +33,10 @@ export function createRenderer(canvas: HTMLCanvasElement): THREE.WebGLRenderer {
 export function createNightProbe(renderer: THREE.WebGLRenderer): THREE.Texture {
   const pmrem = new THREE.PMREMGenerator(renderer);
   const env = new THREE.Scene();
-  env.add(new THREE.HemisphereLight(0xd8d0c8, 0x101018, 0.42));
+  env.add(new THREE.HemisphereLight(0xffd4a8, 0x12141c, 0.48));
   const sky = new THREE.Mesh(
     new THREE.SphereGeometry(40, 16, 12),
-    new THREE.MeshBasicMaterial({ color: 0x1c1820, side: THREE.BackSide }),
+    new THREE.MeshBasicMaterial({ color: 0x2a2430, side: THREE.BackSide }),
   );
   env.add(sky);
   for (const [x, y, z, color, r] of [
