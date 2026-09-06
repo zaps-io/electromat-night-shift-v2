@@ -1,15 +1,65 @@
 import * as THREE from "three";
+import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { C } from "../brand";
 
-function alum(): THREE.MeshStandardMaterial {
-  return new THREE.MeshStandardMaterial({
+function brushedMaps(): { map: THREE.CanvasTexture; rough: THREE.CanvasTexture; normal: THREE.CanvasTexture } {
+  const w = 256;
+  const h = 512;
+  const color = document.createElement("canvas");
+  const rough = document.createElement("canvas");
+  const height = document.createElement("canvas");
+  color.width = rough.width = height.width = w;
+  color.height = rough.height = height.height = h;
+  const c = color.getContext("2d")!;
+  const r = rough.getContext("2d")!;
+  const n = height.getContext("2d")!;
+  c.fillStyle = "#B8BCC0";
+  c.fillRect(0, 0, w, h);
+  r.fillStyle = "#8a8a8a";
+  r.fillRect(0, 0, w, h);
+  n.fillStyle = "#808080";
+  n.fillRect(0, 0, w, h);
+  for (let x = 0; x < w; x++) {
+    const grain = (Math.sin(x * 0.55) + Math.sin(x * 1.7) * 0.45 + Math.random() * 0.35) * 10;
+    const v = 176 + grain;
+    c.fillStyle = `rgb(${v},${v + 2},${v + 4})`;
+    c.fillRect(x, 0, 1, h);
+    const rv = 110 + grain * 1.8;
+    r.fillStyle = `rgb(${rv},${rv},${rv})`;
+    r.fillRect(x, 0, 1, h);
+    const hv = 128 + grain * 1.1;
+    n.fillStyle = `rgb(${hv},${hv},${hv})`;
+    n.fillRect(x, 0, 1, h);
+  }
+  const map = new THREE.CanvasTexture(color);
+  map.colorSpace = THREE.SRGBColorSpace;
+  map.wrapS = map.wrapT = THREE.RepeatWrapping;
+  const roughTex = new THREE.CanvasTexture(rough);
+  roughTex.wrapS = roughTex.wrapT = THREE.RepeatWrapping;
+  const normal = new THREE.CanvasTexture(height);
+  normal.wrapS = normal.wrapT = THREE.RepeatWrapping;
+  return { map, rough: roughTex, normal };
+}
+
+const brush = brushedMaps();
+
+function alum(): THREE.MeshPhysicalMaterial {
+  return new THREE.MeshPhysicalMaterial({
     name: "ZeusAlum",
-    color: 0xc8ccd2,
-    metalness: 0.18,
-    roughness: 0.28,
-    emissive: 0xb8bcc0,
-    emissiveIntensity: 0.82,
-    envMapIntensity: 0.28,
+    color: C.chrome,
+    map: brush.map,
+    roughnessMap: brush.rough,
+    metalness: 0.82,
+    roughness: 0.36,
+    clearcoat: 0.42,
+    clearcoatRoughness: 0.3,
+    anisotropy: 0.78,
+    anisotropyRotation: Math.PI / 2,
+    bumpMap: brush.normal,
+    bumpScale: 0.045,
+    envMapIntensity: 1.05,
+    emissive: 0x000000,
+    emissiveIntensity: 0,
   });
 }
 
@@ -33,49 +83,51 @@ function zapsWord(): THREE.CanvasTexture {
 function charcoal(): THREE.MeshStandardMaterial {
   return new THREE.MeshStandardMaterial({
     color: C.charcoal,
-    metalness: 0.12,
-    roughness: 0.62,
-    envMapIntensity: 0.2,
+    metalness: 0.18,
+    roughness: 0.7,
+    envMapIntensity: 0.15,
   });
 }
 
 function amberMatrix(): THREE.CanvasTexture {
   const c = document.createElement("canvas");
-  c.width = 96;
-  c.height = 128;
+  c.width = 160;
+  c.height = 220;
   const ctx = c.getContext("2d")!;
-  ctx.fillStyle = "#1E1E24";
-  ctx.fillRect(0, 0, 96, 128);
+  ctx.fillStyle = "#12141A";
+  ctx.fillRect(0, 0, 160, 220);
   ctx.fillStyle = "#E89A2E";
   const cells = [
-    [2, 2, 1, 1, 1, 2],
-    [2, 1, 0, 0, 1, 2],
-    [2, 1, 1, 1, 1, 2],
-    [2, 1, 0, 0, 1, 2],
-    [2, 1, 0, 0, 1, 2],
-    [2, 2, 2, 2, 2, 2],
-    [1, 1, 1, 1, 0, 2],
-    [1, 0, 0, 0, 1, 2],
-    [1, 1, 1, 1, 0, 2],
-    [1, 0, 0, 1, 0, 2],
-    [1, 0, 0, 0, 1, 2],
+    [0, 1, 1, 1, 0, 0, 1, 1, 1, 0],
+    [1, 0, 0, 0, 1, 1, 0, 0, 0, 1],
+    [0, 0, 0, 1, 0, 0, 0, 1, 1, 0],
+    [0, 0, 1, 0, 0, 0, 0, 0, 0, 1],
+    [0, 1, 1, 1, 1, 0, 1, 1, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [1, 1, 1, 1, 1, 1, 1, 1, 0, 0],
+    [1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+    [1, 1, 1, 1, 0, 0, 0, 0, 0, 0],
+    [1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
+    [1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
   ];
   for (let y = 0; y < cells.length; y++) {
     for (let x = 0; x < cells[y].length; x++) {
-      if (!cells[y][x]) continue;
-      ctx.globalAlpha = cells[y][x] === 1 ? 0.95 : 0.18;
-      ctx.fillRect(10 + x * 12, 8 + y * 10, 9, 7);
+      ctx.globalAlpha = cells[y][x] ? 1 : 0.12;
+      ctx.fillRect(12 + x * 14, 14 + y * 15, 11, 12);
     }
   }
   ctx.globalAlpha = 1;
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
+  tex.needsUpdate = true;
   return tex;
 }
 
 const matrix = amberMatrix();
 
-/** Aerospace ground-support Zeus pedestal. Replaces charcoal toy stubs. */
+/** Aerospace ground-support Zeus pedestal. Brushed chrome, not emissive plastic. */
 export function addZeusCharger(root: THREE.Group, x: number, z: number): void {
   const g = new THREE.Group();
   g.position.set(x - 1.18, 0, z - 2.25);
@@ -92,25 +144,21 @@ export function addZeusCharger(root: THREE.Group, x: number, z: number): void {
   const word = zapsWord();
   const plinth = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.14, 0.46), base);
   plinth.position.y = 0.07;
-  const body = new THREE.Mesh(new THREE.BoxGeometry(0.52, 2.02, 0.38), silver);
+  const body = new THREE.Mesh(new RoundedBoxGeometry(0.52, 2.02, 0.38, 3, 0.03), silver);
   body.position.y = 1.14;
   body.castShadow = true;
-  const cap = new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.07, 0.4), silver);
+  const cap = new THREE.Mesh(new RoundedBoxGeometry(0.54, 0.07, 0.4, 2, 0.02), silver);
   cap.position.y = 2.18;
   const cyan = new THREE.MeshBasicMaterial({ color: 0x006e80, toneMapped: true });
-  const screenMat = new THREE.MeshStandardMaterial({
+  const screenMat = new THREE.MeshBasicMaterial({
     map: matrix,
     color: 0xffffff,
-    emissive: C.amber,
-    emissiveIntensity: 1.7,
-    emissiveMap: matrix,
     toneMapped: false,
   });
-  const fill = new THREE.PointLight(0xf6f3ec, 2.8, 3.4, 1.4);
-  fill.position.set(0, 1.45, 0);
-  const approach = new THREE.PointLight(0xf2eee8, 1.9, 2.4, 1.5);
-  approach.position.set(0, 1.55, -0.62);
-  g.add(fill, approach);
+  const skim = new THREE.SpotLight(0xe6eef6, 1.15, 3.2, 0.55, 0.65, 1.4);
+  skim.position.set(0.18, 2.05, -0.7);
+  skim.target.position.set(0, 1.2, 0.05);
+  g.add(skim, skim.target);
   const wordMat = new THREE.MeshBasicMaterial({
     map: word,
     transparent: true,
@@ -132,17 +180,22 @@ export function addZeusCharger(root: THREE.Group, x: number, z: number): void {
       g.add(bar);
     }
     const ident = new THREE.Mesh(
-      new THREE.BoxGeometry(0.32, 0.09, 0.012),
+      new THREE.BoxGeometry(0.34, 0.08, 0.014),
       new THREE.MeshBasicMaterial({ color: C.red, toneMapped: false }),
     );
-    ident.position.set(0, 1.96, 0.228 * sign);
-    const logoPad = new THREE.Mesh(new THREE.PlaneGeometry(0.44, 0.16), wordMat);
-    logoPad.position.set(0, 1.84, 0.236 * sign);
+    ident.position.set(0, 1.97, 0.23 * sign);
+    const logoPad = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 0.15), wordMat);
+    logoPad.position.set(0, 1.84, 0.24 * sign);
     logoPad.rotation.y = sign < 0 ? 0 : Math.PI;
-    const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 0.36), screenMat);
-    screen.position.set(0, 1.5, 0.232 * sign);
+    const bezel = new THREE.Mesh(
+      new THREE.BoxGeometry(0.34, 0.5, 0.012),
+      new THREE.MeshBasicMaterial({ color: 0x0c0e12, toneMapped: true }),
+    );
+    bezel.position.set(0, 1.42, 0.226 * sign);
+    const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 0.46), screenMat);
+    screen.position.set(0, 1.42, 0.238 * sign);
     screen.rotation.y = sign < 0 ? 0 : Math.PI;
-    g.add(ident, logoPad, screen);
+    g.add(ident, logoPad, bezel, screen);
   };
   face(-1);
   face(1);

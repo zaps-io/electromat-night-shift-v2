@@ -48,6 +48,6 @@ export const WIDE_SHOT = {
 export const REAR_SHOT = {
   x: -5.4,
   z: -1.6,
-  lookAt: { x: -3.6, y: 0.72, z: 4.2 },
+  lookAt: { x: -4.15, y: 1.18, z: 2.9 },
   fov: 58,
 } as const;
