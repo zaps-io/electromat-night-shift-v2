@@ -107,10 +107,10 @@ function dressConcept(root: THREE.Object3D): void {
         m.normalMap = null;
         if (m.normalScale) m.normalScale.set(0, 0);
         m.clearcoat = 1;
-        m.clearcoatRoughness = 0.022;
-        m.roughness = 0.11;
-        m.metalness = 0.06;
-        m.envMapIntensity = 2.2;
+        m.clearcoatRoughness = 0.01;
+        m.roughness = 0.055;
+        m.metalness = 0.08;
+        m.envMapIntensity = 2.75;
       } else if (mn.includes("glass") || label.includes("window") || label.includes("windshield")) {
         m.roughness = 0.02;
         m.envMapIntensity = 1.9;
@@ -314,25 +314,22 @@ function tintPaint(root: THREE.Object3D, color: number): void {
 }
 
 function makeCable(inlet: { x: number; y: number; z: number }): THREE.Mesh {
-  const geo = new THREE.TubeGeometry(
-    new THREE.CatmullRomCurve3([
-      new THREE.Vector3(-2.08, 0.9, 0.92),
-      new THREE.Vector3(-1.72, 1.18, 0.78),
-      new THREE.Vector3(-0.55, 1.02, 0.55),
-      new THREE.Vector3(inlet.x, inlet.y, inlet.z),
-    ]),
-    28,
-    0.046,
-    10,
-    false,
+  const curve = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(-2.08, 0.9, 0.92),
+    new THREE.Vector3(-1.72, 1.18, 0.78),
+    new THREE.Vector3(-0.55, 1.02, 0.55),
+    new THREE.Vector3(inlet.x, inlet.y, inlet.z),
+  ]);
+  const mesh = new THREE.Mesh(
+    new THREE.TubeGeometry(curve, 28, 0.052, 10, false),
+    new THREE.MeshBasicMaterial({ color: 0x5ef4ff, toneMapped: false }),
   );
-  return new THREE.Mesh(
-    geo,
-    new THREE.MeshBasicMaterial({
-      color: 0x00d4f5,
-      toneMapped: false,
-    }),
+  const halo = new THREE.Mesh(
+    new THREE.TubeGeometry(curve, 28, 0.095, 10, false),
+    new THREE.MeshBasicMaterial({ color: 0x00d4f5, transparent: true, opacity: 0.32, toneMapped: false, depthWrite: false }),
   );
+  mesh.add(halo);
+  return mesh;
 }
 
 export function spawnCar(guest: Guest): CarView {

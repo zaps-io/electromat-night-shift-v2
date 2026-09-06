@@ -222,8 +222,8 @@ function screenTexture(): THREE.CanvasTexture {
   ctx.fillStyle = "#042028";
   ctx.fillRect(0, 0, 128, 256);
   const glow = ctx.createLinearGradient(0, 0, 0, 256);
-  glow.addColorStop(0, "#00e8ff");
-  glow.addColorStop(1, "#007aa0");
+  glow.addColorStop(0, "#8cffff");
+  glow.addColorStop(1, "#00d4f5");
   ctx.fillStyle = glow;
   ctx.fillRect(10, 10, 108, 236);
   ctx.fillStyle = "rgba(8,20,28,0.55)";
@@ -247,12 +247,12 @@ function addPedestal(root: THREE.Group, x: number, z: number): void {
   root.add(box(0.42, 0.05, 0.32, cream, px, 2.14, pz));
   const ui = screenTexture();
   const screen = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.28, 0.58),
+    new THREE.PlaneGeometry(0.3, 0.62),
     new THREE.MeshStandardMaterial({
       map: ui,
-      color: 0x7fefff,
-      emissive: 0x00d4f5,
-      emissiveIntensity: 1.85,
+      color: 0xb8ffff,
+      emissive: 0x00e8ff,
+      emissiveIntensity: 2.8,
       emissiveMap: ui,
       toneMapped: false,
     }),
@@ -287,16 +287,16 @@ function addCanopy(root: THREE.Group): void {
     emissiveIntensity: 2.55,
     toneMapped: false,
   });
-  const cyanBloom = new THREE.MeshBasicMaterial({ color: 0x00d4f5, transparent: true, opacity: 0.2 });
+  const cyanBloom = new THREE.MeshBasicMaterial({ color: 0x00d4f5, transparent: true, opacity: 0.3 });
   const edges: Array<[number, number, number, number, number, number]> = [
-    [24.8, 0.08, 0.08, 0, 5.08, 9.72],
-    [24.8, 0.08, 0.08, 0, 5.08, -3.52],
-    [0.08, 0.08, 13.3, 12.38, 5.08, 3.1],
-    [0.08, 0.08, 13.3, -12.38, 5.08, 3.1],
+    [24.8, 0.1, 0.1, 0, 5.1, 9.72],
+    [24.8, 0.12, 0.12, 0, 5.1, -3.52],
+    [0.1, 0.1, 13.3, 12.38, 5.1, 3.1],
+    [0.1, 0.1, 13.3, -12.38, 5.1, 3.1],
   ];
   for (const [w, h, d, x, y, z] of edges) {
     root.add(box(w, h, d, cyan, x, y, z));
-    root.add(box(w + 0.16, h + 0.18, d + 0.16, cyanBloom, x, y, z));
+    root.add(box(w + 0.22, h + 0.26, d + 0.22, cyanBloom, x, y, z));
   }
 
   const innerLed = new THREE.MeshStandardMaterial({
@@ -308,10 +308,10 @@ function addCanopy(root: THREE.Group): void {
   root.add(box(23.6, 0.03, 0.05, innerLed, 0, 5.06, 9.15));
   root.add(box(23.6, 0.03, 0.05, innerLed, 0, 5.06, -2.95));
 
-  const col = mat(0xe8e4da, { metalness: 0.28, roughness: 0.28 });
+  const col = mat(0x2c2e32, { metalness: 0.22, roughness: 0.48, envMapIntensity: 0.55 });
   for (const x of [-11.2, -3.7, 3.7, 11.2]) {
     for (const z of [-2.2, 8.2]) {
-      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.15, 5.15, 20), col);
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.13, 5.15, 20), col);
       post.position.set(x, 2.52, z);
       post.castShadow = true;
       root.add(post);
@@ -333,7 +333,7 @@ function addCanopy(root: THREE.Group): void {
         const disc = new THREE.Mesh(new THREE.CircleGeometry(0.44, 28), lamp);
         disc.rotation.x = Math.PI / 2;
         disc.position.set(x, 5.05, z);
-        const light = new THREE.SpotLight(0xffe0b0, intensity, 14, 0.9, 0.62, 1.05);
+        const light = new THREE.SpotLight(0xffe0b0, intensity, 14, 0.78, 0.48, 1.05);
         light.position.set(x, 5.02, z);
         light.target.position.set(x, 0, z);
         light.castShadow = shadow && (x === -2.45 || x === 2.45);
@@ -341,8 +341,8 @@ function addCanopy(root: THREE.Group): void {
       }
     }
   };
-  hang([-7.4, -2.45, 2.45, 7.4], [3.15], 560, true);
-  hang([-8, -2.6, 2.6, 8], [0.35, 5.85], 280, false);
+  hang([-7.4, -2.45, 2.45, 7.4], [3.15], 680, true);
+  hang([-8, -2.6, 2.6, 8], [0.35, 5.85], 300, false);
 }
 
 function addPerson(g: THREE.Group, x: number, z: number, yaw: number, h = 1.7): void {
@@ -455,9 +455,10 @@ function addKiosk(root: THREE.Group): THREE.Object3D {
 }
 
 function addPlanters(root: THREE.Group): void {
-  const stone = mat(0xe8e4dc, { roughness: 0.58 });
-  const trunk = mat(0x3a2a1c, { roughness: 0.8 });
-  const leaf = mat(0x2f3d22, { roughness: 0.75 });
+  const stone = mat(0x4a4844, { roughness: 0.78, metalness: 0.04 });
+  const trunk = mat(0x241810, { roughness: 0.88 });
+  const leafA = mat(0x1a2416, { roughness: 0.82 });
+  const leafB = mat(0x24301c, { roughness: 0.8 });
   for (const [x, z] of [
     [-13.4, -3.6],
     [13.4, -3.6],
@@ -470,15 +471,20 @@ function addPlanters(root: THREE.Group): void {
     [-4.2, 12.2],
     [3.8, 12.4],
   ]) {
-    root.add(box(1.7, 0.36, 1.05, stone, x, 0.18, z));
-    const bole = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.1, 1.15, 8), trunk);
-    bole.position.set(x, 0.85, z);
+    root.add(box(1.55, 0.32, 0.95, stone, x, 0.16, z));
+    const bole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.11, 1.35, 7), trunk);
+    bole.position.set(x, 0.92, z);
+    bole.rotation.z = 0.08;
     root.add(bole);
-    for (let i = 0; i < 5; i++) {
-      const frond = new THREE.Mesh(new THREE.ConeGeometry(0.55, 0.7, 6), leaf);
-      frond.position.set(x + Math.cos(i * 1.25) * 0.12, 1.45, z + Math.sin(i * 1.25) * 0.12);
-      frond.rotation.z = Math.cos(i) * 0.45;
-      frond.rotation.x = 0.35;
+    for (let i = 0; i < 7; i++) {
+      const leaf = i % 2 ? leafA : leafB;
+      const frond = new THREE.Mesh(new THREE.SphereGeometry(0.38 + (i % 3) * 0.06, 7, 6), leaf);
+      frond.scale.set(1, 0.55 + (i % 2) * 0.15, 0.85);
+      frond.position.set(
+        x + Math.cos(i * 0.95) * 0.22,
+        1.35 + (i % 3) * 0.16,
+        z + Math.sin(i * 0.95) * 0.22,
+      );
       root.add(frond);
     }
   }
