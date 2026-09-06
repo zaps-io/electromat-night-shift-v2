@@ -26,26 +26,36 @@ function cityCarpet(): THREE.CanvasTexture {
   c.height = 384;
   const ctx = c.getContext("2d")!;
   const sky = ctx.createLinearGradient(0, 0, 0, 384);
-  sky.addColorStop(0, "#07090e");
-  sky.addColorStop(0.42, "#10141c");
-  sky.addColorStop(1, "#1c1812");
+  sky.addColorStop(0, "#070b14");
+  sky.addColorStop(0.38, "#0c121c");
+  sky.addColorStop(0.62, "#16120e");
+  sky.addColorStop(1, "#2a2214");
   ctx.fillStyle = sky;
   ctx.fillRect(0, 0, 1536, 384);
-  for (let i = 0; i < 90; i++) {
-    const x = (i * 17) % 1536;
-    const w = 10 + (i % 7) * 6;
-    const h = 40 + ((i * 11) % 160);
-    ctx.fillStyle = i % 5 === 0 ? "#0c1016" : "#12161e";
+  for (let i = 0; i < 48; i++) {
+    const x = (i * 31) % 1536;
+    const w = 8 + (i % 6) * 4;
+    const h = 28 + ((i * 17) % 90);
+    ctx.fillStyle = "#0a0e16";
     ctx.fillRect(x, 384 - h, w, h);
   }
-  for (let i = 0; i < 5200; i++) {
+  for (let n = 0; n < 28; n++) {
+    const cx = (n * 67) % 1536;
+    const cy = 210 + ((n * 23) % 130);
+    const blob = ctx.createRadialGradient(cx, cy, 4, cx, cy, 70);
+    blob.addColorStop(0, "rgba(255,196,110,0.28)");
+    blob.addColorStop(1, "rgba(255,180,80,0)");
+    ctx.fillStyle = blob;
+    ctx.fillRect(cx - 70, cy - 70, 140, 140);
+  }
+  for (let i = 0; i < 9000; i++) {
     const x = Math.random() * 1536;
-    const y = 48 + Math.random() * 320;
-    const a = 0.18 + Math.random() * 0.72;
-    const s = Math.random() < 0.08 ? 2 : 1;
-    const r = 210 + Math.random() * 40;
-    const g = 170 + Math.random() * 55;
-    const b = 80 + Math.random() * 50;
+    const y = 150 + Math.random() * 230;
+    const a = 0.22 + Math.random() * 0.7;
+    const s = Math.random() < 0.06 ? 2 : 1;
+    const r = 220 + Math.random() * 35;
+    const g = 175 + Math.random() * 50;
+    const b = 90 + Math.random() * 40;
     ctx.fillStyle = `rgba(${r | 0},${g | 0},${b | 0},${a})`;
     ctx.fillRect(x, y, s, s);
   }
@@ -58,7 +68,7 @@ export function buildSkyline(): THREE.Group {
   const root = new THREE.Group();
   const sky = new THREE.Mesh(
     new THREE.SphereGeometry(160, 28, 18),
-    new THREE.MeshBasicMaterial({ color: 0x0c1018, side: THREE.BackSide, fog: false }),
+    new THREE.MeshBasicMaterial({ color: 0x080d16, side: THREE.BackSide, fog: false }),
   );
   root.add(sky);
 
@@ -72,27 +82,27 @@ export function buildSkyline(): THREE.Group {
 
   const dark = new THREE.MeshLambertMaterial({ color: 0x10141c });
   const haze = new THREE.Mesh(
-    new THREE.PlaneGeometry(240, 22),
-    new THREE.MeshBasicMaterial({ color: 0x1a1816, transparent: true, opacity: 0.38, fog: false, depthWrite: false }),
+    new THREE.PlaneGeometry(240, 24),
+    new THREE.MeshBasicMaterial({ color: 0x1c1814, transparent: true, opacity: 0.32, fog: false, depthWrite: false }),
   );
-  haze.position.set(0, 8, 40);
+  haze.position.set(0, 7.4, 40);
   haze.rotation.y = Math.PI;
   root.add(haze);
   const glow = new THREE.Mesh(
-    new THREE.PlaneGeometry(240, 10),
-    new THREE.MeshBasicMaterial({ color: 0x3a2a18, transparent: true, opacity: 0.22, fog: false, depthWrite: false }),
+    new THREE.PlaneGeometry(240, 14),
+    new THREE.MeshBasicMaterial({ color: 0x3a2816, transparent: true, opacity: 0.22, fog: false, depthWrite: false }),
   );
-  glow.position.set(0, 3.4, 39);
+  glow.position.set(0, 3.2, 39);
   glow.rotation.y = Math.PI;
   root.add(glow);
 
-  for (let i = 0; i < 36; i++) {
-    const w = 1.6 + (i % 5) * 0.5;
-    const h = 5 + ((i * 17) % 16);
-    const x = -70 + i * 4.1 + (i % 3) * 0.3;
-    const z = 38 + (i % 5) * 1.2;
-    const tower = new THREE.Mesh(new THREE.BoxGeometry(w, h, 2.2), dark);
-    tower.position.set(x, h * 0.5 - 0.2, z);
+  for (let i = 0; i < 18; i++) {
+    const w = 1.4 + (i % 4) * 0.45;
+    const h = 4 + ((i * 19) % 11);
+    const x = -62 + i * 7.2 + (i % 3) * 0.4;
+    const z = 41 + (i % 4) * 1.1;
+    const tower = new THREE.Mesh(new THREE.BoxGeometry(w, h, 2.0), dark);
+    tower.position.set(x, h * 0.5 - 0.4, z);
     root.add(tower);
   }
 
@@ -117,7 +127,7 @@ export function buildSkyline(): THREE.Group {
     new THREE.MeshBasicMaterial({
       map: cityCarpet(),
       transparent: true,
-      opacity: 0.72,
+      opacity: 0.82,
       fog: false,
       toneMapped: false,
       depthWrite: false,

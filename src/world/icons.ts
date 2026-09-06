@@ -21,25 +21,25 @@ export function makeAttentionIcon(): THREE.Sprite {
   c.height = 256;
   const ctx = c.getContext("2d")!;
   ctx.clearRect(0, 0, 256, 256);
-  const glow = ctx.createRadialGradient(128, 128, 36, 128, 128, 124);
-  glow.addColorStop(0, "rgba(232,154,46,0.55)");
-  glow.addColorStop(0.55, "rgba(232,154,46,0.12)");
+  const glow = ctx.createRadialGradient(128, 128, 28, 128, 128, 128);
+  glow.addColorStop(0, "rgba(255,168,48,0.72)");
+  glow.addColorStop(0.45, "rgba(232,154,46,0.22)");
   glow.addColorStop(1, "rgba(232,154,46,0)");
   ctx.fillStyle = glow;
   ctx.fillRect(0, 0, 256, 256);
-  ctx.fillStyle = "#E89A2E";
+  ctx.fillStyle = "#F0A030";
   ctx.beginPath();
-  ctx.arc(128, 128, 46, 0, Math.PI * 2);
+  ctx.arc(128, 128, 48, 0, Math.PI * 2);
   ctx.fill();
-  ctx.lineWidth = 7;
+  ctx.lineWidth = 8;
   ctx.strokeStyle = "#FFE7B0";
   ctx.stroke();
   ctx.fillStyle = "#1E1E24";
-  ctx.font = "900 92px sans-serif";
+  ctx.font = "900 96px sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText("!", 128, 136);
-  return sprite(new THREE.CanvasTexture(c), 0.78, 0.78, "attention");
+  return sprite(new THREE.CanvasTexture(c), 0.9, 0.9, "attention");
 }
 
 export function makeBatteryIcon(): THREE.Sprite {
