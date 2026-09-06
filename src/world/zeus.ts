@@ -11,13 +11,13 @@ function brushedMaps(): { map: THREE.CanvasTexture; rough: THREE.CanvasTexture }
   color.height = rough.height = h;
   const c = color.getContext("2d")!;
   const r = rough.getContext("2d")!;
-  c.fillStyle = "#8E949C";
+  c.fillStyle = "#B8BCC0";
   c.fillRect(0, 0, w, h);
   r.fillStyle = "#6a6a6a";
   r.fillRect(0, 0, w, h);
   for (let x = 0; x < w; x++) {
     const grain = Math.sin(x * 0.55) * 7 + Math.sin(x * 1.7) * 3.2 + ((x * 17) % 5);
-    const v = 132 + grain;
+    const v = 168 + grain;
     c.fillStyle = `rgb(${v},${v + 2},${v + 5})`;
     c.fillRect(x, 0, 1, h);
     const rv = 86 + grain * 1.4;
@@ -37,18 +37,18 @@ const brush = brushedMaps();
 
 const alum = new THREE.MeshPhysicalMaterial({
   name: "ZeusAlum",
-  color: 0x9aa0a8,
+  color: C.chrome,
   map: brush.map,
   roughnessMap: brush.rough,
-  metalness: 0.82,
-  roughness: 0.28,
-  clearcoat: 0.34,
-  clearcoatRoughness: 0.3,
-  anisotropy: 0.82,
+  metalness: 0.66,
+  roughness: 0.3,
+  clearcoat: 0.36,
+  clearcoatRoughness: 0.28,
+  anisotropy: 0.78,
   anisotropyRotation: Math.PI / 2,
-  envMapIntensity: 0.72,
-  emissive: 0x000000,
-  emissiveIntensity: 0,
+  envMapIntensity: 0.88,
+  emissive: 0x2a2c30,
+  emissiveIntensity: 0.055,
 });
 
 const charcoal = new THREE.MeshStandardMaterial({
