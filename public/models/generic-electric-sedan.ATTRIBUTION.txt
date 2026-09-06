@@ -1,0 +1,6 @@
+Title: Generic Electric sedan vector
+Author: Antonis_zks
+Source: https://sketchfab.com/3d-models/95f32d0d23bf4db48b1b28843385685f
+License: CC Attribution (http://creativecommons.org/licenses/by/4.0/)
+UID: 95f32d0d23bf4db48b1b28843385685f
+Faces: 243889
