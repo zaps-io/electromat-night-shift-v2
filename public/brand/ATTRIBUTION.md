@@ -1,9 +1,9 @@
 # Official Zaps Electromat wordmarks
 
-Cream/red wordmarks only. Triple-stripe (red / amber / cyan) is a horizon bar separate from the letterforms — Brand_Standards.md.
+Canonical path letterforms only. Do not regenerate or substitute Arial stand-ins.
 
-- `wordmark-cream.svg` — official cream lockup used on Electromat properties
-- `wordmark-cream-vector.svg` — cream vector lockup for dark UI
-- `wordmark-red.svg` — red vector lockup
+- `zaps-wordmark-only-red.svg` — official red wordmark
+- `zaps-wordmark-only-cream.svg` — official cream wordmark
+- `wordmark-red.svg` / `wordmark-cream.svg` — same canonical marks
 
-No invented symbols or alternate logos.
+Triple-stripe (red / amber / cyan) is a horizon bar separate from the letterforms.
