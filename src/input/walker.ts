@@ -13,7 +13,7 @@ export class Walker {
   private readonly wish = new THREE.Vector3();
 
   constructor() {
-    this.camera = new THREE.PerspectiveCamera(62, 1, 0.08, 220);
+    this.camera = new THREE.PerspectiveCamera(66, 1, 0.08, 220);
     this.bind();
     this.sync();
   }
@@ -47,8 +47,8 @@ export class Walker {
     this.sync();
   }
 
-  place(x: number, z: number, yaw = 0, pitch = 0): void {
-    this.position.set(x, 1.64, z);
+  place(x: number, z: number, yaw = 0, pitch = 0, eyeY = 1.64): void {
+    this.position.set(x, eyeY, z);
     this.yaw = yaw;
     this.pitch = pitch;
     this.destination = null;

@@ -40,10 +40,10 @@ export function createNightProbe(renderer: THREE.WebGLRenderer): THREE.Texture {
   );
   env.add(sky);
   for (const [x, y, z, color, r] of [
-    [-7.4, 5.05, 3.15, 0xffe0b0, 0.55],
-    [-2.45, 5.05, 3.15, 0xffe0b0, 0.55],
-    [2.45, 5.05, 3.15, 0xffe0b0, 0.55],
-    [7.4, 5.05, 3.15, 0xffe0b0, 0.55],
+    [-7.4, 5.05, 3.15, 0xffe8c0, 0.72],
+    [-2.45, 5.05, 3.15, 0xffe8c0, 0.72],
+    [2.45, 5.05, 3.15, 0xffe8c0, 0.72],
+    [7.4, 5.05, 3.15, 0xffe8c0, 0.72],
     [-8, 5.1, 0.35, 0xffc878, 0.38],
     [8, 5.1, 5.85, 0xffc878, 0.38],
     [0, 5.08, -3.5, 0x00d4f5, 0.42],

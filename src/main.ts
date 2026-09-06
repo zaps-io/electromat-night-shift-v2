@@ -44,6 +44,9 @@ scene.add(fill);
 const rim = new THREE.DirectionalLight(0x5ec8e0, 0.55);
 rim.position.set(12, 9, 16);
 scene.add(rim);
+const cans = new THREE.DirectionalLight(0xffe4b8, 0.42);
+cans.position.set(-1, 18, 3);
+scene.add(cans);
 
 const station = buildStation();
 scene.add(station.root);
@@ -93,8 +96,8 @@ function dropIn(): void {
   setHum(true);
   if (state.phase === "title") seedOpeningLot(state);
   hideTitle();
-  walker.place(1.85, -7.35, 0.22, -0.06);
-  walker.lookAt(-3.1, 0.82, 3.05);
+  walker.place(2.65, -8.55, 0.22, -0.06, 1.5);
+  walker.lookAt(-5.15, 0.72, 3.35);
 }
 
 function restart(): void {
@@ -348,8 +351,8 @@ window.__electromat = {
   },
   startNight: dropIn,
   act,
-  place(x: number, z: number, yaw = 0, pitch = 0) {
-    walker.place(x, z, yaw, pitch);
+  place(x: number, z: number, yaw = 0, pitch = 0, eyeY = 1.64) {
+    walker.place(x, z, yaw, pitch, eyeY);
   },
   lookAt(x: number, y: number, z: number) {
     walker.lookAt(x, y, z);
