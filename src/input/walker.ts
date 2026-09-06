@@ -13,7 +13,7 @@ export class Walker {
   private readonly wish = new THREE.Vector3();
 
   constructor() {
-    this.camera = new THREE.PerspectiveCamera(66, 1, 0.08, 220);
+    this.camera = new THREE.PerspectiveCamera(62, 1, 0.08, 220);
     this.bind();
     this.sync();
   }
@@ -38,6 +38,11 @@ export class Walker {
   walkTo(point: THREE.Vector3): void {
     this.destination = point.clone();
     this.destination.y = this.position.y;
+  }
+
+  setFov(fov: number): void {
+    this.camera.fov = fov;
+    this.camera.updateProjectionMatrix();
   }
 
   lookAt(x: number, y: number, z: number): void {

@@ -14,13 +14,16 @@ import {
 import { Walker } from "./input/walker";
 import { configureKeyLight, createNightProbe, createPipeline, createRenderer } from "./render/pipeline";
 import { addLodFillers, hullDebug, loadCarPrototypes, syncCars, trimLodFillers, type CarView } from "./world/cars";
-import { KIOSK, WIDE_SHOT } from "./world/layout";
+import { KIOSK, REAR_SHOT, START_SHOT, WIDE_SHOT } from "./world/layout";
+import { addBrandSignage } from "./world/branding";
+import { makeAttendantHand, tickHand } from "./world/hand";
 import { buildSkyline } from "./world/skyline";
 import { addLotMirror, buildStation } from "./world/station";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#view")!;
 const titleEl = document.querySelector("#title")!;
 const hudEl = document.querySelector("#hud")!;
+const hudMark = document.querySelector("#hud-mark");
 const endEl = document.querySelector("#end")!;
 const clockEl = document.querySelector("#clock")!;
 const autoEl = document.querySelector("#auto")!;
@@ -36,15 +39,15 @@ const renderer = createRenderer(canvas);
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x080b10);
 scene.fog = new THREE.Fog(0x080b10, 42, 110);
-scene.add(new THREE.AmbientLight(0xb8c0c8, 0.1));
-const fill = new THREE.DirectionalLight(0xffd2a8, 1.22);
+scene.add(new THREE.AmbientLight(0xb8c0c8, 0.12));
+const fill = new THREE.DirectionalLight(0xffd2a8, 0.95);
 fill.position.set(-10, 14, -4);
 configureKeyLight(fill);
 scene.add(fill);
-const rim = new THREE.DirectionalLight(0x5ec8e0, 0.55);
+const rim = new THREE.DirectionalLight(0x7eb8c8, 0.18);
 rim.position.set(12, 9, 16);
 scene.add(rim);
-const cans = new THREE.DirectionalLight(0xffe4b8, 0.42);
+const cans = new THREE.DirectionalLight(0xffe4b8, 0.32);
 cans.position.set(-1, 18, 3);
 scene.add(cans);
 
@@ -54,7 +57,10 @@ scene.add(station.root);
 scene.add(buildSkyline());
 
 const walker = new Walker();
+const hand = makeAttendantHand();
+walker.camera.add(hand);
 scene.add(walker.camera);
+const brandingReady = addBrandSignage(station.root);
 
 scene.environment = createNightProbe(renderer);
 const pipeline = createPipeline(renderer, scene, walker.camera);
@@ -97,8 +103,9 @@ function dropIn(): void {
   setHum(true);
   if (state.phase === "title") seedOpeningLot(state);
   hideTitle();
-  walker.place(-2.6, -12.2, 0.08, -0.06, 1.5);
-  walker.lookAt(-7.4, 1.42, 3.0);
+  walker.setFov(START_SHOT.fov);
+  walker.place(START_SHOT.x, START_SHOT.z, START_SHOT.yaw, START_SHOT.pitch, START_SHOT.eyeY);
+  walker.lookAt(START_SHOT.lookAt.x, START_SHOT.lookAt.y, START_SHOT.lookAt.z);
 }
 
 function restart(): void {
@@ -210,7 +217,9 @@ function act(): void {
 
 function paintHud(): void {
   const live = state.phase === "shift";
-  hudEl.classList.toggle("hidden", !live);
+  const cinematic = walker.position.y > 3.2;
+  hudEl.classList.toggle("hidden", !live || cinematic);
+  hudMark?.classList.toggle("hidden", cinematic);
   titleEl.classList.toggle("hidden", live || state.phase === "grade" || state.phase === "lose");
   endEl.classList.toggle("hidden", state.phase !== "grade" && state.phase !== "lose");
   if (state.phase === "grade" || state.phase === "lose") gradeEl.textContent = state.gradeLine;
@@ -259,6 +268,7 @@ function loop(now: number): void {
   resize();
   if (state.phase === "shift") tick(state, (dt * 1000) / MS_PER_GAME_MIN);
   walker.tick(dt, false);
+  tickHand(hand, now / 1000, walker.position.y);
   if (ready) syncCars(cars, scene, state, now / 1000);
   paintHud();
   pipeline.render();
@@ -321,11 +331,16 @@ async function saveShots(): Promise<void> {
     await new Promise((r) => setTimeout(r, 80));
   }
   await new Promise((r) => setTimeout(r, 600));
+  walker.setFov(START_SHOT.fov);
+  walker.place(START_SHOT.x, START_SHOT.z, START_SHOT.yaw, START_SHOT.pitch, START_SHOT.eyeY);
+  walker.lookAt(START_SHOT.lookAt.x, START_SHOT.lookAt.y, START_SHOT.lookAt.z);
   await post("/workspace/docs/shots/startnight-lot.png", capture(1280, 800));
-  walker.place(-5.4, -1.6);
-  walker.lookAt(-3.6, 0.72, 4.2);
+  walker.setFov(REAR_SHOT.fov);
+  walker.place(REAR_SHOT.x, REAR_SHOT.z);
+  walker.lookAt(REAR_SHOT.lookAt.x, REAR_SHOT.lookAt.y, REAR_SHOT.lookAt.z);
   await new Promise((r) => setTimeout(r, 200));
   await post("/workspace/docs/shots/lot-rear34.png", capture(1280, 800));
+  walker.setFov(WIDE_SHOT.fov);
   walker.place(WIDE_SHOT.x, WIDE_SHOT.z, WIDE_SHOT.yaw, WIDE_SHOT.pitch, WIDE_SHOT.eyeY);
   walker.lookAt(WIDE_SHOT.lookAt.x, WIDE_SHOT.lookAt.y, WIDE_SHOT.lookAt.z);
   await new Promise((r) => setTimeout(r, 200));
@@ -357,6 +372,8 @@ window.__electromat = {
   startNight: dropIn,
   act,
   place(x: number, z: number, yaw = 0, pitch = 0, eyeY = 1.64) {
+    if (eyeY > 3.2) walker.setFov(WIDE_SHOT.fov);
+    else walker.setFov(START_SHOT.fov);
     walker.place(x, z, yaw, pitch, eyeY);
   },
   lookAt(x: number, y: number, z: number) {
@@ -366,7 +383,7 @@ window.__electromat = {
   hullDebug,
 };
 
-void loadCarPrototypes().then(() => {
+void Promise.all([loadCarPrototypes(), brandingReady]).then(() => {
   addLodFillers(scene);
   ready = true;
 });

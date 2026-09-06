@@ -163,14 +163,14 @@ function makeAsphalt(root: THREE.Group): THREE.Mesh {
     new THREE.MeshPhysicalMaterial({
       color: 0x0c0e12,
       map: maps.map,
-      roughness: 0.14,
+      roughness: 0.36,
       roughnessMap: maps.rough,
-      metalness: 0.12,
+      metalness: 0.06,
       normalMap: maps.normal,
-      normalScale: new THREE.Vector2(0.12, 0.12),
-      envMapIntensity: 2.45,
-      clearcoat: 0.92,
-      clearcoatRoughness: 0.045,
+      normalScale: new THREE.Vector2(0.16, 0.16),
+      envMapIntensity: 0.82,
+      clearcoat: 0.22,
+      clearcoatRoughness: 0.28,
     }),
   );
   ground.rotation.x = -Math.PI / 2;
@@ -183,13 +183,13 @@ function makeAsphalt(root: THREE.Group): THREE.Mesh {
 export function addLotMirror(root: THREE.Group, _renderer: THREE.WebGLRenderer): void {
   const sheen = new THREE.MeshPhysicalMaterial({
     color: 0x0a0c10,
-    roughness: 0.06,
-    metalness: 0.16,
-    clearcoat: 1,
-    clearcoatRoughness: 0.03,
-    envMapIntensity: 2.8,
+    roughness: 0.28,
+    metalness: 0.08,
+    clearcoat: 0.22,
+    clearcoatRoughness: 0.34,
+    envMapIntensity: 0.72,
     transparent: true,
-    opacity: 0.42,
+    opacity: 0.16,
   });
   for (const [x, z, w, d] of [
     [-3.2, 3.8, 8.2, 2.4],
@@ -279,29 +279,30 @@ function screenTexture(): THREE.CanvasTexture {
 }
 
 function addPedestal(root: THREE.Group, x: number, z: number): void {
-  const body = mat(0x0e1012, { roughness: 0.28, metalness: 0.22, envMapIntensity: 0.5 });
+  const body = mat(C.charcoal, { roughness: 0.48, metalness: 0.1, envMapIntensity: 0.28 });
   const px = x - 1.18;
   const pz = z - 2.25;
-  root.add(box(0.34, 2.72, 0.22, body, px, 1.36, pz));
-  root.add(box(0.38, 0.05, 0.26, body, px, 2.74, pz));
+  root.add(box(0.5, 2.08, 0.38, body, px, 1.04, pz));
+  root.add(box(0.54, 0.05, 0.42, body, px, 2.1, pz));
+  const ident = new THREE.MeshBasicMaterial({ color: C.red, toneMapped: false });
+  root.add(box(0.5, 0.018, 0.38, ident, px, 2.02, pz));
   const ui = screenTexture();
   const screenMat = new THREE.MeshStandardMaterial({
     map: ui,
-    color: 0xb8ffff,
-    emissive: 0x00d4f5,
-    emissiveIntensity: 2.8,
+    color: 0xffffff,
+    emissive: C.cyan,
+    emissiveIntensity: 1.65,
     emissiveMap: ui,
     toneMapped: false,
     side: THREE.DoubleSide,
   });
-  const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.22, 0.82), screenMat);
-  screen.position.set(px, 1.72, pz - 0.12);
+  const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.26, 1.02), screenMat);
+  screen.position.set(px, 1.18, pz - 0.2);
   screen.rotation.y = Math.PI;
   const rear = screen.clone();
-  rear.position.set(px, 1.72, pz + 0.12);
+  rear.position.set(px, 1.18, pz + 0.2);
   rear.rotation.y = 0;
   root.add(screen, rear);
-  root.add(box(0.12, 0.1, 0.14, mat(0x0c0e10), px + 0.16, 0.92, pz - 0.02));
 }
 
 function roundedRectShape(w: number, d: number, r: number): THREE.Shape {
@@ -322,7 +323,7 @@ function roundedRectShape(w: number, d: number, r: number): THREE.Shape {
 }
 
 function addCanopy(root: THREE.Group): void {
-  const shell = mat(0xf4f1ea, { roughness: 0.36, metalness: 0.04, envMapIntensity: 0.68 });
+  const shell = mat(C.cream, { roughness: 0.42, metalness: 0.03, envMapIntensity: 0.42 });
   const under = new THREE.MeshStandardMaterial({
     color: 0xe8e6e0,
     emissive: 0x9aa4b0,
@@ -387,8 +388,8 @@ function addCanopy(root: THREE.Group): void {
   stripBloom.position.set(0, 5.07, 3.1);
   stripBloom.scale.set(0.965, 1, 0.965);
   root.add(stripBloom);
-  const cyan = new THREE.MeshBasicMaterial({ color: 0x00d4f5, transparent: true, opacity: 0.22, toneMapped: false, depthWrite: false });
-  const edge = new THREE.Mesh(new THREE.TubeGeometry(curve, 140, 0.028, 6, true), cyan);
+  const cyan = new THREE.MeshBasicMaterial({ color: C.cyan, transparent: true, opacity: 0.1, toneMapped: false, depthWrite: false });
+  const edge = new THREE.Mesh(new THREE.TubeGeometry(curve, 140, 0.022, 6, true), cyan);
   edge.position.set(0, 5.15, 3.1);
   root.add(edge);
 
@@ -425,8 +426,8 @@ function addCanopy(root: THREE.Group): void {
       }
     }
   };
-  hang([-7.2, 0, 7.2], [4.2], 380, true);
-  hang([-3.6, 3.6, 10.8], [4.2], 220, false);
+  hang([-7.2, 0, 7.2], [4.2], 240, true);
+  hang([-3.6, 3.6, 10.8], [4.2], 150, false);
 }
 
 function addPerson(g: THREE.Group, x: number, z: number, yaw: number, h = 1.7): void {
@@ -443,16 +444,16 @@ function addPavilion(root: THREE.Group): THREE.Box3 {
   const g = new THREE.Group();
   g.position.set(PAVILION.x, 0, PAVILION.z);
   g.rotation.y = PAVILION.yaw;
-  const wall = mat(0xe8e4dc, { roughness: 0.48, metalness: 0.06 });
+  const wall = mat(C.cream, { roughness: 0.52, metalness: 0.04, envMapIntensity: 0.35 });
   const glass = new THREE.MeshPhysicalMaterial({
-    color: 0x2a1c12,
-    roughness: 0.04,
-    metalness: 0.05,
-    transmission: 0.12,
+    color: 0x3a2214,
+    roughness: 0.08,
+    metalness: 0.04,
+    transmission: 0.08,
     transparent: true,
-    opacity: 0.2,
+    opacity: 0.22,
     thickness: 0.08,
-    envMapIntensity: 0.85,
+    envMapIntensity: 0.45,
     side: THREE.DoubleSide,
   });
   const W = 6.6;
@@ -488,7 +489,7 @@ function addPavilion(root: THREE.Group): THREE.Box3 {
   lot.rotation.y = Math.PI / 2;
   g.add(front, rear, lot);
 
-  const warm = new THREE.MeshBasicMaterial({ color: 0xff8a2e });
+  const warm = new THREE.MeshBasicMaterial({ color: 0xf0a040 });
   const backLit = new THREE.Mesh(new THREE.PlaneGeometry(D - 0.3, paneH - 0.1), warm);
   backLit.position.set(-W / 2 + 0.18, H * 0.5, 0);
   backLit.rotation.y = Math.PI / 2;
@@ -516,12 +517,12 @@ function addPavilion(root: THREE.Group): THREE.Box3 {
   addPerson(g, -1.55, -0.55, 1.4, 1.56);
   addPerson(g, -1.45, 0.65, 1.7, 1.6);
   addPerson(g, 0.15, -1.2, 0.2, 1.78);
-  const spill = new THREE.PointLight(0xff8a32, 48, 13, 1.2);
+  const spill = new THREE.PointLight(0xe89a2e, 36, 12, 1.35);
   spill.position.set(-0.4, 2.1, 0);
   g.add(spill);
   const wash = new THREE.Mesh(
     new THREE.PlaneGeometry(W - 0.35, paneH - 0.08),
-    new THREE.MeshBasicMaterial({ color: 0xff7a28, transparent: true, opacity: 0.26, side: THREE.DoubleSide, depthWrite: false }),
+    new THREE.MeshBasicMaterial({ color: C.amber, transparent: true, opacity: 0.22, side: THREE.DoubleSide, depthWrite: false }),
   );
   wash.position.set(0, H * 0.5, 0);
   g.add(wash);
