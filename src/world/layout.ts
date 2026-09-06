@@ -23,12 +23,31 @@ export const KIOSK = { x: 13.6, z: 1.4 };
 /** Glass lounge under the left canopy, facing the approach. */
 export const PAVILION = { x: -12.8, z: 3.8, yaw: -0.18 };
 
-/** Elevated 3/4 wide still: corner of the lot, queue left, canopy + city beyond. */
+/** Eye-level startNight: canopy soffit, lounge spill, pedestals, queue. */
+export const START_SHOT = {
+  x: -5.1,
+  z: -11.2,
+  eyeY: 1.58,
+  yaw: 0.28,
+  pitch: 0.12,
+  lookAt: { x: -10.2, y: 2.55, z: 3.1 },
+  fov: 58,
+} as const;
+
+/** Elevated 3/4 wide still: just above the canopy, queue left, city beyond. */
 export const WIDE_SHOT = {
-  x: -13.2,
-  z: -15.6,
-  eyeY: 12.4,
-  yaw: -0.16,
-  pitch: -0.54,
-  lookAt: { x: 1.8, y: 1.28, z: 5.1 },
+  x: -17.6,
+  z: -22.8,
+  eyeY: 6.5,
+  yaw: -0.36,
+  pitch: -0.22,
+  lookAt: { x: 1.8, y: 1.85, z: 4.6 },
+  fov: 50,
+} as const;
+
+export const REAR_SHOT = {
+  x: -5.4,
+  z: -1.6,
+  lookAt: { x: -3.6, y: 0.72, z: 4.2 },
+  fov: 58,
 } as const;

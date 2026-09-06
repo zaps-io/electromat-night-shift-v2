@@ -40,11 +40,11 @@ function paintMaterial(color: THREE.Color): THREE.MeshPhysicalMaterial {
   return new THREE.MeshPhysicalMaterial({
     name: "Paint",
     color,
-    metalness: 0.28,
-    roughness: 0.12,
-    clearcoat: 1,
-    clearcoatRoughness: 0.035,
-    envMapIntensity: 2.35,
+    metalness: 0.14,
+    roughness: 0.3,
+    clearcoat: 0.22,
+    clearcoatRoughness: 0.24,
+    envMapIntensity: 0.72,
   });
 }
 
@@ -68,7 +68,7 @@ function dressAuthored(root: THREE.Object3D): void {
         opacity: 0.42,
         transmission: 0.28,
         thickness: 0.08,
-        envMapIntensity: 1.9,
+        envMapIntensity: 0.9,
       });
     } else if (label.includes("chrome")) {
       mesh.material = new THREE.MeshPhysicalMaterial({
@@ -76,7 +76,7 @@ function dressAuthored(root: THREE.Object3D): void {
         color: 0xd0d4d8,
         metalness: 1,
         roughness: 0.1,
-        envMapIntensity: 2,
+        envMapIntensity: 1.05,
       });
     } else if (label.includes("light")) {
       mesh.material = new THREE.MeshStandardMaterial({
@@ -155,7 +155,7 @@ function dressSedan(root: THREE.Object3D): void {
       }
       if (isHeadName(mn)) {
         m.emissive?.setHex(0xfff4dc);
-        m.emissiveIntensity = 1.6;
+        m.emissiveIntensity = 0.72;
         m.toneMapped = false;
         return;
       }
@@ -167,14 +167,14 @@ function dressSedan(root: THREE.Object3D): void {
         m.transparent = true;
         m.opacity = 0.34;
         if ("transmission" in m) m.transmission = 0.62;
-        m.envMapIntensity = 1.7;
+        m.envMapIntensity = 0.85;
         return;
       }
       if (metal > 0.85 && rough < 0.12) {
         m.name = "Chrome";
         m.metalness = 0.88;
         m.roughness = 0.16;
-        m.envMapIntensity = 1.8;
+        m.envMapIntensity = 0.95;
       }
     });
   });
