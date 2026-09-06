@@ -40,13 +40,17 @@ export function createNightProbe(renderer: THREE.WebGLRenderer): THREE.Texture {
   );
   env.add(sky);
   for (const [x, y, z, color, r] of [
-    [-8, 5.1, 0.35, 0xffc878, 0.4],
-    [-2.6, 5.1, 0.35, 0xffc878, 0.4],
-    [2.6, 5.1, 5.85, 0xffc878, 0.4],
-    [8, 5.1, 5.85, 0xffc878, 0.4],
-    [0, 5.05, -3.4, 0x00d4f5, 0.18],
-    [0, 5.05, 9.6, 0x00d4f5, 0.18],
-    [-12.6, 1.8, 5.4, 0xff9a3c, 0.7],
+    [-7.4, 5.05, 3.15, 0xffe0b0, 0.55],
+    [-2.45, 5.05, 3.15, 0xffe0b0, 0.55],
+    [2.45, 5.05, 3.15, 0xffe0b0, 0.55],
+    [7.4, 5.05, 3.15, 0xffe0b0, 0.55],
+    [-8, 5.1, 0.35, 0xffc878, 0.38],
+    [8, 5.1, 5.85, 0xffc878, 0.38],
+    [0, 5.08, -3.5, 0x00d4f5, 0.28],
+    [0, 5.08, 9.7, 0x00d4f5, 0.32],
+    [-12.35, 5.08, 3.1, 0x00d4f5, 0.22],
+    [12.35, 5.08, 3.1, 0x00d4f5, 0.22],
+    [-12.6, 1.6, 5.4, 0xffb060, 0.55],
   ] as const) {
     const bulb = new THREE.Mesh(
       new THREE.SphereGeometry(r, 8, 8),
@@ -71,11 +75,11 @@ export function createPipeline(
   });
   composer.addPass(new RenderPass(scene, camera));
   const bloom = new BloomEffect({
-    intensity: 0.14,
-    luminanceThreshold: 0.72,
-    luminanceSmoothing: 0.18,
+    intensity: 0.17,
+    luminanceThreshold: 0.64,
+    luminanceSmoothing: 0.2,
     mipmapBlur: true,
-    radius: 0.36,
+    radius: 0.4,
   });
   const vignette = new VignetteEffect({
     eskil: false,
