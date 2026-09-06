@@ -150,6 +150,7 @@ function fitSedan(scene: THREE.Group, kind: HullKind): THREE.Group {
   box.setFromObject(wrap);
   box.getSize(size);
   if (size.z > size.x) scene.rotation.y = Math.PI / 2;
+  scene.rotation.y += Math.PI;
   wrap.updateMatrixWorld(true);
   box.setFromObject(wrap);
   box.getSize(size);
