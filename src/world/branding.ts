@@ -88,8 +88,8 @@ export async function addBrandSignage(root: THREE.Group): Promise<void> {
   root.add(canopyMark);
 
   const g = new THREE.Group();
-  g.position.set(-12.2, 0, -9.0);
-  g.rotation.y = 0.82;
+  g.position.set(-11.0, 0, -6.2);
+  g.rotation.y = 0.7;
   const creamBody = new THREE.MeshStandardMaterial({
     color: C.cream,
     roughness: 0.38,

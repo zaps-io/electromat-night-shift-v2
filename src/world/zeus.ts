@@ -135,12 +135,12 @@ export function addZeusCharger(root: THREE.Group, x: number, z: number): void {
       new THREE.BoxGeometry(0.32, 0.09, 0.012),
       new THREE.MeshBasicMaterial({ color: C.red, toneMapped: false }),
     );
-    ident.position.set(0, 1.94, 0.228 * sign);
+    ident.position.set(0, 1.96, 0.228 * sign);
     const logoPad = new THREE.Mesh(new THREE.PlaneGeometry(0.44, 0.16), wordMat);
-    logoPad.position.set(0, 1.8, 0.236 * sign);
+    logoPad.position.set(0, 1.84, 0.236 * sign);
     logoPad.rotation.y = sign < 0 ? 0 : Math.PI;
-    const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 0.44), screenMat);
-    screen.position.set(0, 1.1, 0.232 * sign);
+    const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 0.36), screenMat);
+    screen.position.set(0, 1.5, 0.232 * sign);
     screen.rotation.y = sign < 0 ? 0 : Math.PI;
     g.add(ident, logoPad, screen);
   };

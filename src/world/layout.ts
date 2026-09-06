@@ -30,7 +30,7 @@ export const START_SHOT = {
   eyeY: 1.56,
   yaw: 0.2,
   pitch: 0.1,
-  lookAt: { x: -9.6, y: 2.2, z: 2.4 },
+  lookAt: { x: -10.2, y: 2.15, z: 1.4 },
   fov: 60,
 } as const;
 
