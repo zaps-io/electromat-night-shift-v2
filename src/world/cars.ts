@@ -107,10 +107,10 @@ function dressConcept(root: THREE.Object3D): void {
         m.normalMap = null;
         if (m.normalScale) m.normalScale.set(0, 0);
         m.clearcoat = 1;
-        m.clearcoatRoughness = 0.01;
-        m.roughness = 0.055;
-        m.metalness = 0.08;
-        m.envMapIntensity = 2.75;
+        m.clearcoatRoughness = 0.008;
+        m.roughness = 0.04;
+        m.metalness = 0.1;
+        m.envMapIntensity = 3.15;
       } else if (mn.includes("glass") || label.includes("window") || label.includes("windshield")) {
         m.roughness = 0.02;
         m.envMapIntensity = 1.9;

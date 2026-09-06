@@ -44,6 +44,9 @@ scene.add(fill);
 const rim = new THREE.DirectionalLight(0x5ec8e0, 0.55);
 rim.position.set(12, 9, 16);
 scene.add(rim);
+const cans = new THREE.DirectionalLight(0xffe4b8, 0.42);
+cans.position.set(-1, 18, 3);
+scene.add(cans);
 
 const station = buildStation();
 scene.add(station.root);

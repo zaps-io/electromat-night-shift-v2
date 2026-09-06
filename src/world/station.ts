@@ -457,8 +457,8 @@ function addKiosk(root: THREE.Group): THREE.Object3D {
 function addPlanters(root: THREE.Group): void {
   const stone = mat(0x4a4844, { roughness: 0.78, metalness: 0.04 });
   const trunk = mat(0x241810, { roughness: 0.88 });
-  const leafA = mat(0x1a2416, { roughness: 0.82 });
-  const leafB = mat(0x24301c, { roughness: 0.8 });
+  const leafA = mat(0x2a3820, { roughness: 0.82 });
+  const leafB = mat(0x354828, { roughness: 0.8 });
   for (const [x, z] of [
     [-13.4, -3.6],
     [13.4, -3.6],
