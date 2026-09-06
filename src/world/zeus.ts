@@ -3,10 +3,10 @@ import { C } from "../brand";
 
 function alum(): THREE.MeshStandardMaterial {
   return new THREE.MeshStandardMaterial({
-    color: C.chrome,
-    metalness: 0.82,
-    roughness: 0.32,
-    envMapIntensity: 0.55,
+    color: 0xc5c9ce,
+    metalness: 0.88,
+    roughness: 0.26,
+    envMapIntensity: 0.7,
   });
 }
 
@@ -76,42 +76,43 @@ export function addZeusCharger(root: THREE.Group, x: number, z: number): void {
   body.castShadow = true;
   const cap = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.06, 0.36), silver);
   cap.position.y = 2.14;
-  const recess = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.55, 0.05), dark);
-  recess.position.set(0, 1.14, -0.175);
-
   const cyan = new THREE.MeshBasicMaterial({ color: C.cyan, toneMapped: false });
-  const frame = [
-    [0.32, 0.016, 0.012, 0, 1.92, -0.2],
-    [0.32, 0.016, 0.012, 0, 0.38, -0.2],
-    [0.016, 1.56, 0.012, -0.152, 1.15, -0.2],
-    [0.016, 1.56, 0.012, 0.152, 1.15, -0.2],
-  ] as const;
-  for (const [w, h, d, x, y, z] of frame) {
-    const bar = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), cyan);
-    bar.position.set(x, y, z);
-    g.add(bar);
-  }
-
-  const logoPad = new THREE.Mesh(new THREE.PlaneGeometry(0.26, 0.1), new THREE.MeshBasicMaterial({
+  const screenMat = new THREE.MeshStandardMaterial({
+    map: matrix,
     color: 0xffffff,
-    transparent: true,
+    emissive: C.amber,
+    emissiveIntensity: 0.95,
+    emissiveMap: matrix,
     toneMapped: false,
-  }));
-  logoPad.position.set(0, 1.82, -0.208);
-  logoPad.userData.zeusLogo = true;
-
-  const screen = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.24, 0.32),
-    new THREE.MeshStandardMaterial({
-      map: matrix,
-      color: 0xffffff,
-      emissive: C.amber,
-      emissiveIntensity: 0.85,
-      emissiveMap: matrix,
-      toneMapped: false,
-    }),
-  );
-  screen.position.set(0, 1.18, -0.208);
+  });
+  const face = (sign: number) => {
+    const recess = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.55, 0.05), dark);
+    recess.position.set(0, 1.14, 0.175 * sign);
+    g.add(recess);
+    for (const [w, h, d, x, y] of [
+      [0.32, 0.016, 0.012, 0, 1.92],
+      [0.32, 0.016, 0.012, 0, 0.38],
+      [0.016, 1.56, 0.012, -0.152, 1.15],
+      [0.016, 1.56, 0.012, 0.152, 1.15],
+    ] as const) {
+      const bar = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), cyan);
+      bar.position.set(x, y, 0.2 * sign);
+      g.add(bar);
+    }
+    const logoPad = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.26, 0.1),
+      new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, toneMapped: false }),
+    );
+    logoPad.position.set(0, 1.82, 0.208 * sign);
+    logoPad.rotation.y = sign < 0 ? 0 : Math.PI;
+    logoPad.userData.zeusLogo = true;
+    const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.24, 0.32), screenMat);
+    screen.position.set(0, 1.18, 0.208 * sign);
+    screen.rotation.y = sign < 0 ? 0 : Math.PI;
+    g.add(logoPad, screen);
+  };
+  face(-1);
+  face(1);
 
   const cableMat = new THREE.MeshStandardMaterial({ color: 0x1a1c20, roughness: 0.7 });
   const glowMat = new THREE.MeshBasicMaterial({
@@ -131,7 +132,7 @@ export function addZeusCharger(root: THREE.Group, x: number, z: number): void {
     g.add(hose, halo);
   }
 
-  g.add(plinth, body, cap, recess, logoPad, screen);
+  g.add(plinth, body, cap);
   root.add(g);
 }
 
