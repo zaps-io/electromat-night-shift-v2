@@ -493,25 +493,25 @@ function addKiosk(root: THREE.Group): THREE.Object3D {
 
 function addPalm(root: THREE.Group, x: number, z: number, h = 5.2): void {
   const trunk = mat(0x1c1812, { roughness: 0.92 });
-  const frond = new THREE.MeshStandardMaterial({
-    color: 0x0e160c,
-    roughness: 0.82,
-    side: THREE.DoubleSide,
-  });
+  const frond = mat(0x1a2414, { roughness: 0.86 });
   const bole = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.1, h, 8), trunk);
   bole.position.set(x, h * 0.5, z);
   bole.castShadow = true;
+  bole.raycast = () => {};
   root.add(bole);
-  const crown = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), frond);
-  crown.position.set(x, h * 0.96, z);
+  const crown = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 6), frond);
+  crown.position.set(x, h * 0.94, z);
+  crown.raycast = () => {};
   root.add(crown);
-  for (let i = 0; i < 10; i++) {
-    const leaf = new THREE.Mesh(new THREE.PlaneGeometry(0.16, 2.55), frond);
-    leaf.position.set(x, h * 0.95, z);
+  for (let i = 0; i < 7; i++) {
+    const leaf = new THREE.Mesh(new THREE.ConeGeometry(0.12, 1.15, 5), frond);
+    const a = (i / 7) * Math.PI * 2;
+    leaf.position.set(x + Math.cos(a) * 0.18, h * 0.78, z + Math.sin(a) * 0.18);
     leaf.rotation.order = "YXZ";
-    leaf.rotation.y = i * 0.45;
-    leaf.rotation.x = 1.05 + (i % 4) * 0.07;
-    leaf.castShadow = true;
+    leaf.rotation.y = a;
+    leaf.rotation.z = 0.95;
+    leaf.castShadow = false;
+    leaf.raycast = () => {};
     root.add(leaf);
   }
 }
@@ -604,9 +604,8 @@ function addPlanters(root: THREE.Group): void {
     [17.4, 5.2, 6.4],
     [-19.0, 3.2, 6.8],
     [-16.6, -2.8, 5.8],
-    [16.2, -5.6, 5.6],
-    [-17.6, -15.0, 5.4],
-    [8.4, -12.8, 5.2],
+    [18.4, -8.2, 5.6],
+    [-18.8, -16.4, 5.4],
     [-20.4, 8.2, 7.8],
     [2.2, 16.4, 7.2],
   ] as const) {

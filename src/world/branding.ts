@@ -45,11 +45,11 @@ export function loadBrandTexture(file: string): Promise<THREE.CanvasTexture> {
     const img = new Image();
     img.onload = () => {
       const c = document.createElement("canvas");
-      c.width = 932;
-      c.height = 310;
+      c.width = img.naturalWidth || 931;
+      c.height = img.naturalHeight || 242;
       const ctx = c.getContext("2d")!;
-      ctx.clearRect(0, 0, 932, 310);
-      ctx.drawImage(img, 0, 0, 932, 310);
+      ctx.clearRect(0, 0, c.width, c.height);
+      ctx.drawImage(img, 0, 0);
       resolve(trimAlpha(c));
     };
     img.onerror = () => reject(new Error(`brand mark failed: ${file}`));
@@ -99,7 +99,7 @@ function amberBoard(): THREE.CanvasTexture {
 
 /** Canonical Zaps path wordmark on canopy, pylon, kiosk, and Slim Zeus faces. */
 export async function addBrandSignage(root: THREE.Group): Promise<void> {
-  const red = await loadBrandTexture("zaps-wordmark-only-red.svg");
+  const red = await loadBrandTexture("zaps-wordmark-only-red.png");
 
   const canopyMark = signPlate(5.6, 1.15, red);
   canopyMark.position.set(0, 5.52, -4.16);

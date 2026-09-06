@@ -717,7 +717,7 @@ function finishCar(root: THREE.Group, guest: Guest, inletPos: { x: number; y: nu
   inlet.userData.guestId = guest.id;
   root.add(inlet);
 
-  const driver = new THREE.Mesh(new THREE.SphereGeometry(0.72, 10, 8), ghost);
+  const driver = new THREE.Mesh(new THREE.SphereGeometry(0.28, 8, 6), ghost);
   driver.position.set(0.2, kind === "suv" ? 1.36 : 1.12, 0.15);
   driver.userData.kind = "driver";
   driver.userData.guestId = guest.id;

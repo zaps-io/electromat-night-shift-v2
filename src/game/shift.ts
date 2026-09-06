@@ -59,7 +59,7 @@ export function startNight(s: GameState): void {
 export function greetDriver(s: GameState, guestId: string): boolean {
   if (s.phase !== "shift") return false;
   const g = liveGuest(s, guestId);
-  if (!g) return false;
+  if (!g || g.greeted) return false;
   g.greeted = true;
   speak(s, g.note);
   return true;
