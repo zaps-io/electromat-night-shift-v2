@@ -163,8 +163,8 @@ export function addZeusCharger(root: THREE.Group, x: number, z: number): void {
   const cap = new THREE.Mesh(new RoundedBoxGeometry(0.41, 0.06, 0.33, 3, 0.02), silver);
   cap.position.y = 2.22;
 
-  const cyan = new THREE.MeshBasicMaterial({ color: 0x007888, toneMapped: true });
-  const band = new THREE.Mesh(new THREE.BoxGeometry(0.408, 0.007, 0.328), cyan);
+  const cyan = new THREE.MeshBasicMaterial({ color: 0x006070, toneMapped: true });
+  const band = new THREE.Mesh(new THREE.BoxGeometry(0.408, 0.005, 0.328), cyan);
   band.position.y = 0.205;
 
   const screenMat = new THREE.MeshBasicMaterial({
@@ -191,11 +191,11 @@ export function addZeusCharger(root: THREE.Group, x: number, z: number): void {
     plate.position.set(0, 1.96, 0.196 * sign);
     const logo = new THREE.Mesh(new THREE.PlaneGeometry(0.24, 0.08), logoMat);
     logo.position.set(0, 1.96, 0.204 * sign);
-    logo.rotation.y = sign < 0 ? 0 : Math.PI;
+    logo.rotation.y = sign < 0 ? Math.PI : 0;
     logo.userData.zeusLogo = true;
     const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.24, 0.09), screenMat);
     screen.position.set(0, 1.76, 0.2 * sign);
-    screen.rotation.y = sign < 0 ? 0 : Math.PI;
+    screen.rotation.y = sign < 0 ? Math.PI : 0;
     g.add(recess, plate, logo, screen);
     for (const hx of [-0.06, 0.06] as const) {
       const slot = new THREE.Mesh(new THREE.BoxGeometry(0.074, 0.28, 0.05), dark);
