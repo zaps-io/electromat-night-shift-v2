@@ -14,7 +14,7 @@ import {
 import { Walker } from "./input/walker";
 import { configureKeyLight, createNightProbe, createPipeline, createRenderer } from "./render/pipeline";
 import { hullDebug, loadCarPrototypes, syncCars, type CarView } from "./world/cars";
-import { KIOSK } from "./world/layout";
+import { KIOSK, WIDE_SHOT } from "./world/layout";
 import { buildSkyline } from "./world/skyline";
 import { addLotMirror, buildStation } from "./world/station";
 
@@ -97,8 +97,8 @@ function dropIn(): void {
   setHum(true);
   if (state.phase === "title") seedOpeningLot(state);
   hideTitle();
-  walker.place(3.05, -9.25, 0.18, -0.08, 1.46);
-  walker.lookAt(-3.95, 1.62, 3.45);
+  walker.place(2.15, -10.4, 0.28, -0.1, 1.48);
+  walker.lookAt(-4.4, 1.55, 4.1);
 }
 
 function restart(): void {
@@ -322,10 +322,14 @@ async function saveShots(): Promise<void> {
   }
   await new Promise((r) => setTimeout(r, 600));
   await post("/workspace/docs/shots/startnight-lot.png", capture(1280, 800));
-  walker.place(-5.4, -2.1);
-  walker.lookAt(-2.45, 0.72, 3.15);
+  walker.place(-6.2, -1.4);
+  walker.lookAt(-2.7, 0.72, 4.2);
   await new Promise((r) => setTimeout(r, 200));
   await post("/workspace/docs/shots/lot-rear34.png", capture(1280, 800));
+  walker.place(WIDE_SHOT.x, WIDE_SHOT.z, WIDE_SHOT.yaw, WIDE_SHOT.pitch, WIDE_SHOT.eyeY);
+  walker.lookAt(WIDE_SHOT.lookAt.x, WIDE_SHOT.lookAt.y, WIDE_SHOT.lookAt.z);
+  await new Promise((r) => setTimeout(r, 200));
+  await post("/workspace/docs/shots/lot-wide.png", capture(1280, 800));
 }
 
 if (params.has("saveshots")) void saveShots();

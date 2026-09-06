@@ -498,8 +498,8 @@ export function placeGuest(view: CarView, guest: Guest, now: number): void {
     view.root.position.set(bay.x, 0, bay.z);
     view.root.rotation.y = -Math.PI / 2;
   } else {
-    const other = guest.id === "ng" || guest.id === "kim" ? 1 : 0;
-    const wait = WAIT_SLOTS[other];
+    const slot = guest.id === "ng" ? 1 : guest.id === "kim" ? 2 : 0;
+    const wait = WAIT_SLOTS[slot];
     view.root.position.set(wait.x, 0, wait.z);
     view.root.rotation.y = -Math.PI / 2 + wait.yaw;
   }

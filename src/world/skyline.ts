@@ -38,11 +38,19 @@ export function buildSkyline(): THREE.Group {
 
   const win = new THREE.MeshBasicMaterial({ color: 0xffd090, toneMapped: false });
   const dark = new THREE.MeshLambertMaterial({ color: 0x10141c });
-  for (let i = 0; i < 40; i++) {
-    const w = 2.2 + (i % 5) * 0.7;
-    const h = 8 + ((i * 17) % 18);
-    const x = -52 + i * 2.65 + (i % 3) * 0.28;
-    const z = 33 + (i % 5) * 1.05;
+  const haze = new THREE.Mesh(
+    new THREE.PlaneGeometry(220, 18),
+    new THREE.MeshBasicMaterial({ color: 0x1a1c24, transparent: true, opacity: 0.45, fog: false, depthWrite: false }),
+  );
+  haze.position.set(0, 7, 38);
+  haze.rotation.y = Math.PI;
+  root.add(haze);
+
+  for (let i = 0; i < 72; i++) {
+    const w = 1.8 + (i % 5) * 0.55;
+    const h = 6 + ((i * 13) % 22);
+    const x = -78 + i * 2.2 + (i % 3) * 0.22;
+    const z = 36 + (i % 7) * 1.15;
     const tower = new THREE.Mesh(new THREE.BoxGeometry(w, h, 2.4), dark);
     tower.position.set(x, h * 0.5 - 0.15, z);
     root.add(tower);
@@ -68,12 +76,20 @@ export function buildSkyline(): THREE.Group {
   });
   const postMat = new THREE.MeshStandardMaterial({ color: 0x4a4e54, roughness: 0.5, metalness: 0.25 });
   const rail = new THREE.MeshStandardMaterial({ color: 0x5a5e64, roughness: 0.4, metalness: 0.35 });
-  for (const z of [14.6]) {
-    const fence = new THREE.Mesh(new THREE.PlaneGeometry(48, 2.55), fenceMat);
-    fence.position.set(0, 1.28, z);
+  const drop = new THREE.Mesh(
+    new THREE.PlaneGeometry(56, 18),
+    new THREE.MeshStandardMaterial({ color: 0x121418, roughness: 0.9 }),
+  );
+  drop.rotation.x = -Math.PI / 2.6;
+  drop.position.set(0, -4.2, 22);
+  root.add(drop);
+
+  for (const z of [15.4]) {
+    const fence = new THREE.Mesh(new THREE.PlaneGeometry(52, 1.85), fenceMat);
+    fence.position.set(0, 0.95, z);
     root.add(fence);
-    for (const y of [2.52, 0.08]) {
-      const bar = new THREE.Mesh(new THREE.BoxGeometry(48, 0.04, 0.04), rail);
+    for (const y of [1.85, 0.08]) {
+      const bar = new THREE.Mesh(new THREE.BoxGeometry(52, 0.04, 0.04), rail);
       bar.position.set(0, y, z);
       root.add(bar);
     }
@@ -94,7 +110,7 @@ export function buildSkyline(): THREE.Group {
     new THREE.BoxGeometry(48, 0.42, 0.28),
     new THREE.MeshStandardMaterial({ color: 0xc4c0b8, roughness: 0.62, metalness: 0.04 }),
   );
-  curb.position.set(0, 0.2, 14.35);
+  curb.position.set(0, 0.2, 15.15);
   root.add(curb);
 
   const hemi = new THREE.HemisphereLight(0xc8d0dc, C.charcoal, 0.22);

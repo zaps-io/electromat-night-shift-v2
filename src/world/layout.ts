@@ -1,16 +1,28 @@
 export const BAYS = [
-  { id: 1, x: -7.4, z: 3.15 },
-  { id: 2, x: -2.45, z: 3.15 },
-  { id: 3, x: 2.45, z: 3.15 },
-  { id: 4, x: 7.4, z: 3.15 },
+  { id: 1, x: -8.2, z: 4.2 },
+  { id: 2, x: -2.7, z: 4.2 },
+  { id: 3, x: 2.7, z: 4.2 },
+  { id: 4, x: 8.2, z: 4.2 },
 ] as const;
 
+/** Queue along the curved approach, Peck first. */
 export const WAIT_SLOTS = [
-  { x: 2.15, z: -1.85, yaw: 0.22 },
-  { x: 5.1, z: -4.4, yaw: 0.08 },
+  { x: -7.6, z: -5.4, yaw: 0.42 },
+  { x: -5.1, z: -7.8, yaw: 0.52 },
+  { x: -2.4, z: -10.0, yaw: 0.62 },
 ] as const;
 
-export const BAY_SIZE = { w: 2.7, d: 5.6 };
-export const KIOSK = { x: 12.4, z: 1.2 };
-/** Left of bay 1, pulled into the default startNight frustum. Long glass faces the player. */
-export const PAVILION = { x: -10.55, z: 2.55, yaw: -1.18 };
+export const BAY_SIZE = { w: 3.05, d: 5.9 };
+export const KIOSK = { x: 13.2, z: 1.6 };
+/** Under the left canopy, glass faces the approach. */
+export const PAVILION = { x: -13.4, z: 4.4, yaw: -0.35 };
+
+/** Elevated wide-still camera (place x,z + eyeY, then lookAt). */
+export const WIDE_SHOT = {
+  x: 6.4,
+  z: -16.8,
+  eyeY: 11.6,
+  yaw: 0.18,
+  pitch: -0.72,
+  lookAt: { x: -1.2, y: 1.1, z: 3.8 },
+} as const;
