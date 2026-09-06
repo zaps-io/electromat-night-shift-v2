@@ -20,6 +20,40 @@ function chainTexture(): THREE.CanvasTexture {
   return tex;
 }
 
+function cityCarpet(): THREE.CanvasTexture {
+  const c = document.createElement("canvas");
+  c.width = 1536;
+  c.height = 384;
+  const ctx = c.getContext("2d")!;
+  const sky = ctx.createLinearGradient(0, 0, 0, 384);
+  sky.addColorStop(0, "#07090e");
+  sky.addColorStop(0.42, "#10141c");
+  sky.addColorStop(1, "#1c1812");
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, 1536, 384);
+  for (let i = 0; i < 90; i++) {
+    const x = (i * 17) % 1536;
+    const w = 10 + (i % 7) * 6;
+    const h = 40 + ((i * 11) % 160);
+    ctx.fillStyle = i % 5 === 0 ? "#0c1016" : "#12161e";
+    ctx.fillRect(x, 384 - h, w, h);
+  }
+  for (let i = 0; i < 5200; i++) {
+    const x = Math.random() * 1536;
+    const y = 48 + Math.random() * 320;
+    const a = 0.18 + Math.random() * 0.72;
+    const s = Math.random() < 0.08 ? 2 : 1;
+    const r = 210 + Math.random() * 40;
+    const g = 170 + Math.random() * 55;
+    const b = 80 + Math.random() * 50;
+    ctx.fillStyle = `rgba(${r | 0},${g | 0},${b | 0},${a})`;
+    ctx.fillRect(x, y, s, s);
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
 export function buildSkyline(): THREE.Group {
   const root = new THREE.Group();
   const sky = new THREE.Mesh(
@@ -28,35 +62,38 @@ export function buildSkyline(): THREE.Group {
   );
   root.add(sky);
 
-  const night = new THREE.Mesh(
-    new THREE.PlaneGeometry(200, 40),
-    new THREE.MeshBasicMaterial({ color: 0x10141c, fog: false }),
+  const carpet = new THREE.Mesh(
+    new THREE.PlaneGeometry(240, 42),
+    new THREE.MeshBasicMaterial({ map: cityCarpet(), fog: false, toneMapped: false }),
   );
-  night.position.set(0, 14, 44);
-  night.rotation.y = Math.PI;
-  root.add(night);
+  carpet.position.set(0, 12, 46);
+  carpet.rotation.y = Math.PI;
+  root.add(carpet);
 
-  const win = new THREE.MeshBasicMaterial({ color: 0xffd090, toneMapped: false });
   const dark = new THREE.MeshLambertMaterial({ color: 0x10141c });
-  for (let i = 0; i < 40; i++) {
-    const w = 2.2 + (i % 5) * 0.7;
-    const h = 8 + ((i * 17) % 18);
-    const x = -52 + i * 2.65 + (i % 3) * 0.28;
-    const z = 33 + (i % 5) * 1.05;
-    const tower = new THREE.Mesh(new THREE.BoxGeometry(w, h, 2.4), dark);
-    tower.position.set(x, h * 0.5 - 0.15, z);
+  const haze = new THREE.Mesh(
+    new THREE.PlaneGeometry(240, 22),
+    new THREE.MeshBasicMaterial({ color: 0x1a1816, transparent: true, opacity: 0.38, fog: false, depthWrite: false }),
+  );
+  haze.position.set(0, 8, 40);
+  haze.rotation.y = Math.PI;
+  root.add(haze);
+  const glow = new THREE.Mesh(
+    new THREE.PlaneGeometry(240, 10),
+    new THREE.MeshBasicMaterial({ color: 0x3a2a18, transparent: true, opacity: 0.22, fog: false, depthWrite: false }),
+  );
+  glow.position.set(0, 3.4, 39);
+  glow.rotation.y = Math.PI;
+  root.add(glow);
+
+  for (let i = 0; i < 36; i++) {
+    const w = 1.6 + (i % 5) * 0.5;
+    const h = 5 + ((i * 17) % 16);
+    const x = -70 + i * 4.1 + (i % 3) * 0.3;
+    const z = 38 + (i % 5) * 1.2;
+    const tower = new THREE.Mesh(new THREE.BoxGeometry(w, h, 2.2), dark);
+    tower.position.set(x, h * 0.5 - 0.2, z);
     root.add(tower);
-    const cols = 3 + (i % 3);
-    const rows = Math.max(6, Math.floor(h / 0.95));
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols; c++) {
-        if ((r + c + i) % 4 === 0) continue;
-        const pane = new THREE.Mesh(new THREE.PlaneGeometry(0.18, 0.24), win);
-        pane.position.set(x - w * 0.32 + c * (w * 0.32), 0.65 + r * 0.92, z - 1.22);
-        pane.rotation.y = Math.PI;
-        root.add(pane);
-      }
-    }
   }
 
   const fenceMat = new THREE.MeshBasicMaterial({
@@ -68,18 +105,40 @@ export function buildSkyline(): THREE.Group {
   });
   const postMat = new THREE.MeshStandardMaterial({ color: 0x4a4e54, roughness: 0.5, metalness: 0.25 });
   const rail = new THREE.MeshStandardMaterial({ color: 0x5a5e64, roughness: 0.4, metalness: 0.35 });
-  for (const z of [14.6]) {
-    const fence = new THREE.Mesh(new THREE.PlaneGeometry(48, 2.55), fenceMat);
-    fence.position.set(0, 1.28, z);
+  const drop = new THREE.Mesh(
+    new THREE.PlaneGeometry(72, 28),
+    new THREE.MeshStandardMaterial({ color: 0x121418, roughness: 0.9 }),
+  );
+  drop.rotation.x = -Math.PI / 2.55;
+  drop.position.set(0, -5.4, 26);
+  root.add(drop);
+  const valley = new THREE.Mesh(
+    new THREE.PlaneGeometry(220, 36),
+    new THREE.MeshBasicMaterial({
+      map: cityCarpet(),
+      transparent: true,
+      opacity: 0.72,
+      fog: false,
+      toneMapped: false,
+      depthWrite: false,
+    }),
+  );
+  valley.rotation.x = -Math.PI / 2.7;
+  valley.position.set(0, -7.2, 38);
+  root.add(valley);
+
+  for (const z of [15.6]) {
+    const fence = new THREE.Mesh(new THREE.PlaneGeometry(52, 1.15), fenceMat);
+    fence.position.set(0, 0.62, z);
     root.add(fence);
-    for (const y of [2.52, 0.08]) {
-      const bar = new THREE.Mesh(new THREE.BoxGeometry(48, 0.04, 0.04), rail);
+    for (const y of [1.18, 0.06]) {
+      const bar = new THREE.Mesh(new THREE.BoxGeometry(52, 0.04, 0.04), rail);
       bar.position.set(0, y, z);
       root.add(bar);
     }
     for (let x = -22; x <= 22; x += 2.6) {
-      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 2.6, 8), postMat);
-      post.position.set(x, 1.3, z);
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.7, 8), postMat);
+      post.position.set(x, 0.85, z);
       root.add(post);
     }
   }
@@ -94,7 +153,7 @@ export function buildSkyline(): THREE.Group {
     new THREE.BoxGeometry(48, 0.42, 0.28),
     new THREE.MeshStandardMaterial({ color: 0xc4c0b8, roughness: 0.62, metalness: 0.04 }),
   );
-  curb.position.set(0, 0.2, 14.35);
+  curb.position.set(0, 0.2, 15.15);
   root.add(curb);
 
   const hemi = new THREE.HemisphereLight(0xc8d0dc, C.charcoal, 0.22);

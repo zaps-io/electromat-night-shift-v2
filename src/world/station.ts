@@ -184,32 +184,31 @@ export function addLotMirror(root: THREE.Group, renderer: THREE.WebGLRenderer): 
 }
 
 function addLaneMarks(root: THREE.Group): void {
-  const white = new THREE.MeshBasicMaterial({ color: 0xe8e6e0, toneMapped: false });
-  for (const x of [-9.8, -4.9, 0, 4.9, 9.8]) {
-    for (let i = 0; i < 8; i++) {
-      const dash = box(0.08, 0.01, 0.55, white, x, 0.018, -6.2 + i * 1.15);
+  const white = new THREE.MeshBasicMaterial({ color: 0xf2f0ea, toneMapped: false });
+  for (const x of [-11.2, -5.5, 0, 5.5, 11.2]) {
+    for (let i = 0; i < 10; i++) {
+      const dash = box(0.09, 0.01, 0.62, white, x, 0.018, -8.4 + i * 1.2);
       dash.castShadow = false;
       root.add(dash);
     }
   }
+  const arrow = box(0.55, 0.012, 0.14, white, -4.8, 0.02, -11.2);
+  arrow.rotation.y = 0.55;
+  root.add(arrow);
+  const grate = box(0.85, 0.03, 0.42, mat(0x3a3e42, { metalness: 0.45, roughness: 0.4 }), -3.4, 0.02, -12.4);
+  root.add(grate);
 }
 
 function addBayOutline(root: THREE.Group, x: number, z: number): THREE.Object3D {
   const g = new THREE.Group();
-  g.position.set(x, 0.02, z);
-  const glow = new THREE.MeshBasicMaterial({ color: 0x00d4f5, toneMapped: false });
-  const halo = new THREE.MeshBasicMaterial({ color: 0x00d4f5, transparent: true, opacity: 0.28, toneMapped: false, depthWrite: false });
-  const t = 0.03;
+  g.position.set(x, 0.018, z);
+  const paint = new THREE.MeshBasicMaterial({ color: 0xf4f1ea, toneMapped: false });
+  const t = 0.055;
   const { w, d } = BAY_SIZE;
-  for (const [bw, bh, bd, bx, by, bz] of [
-    [w, 0.018, t, 0, 0, d / 2],
-    [w, 0.018, t, 0, 0, -d / 2],
-    [t, 0.018, d, w / 2, 0, 0],
-    [t, 0.018, d, -w / 2, 0, 0],
-  ] as const) {
-    g.add(box(bw, bh, bd, glow, bx, by, bz));
-    g.add(box(bw + 0.04, bh + 0.01, bd + 0.04, halo, bx, by, bz));
-  }
+  g.add(box(w, 0.012, t, paint, 0, 0, d / 2));
+  g.add(box(w, 0.012, t, paint, 0, 0, -d / 2));
+  g.add(box(t, 0.012, d, paint, w / 2, 0, 0));
+  g.add(box(t, 0.012, d, paint, -w / 2, 0, 0));
   const anchor = new THREE.Object3D();
   anchor.position.set(0, 0.4, 0);
   anchor.userData.kind = "bay";
@@ -244,30 +243,29 @@ function screenTexture(): THREE.CanvasTexture {
 }
 
 function addPedestal(root: THREE.Group, x: number, z: number): void {
-  const cream = mat(0xf6f3ec, { roughness: 0.18, metalness: 0.06, clearcoat: 0.35, clearcoatRoughness: 0.32 });
-  const px = x - 1.12;
-  const pz = z - 2.15;
-  root.add(box(0.3, 2.48, 0.2, cream, px, 1.25, pz));
-  root.add(box(0.34, 0.04, 0.24, cream, px, 2.5, pz));
+  const body = mat(0x0e1012, { roughness: 0.28, metalness: 0.22, envMapIntensity: 0.5 });
+  const px = x - 1.18;
+  const pz = z - 2.25;
+  root.add(box(0.34, 2.72, 0.22, body, px, 1.36, pz));
+  root.add(box(0.38, 0.05, 0.26, body, px, 2.74, pz));
   const ui = screenTexture();
-  const screen = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.24, 0.78),
-    new THREE.MeshStandardMaterial({
-      map: ui,
-      color: 0xd8ffff,
-      emissive: 0x00e8ff,
-      emissiveIntensity: 2.4,
-      emissiveMap: ui,
-      toneMapped: false,
-    }),
-  );
-  screen.position.set(px, 1.58, pz - 0.11);
+  const screenMat = new THREE.MeshStandardMaterial({
+    map: ui,
+    color: 0xb8ffff,
+    emissive: 0x00d4f5,
+    emissiveIntensity: 2.8,
+    emissiveMap: ui,
+    toneMapped: false,
+    side: THREE.DoubleSide,
+  });
+  const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.22, 0.82), screenMat);
+  screen.position.set(px, 1.72, pz - 0.12);
   screen.rotation.y = Math.PI;
-  const side = new THREE.MeshBasicMaterial({ color: 0x8ef7ff, toneMapped: false });
-  root.add(screen);
-  root.add(box(0.014, 2.05, 0.04, side, px + 0.155, 1.2, pz));
-  root.add(box(0.014, 2.05, 0.04, side, px - 0.155, 1.2, pz));
-  root.add(box(0.1, 0.12, 0.14, mat(0x1e1e24), px + 0.14, 0.92, pz - 0.02));
+  const rear = screen.clone();
+  rear.position.set(px, 1.72, pz + 0.12);
+  rear.rotation.y = 0;
+  root.add(screen, rear);
+  root.add(box(0.12, 0.1, 0.14, mat(0x0c0e10), px + 0.16, 0.92, pz - 0.02));
 }
 
 function roundedRectShape(w: number, d: number, r: number): THREE.Shape {
@@ -288,9 +286,15 @@ function roundedRectShape(w: number, d: number, r: number): THREE.Shape {
 }
 
 function addCanopy(root: THREE.Group): void {
-  const shell = mat(0xf2eee6, { roughness: 0.38, metalness: 0.06, envMapIntensity: 0.7 });
-  const under = mat(0xe4dfd6, { roughness: 0.62, metalness: 0.04 });
-  const topGeo = new THREE.ExtrudeGeometry(roundedRectShape(24.6, 13.2, 1.55), {
+  const shell = mat(0xf6f2ea, { roughness: 0.34, metalness: 0.05, envMapIntensity: 0.75 });
+  const under = new THREE.MeshStandardMaterial({
+    color: 0xf4efe4,
+    emissive: 0xc8bca8,
+    emissiveIntensity: 0.42,
+    roughness: 0.52,
+    metalness: 0.03,
+  });
+  const topGeo = new THREE.ExtrudeGeometry(roundedRectShape(30.4, 14.4, 2.15), {
     depth: 0.2,
     bevelEnabled: true,
     bevelThickness: 0.05,
@@ -304,7 +308,7 @@ function addCanopy(root: THREE.Group): void {
   top.castShadow = true;
   top.receiveShadow = true;
   root.add(top);
-  const underGeo = new THREE.ExtrudeGeometry(roundedRectShape(23.8, 12.5, 1.35), {
+  const underGeo = new THREE.ExtrudeGeometry(roundedRectShape(29.4, 13.6, 1.95), {
     depth: 0.08,
     bevelEnabled: false,
     curveSegments: 8,
@@ -316,9 +320,9 @@ function addCanopy(root: THREE.Group): void {
   root.add(soffit);
 
   const pts: THREE.Vector3[] = [];
-  const hw = 12.15;
-  const hd = 6.45;
-  const rad = 1.45;
+  const hw = 14.9;
+  const hd = 7.0;
+  const rad = 2.0;
   const steps = 7;
   const arc = (cx: number, cz: number, a0: number, a1: number) => {
     for (let i = 0; i <= steps; i++) {
@@ -347,14 +351,14 @@ function addCanopy(root: THREE.Group): void {
   root.add(bloom);
 
   const innerLed = new THREE.MeshBasicMaterial({ color: 0xfff4dc, toneMapped: false });
-  const inner = new THREE.Mesh(new THREE.TubeGeometry(curve, 120, 0.02, 6, true), innerLed);
+  const inner = new THREE.Mesh(new THREE.TubeGeometry(curve, 140, 0.035, 6, true), innerLed);
   inner.position.set(0, 5.08, 3.1);
   inner.scale.set(0.94, 1, 0.94);
   root.add(inner);
 
   const col = mat(0xf0ece4, { metalness: 0.08, roughness: 0.42, envMapIntensity: 0.5 });
-  for (const x of [-10.6, -3.5, 3.5, 10.6]) {
-    for (const z of [-1.8, 7.8]) {
+  for (const x of [-13.2, -4.4, 4.4, 13.2]) {
+    for (const z of [-1.4, 9.2]) {
       const post = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.12, 5.15, 20), col);
       post.position.set(x, 2.52, z);
       post.castShadow = true;
@@ -362,11 +366,11 @@ function addCanopy(root: THREE.Group): void {
     }
   }
 
-  const well = mat(0x0a0a0e, { roughness: 0.78 });
+  const well = mat(0x3a3630, { roughness: 0.58 });
   const lamp = new THREE.MeshStandardMaterial({
-    color: 0xffe2b0,
-    emissive: 0xffd090,
-    emissiveIntensity: 2.15,
+    color: 0xffe6bc,
+    emissive: 0xffd8a0,
+    emissiveIntensity: 2.55,
     toneMapped: false,
   });
   const hang = (xs: number[], zs: number[], intensity: number, shadow: boolean) => {
@@ -385,8 +389,8 @@ function addCanopy(root: THREE.Group): void {
       }
     }
   };
-  hang([-7.4, -2.45, 2.45, 7.4], [3.15], 680, true);
-  hang([-8, -2.6, 2.6, 8], [0.35, 5.85], 300, false);
+  hang([-8.2, -2.7, 2.7, 8.2], [4.2], 620, true);
+  hang([-9, -3, 3, 9], [1.1, 7.2], 280, false);
 }
 
 function addPerson(g: THREE.Group, x: number, z: number, yaw: number, h = 1.7): void {
@@ -476,14 +480,20 @@ function addPavilion(root: THREE.Group): THREE.Box3 {
   addPerson(g, -1.55, -0.55, 1.4, 1.56);
   addPerson(g, -1.45, 0.65, 1.7, 1.6);
   addPerson(g, 0.15, -1.2, 0.2, 1.78);
-  const spill = new THREE.PointLight(0xffb060, 28, 11, 1.4);
+  const spill = new THREE.PointLight(0xffb060, 36, 12, 1.35);
   spill.position.set(-0.4, 2.1, 0);
   g.add(spill);
+  const wash = new THREE.Mesh(
+    new THREE.PlaneGeometry(W - 0.4, paneH - 0.15),
+    new THREE.MeshBasicMaterial({ color: 0xff9a42, transparent: true, opacity: 0.22, side: THREE.DoubleSide, depthWrite: false }),
+  );
+  wash.position.set(0, H * 0.5, 0);
+  g.add(wash);
 
   root.add(g);
   return new THREE.Box3().setFromCenterAndSize(
     new THREE.Vector3(PAVILION.x, 1.6, PAVILION.z),
-    new THREE.Vector3(7.8, 3.4, 8.6),
+    new THREE.Vector3(7.2, 3.4, 5.4),
   );
 }
 
@@ -501,44 +511,130 @@ function addKiosk(root: THREE.Group): THREE.Object3D {
   return stand;
 }
 
-function addPlanters(root: THREE.Group): void {
-  const stone = mat(0x8a8680, { roughness: 0.72, metalness: 0.04 });
+function addPalm(root: THREE.Group, x: number, z: number, h = 5.2): void {
   const trunk = mat(0x2a2218, { roughness: 0.9 });
-  const frond = mat(0x1c2816, { roughness: 0.78 });
+  const frond = new THREE.MeshStandardMaterial({
+    color: 0x1a2614,
+    roughness: 0.78,
+    side: THREE.DoubleSide,
+  });
+  const bole = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.11, h, 8), trunk);
+  bole.position.set(x, h * 0.5, z);
+  bole.castShadow = true;
+  root.add(bole);
+  for (let i = 0; i < 12; i++) {
+    const leaf = new THREE.Mesh(new THREE.PlaneGeometry(0.22, 2.15), frond);
+    leaf.position.set(x, h * 0.94, z);
+    leaf.rotation.order = "YXZ";
+    leaf.rotation.y = i * 0.52;
+    leaf.rotation.x = 0.95 + (i % 3) * 0.08;
+    leaf.castShadow = true;
+    root.add(leaf);
+  }
+}
+
+function addSucculents(root: THREE.Group, x: number, z: number): void {
   const succulent = mat(0x3a4a28, { roughness: 0.7 });
-  for (const [x, z] of [
-    [-8.2, 13.1],
-    [6.4, 13.2],
-  ]) {
-    root.add(box(1.15, 0.28, 1.15, stone, x, 0.14, z));
-    const bole = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.09, 3.4, 8), trunk);
-    bole.position.set(x, 1.85, z);
-    bole.castShadow = true;
-    root.add(bole);
-    for (let i = 0; i < 7; i++) {
-      const leaf = new THREE.Mesh(new THREE.ConeGeometry(0.08, 1.55, 5), frond);
-      leaf.position.set(x, 3.35, z);
-      leaf.rotation.z = 0.85;
-      leaf.rotation.y = i * 0.9;
-      leaf.castShadow = true;
-      root.add(leaf);
-    }
-    for (let i = 0; i < 3; i++) {
-      const agave = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.42, 5), succulent);
-      agave.position.set(x + Math.cos(i * 2.1) * 0.32, 0.42, z + Math.sin(i * 2.1) * 0.32);
-      agave.rotation.z = 0.55;
-      agave.rotation.y = i;
-      root.add(agave);
-    }
+  const grass = mat(0x5a6238, { roughness: 0.82 });
+  const rock = mat(0x6a6458, { roughness: 0.88 });
+  for (let i = 0; i < 7; i++) {
+    const agave = new THREE.Mesh(new THREE.ConeGeometry(0.055, 0.52 + (i % 3) * 0.14, 5), succulent);
+    agave.position.set(x + Math.cos(i * 0.95) * 0.32, 0.42, z + Math.sin(i * 0.95) * 0.32);
+    agave.rotation.z = 0.58;
+    agave.rotation.y = i * 0.7;
+    root.add(agave);
+  }
+  const crown = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), succulent);
+  crown.position.set(x, 0.28, z);
+  root.add(crown);
+  for (let i = 0; i < 8; i++) {
+    const blade = new THREE.Mesh(new THREE.ConeGeometry(0.018, 0.38, 4), grass);
+    blade.position.set(x + Math.cos(i * 0.85) * 0.5, 0.3, z + Math.sin(i * 0.85) * 0.5);
+    blade.rotation.z = 0.42;
+    blade.rotation.y = i * 0.7;
+    root.add(blade);
+  }
+  const pebble = new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 5), rock);
+  pebble.position.set(x + 0.22, 0.08, z - 0.16);
+  pebble.scale.set(1.4, 0.55, 1.1);
+  root.add(pebble);
+}
+
+function addPlanterArc(
+  root: THREE.Group,
+  cx: number,
+  cz: number,
+  r: number,
+  a0: number,
+  a1: number,
+  segs: number,
+): void {
+  const stone = mat(0xf6f2ea, { roughness: 0.48, metalness: 0.04 });
+  const pts: THREE.Vector3[] = [];
+  for (let i = 0; i < segs; i++) {
+    const t0 = a0 + ((a1 - a0) * i) / segs;
+    const t1 = a0 + ((a1 - a0) * (i + 1)) / segs;
+    const mid = (t0 + t1) * 0.5;
+    const x = cx + Math.cos(mid) * r;
+    const z = cz + Math.sin(mid) * r;
+    const span = Math.hypot(Math.cos(t1) * r - Math.cos(t0) * r, Math.sin(t1) * r - Math.sin(t0) * r) + 0.18;
+    const wall = box(span, 0.56, 0.36, stone, x, 0.28, z);
+    wall.rotation.y = -mid - Math.PI / 2;
+    root.add(wall);
+    pts.push(new THREE.Vector3(x, 0.58, z));
+    if (i % 2 === 0) addSucculents(root, x + Math.cos(mid) * 0.42, z + Math.sin(mid) * 0.42);
+  }
+  if (pts.length > 2) {
+    const rail = new THREE.Mesh(
+      new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), segs * 2, 0.055, 6, false),
+      stone,
+    );
+    root.add(rail);
+  }
+}
+
+function addPlanters(root: THREE.Group): void {
+  addPlanterArc(root, -0.6, -3.4, 9.4, 3.35, 5.35, 18);
+  addPlanterArc(root, 2.4, 12.8, 16.4, 3.55, 5.75, 16);
+  addPlanterArc(root, -13.2, 1.6, 4.8, -0.55, 1.55, 9);
+  addPlanterArc(root, 11.4, -6.8, 7.6, 2.05, 3.75, 10);
+  addPlanterArc(root, -8.8, -11.2, 4.2, 0.2, 1.8, 7);
+  const curb = mat(0xcec8be, { roughness: 0.62 });
+  for (let i = 0; i < 10; i++) {
+    const t = i / 9;
+    const x = -11.4 + t * 8.8;
+    const z = -12.6 + t * 2.4 + Math.sin(t * 2.2) * 0.45;
+    const slab = box(1.05, 0.16, 0.28, curb, x, 0.08, z);
+    slab.rotation.y = 0.28;
+    root.add(slab);
+  }
+  const grate = box(0.92, 0.04, 0.46, mat(0x3a3e42, { metalness: 0.5, roughness: 0.38 }), -4.2, 0.03, -11.6);
+  root.add(grate);
+  for (const [x, z, h] of [
+    [-17.2, 11.6, 7.4],
+    [-12.4, 14.2, 6.6],
+    [-6.2, 14.8, 8.2],
+    [-1.4, 15.0, 6.8],
+    [4.8, 14.6, 7.6],
+    [10.2, 13.8, 6.2],
+    [15.6, 11.4, 7.1],
+    [17.4, 5.2, 6.4],
+    [-19.0, 3.2, 6.8],
+    [-16.6, -2.8, 5.8],
+    [16.2, -5.6, 5.6],
+    [-10.8, -13.4, 5.4],
+    [8.4, -12.8, 5.2],
+  ] as const) {
+    addPalm(root, x, z, h);
   }
 }
 
 function addStreetlights(root: THREE.Group): void {
-  const poleMat = mat(0x2a2c30, { roughness: 0.55, metalness: 0.35 });
+  const poleMat = mat(0x1c1e22, { roughness: 0.48, metalness: 0.4 });
   const lamp = new THREE.MeshStandardMaterial({
-    color: 0xffe0b0,
-    emissive: 0xffc878,
-    emissiveIntensity: 1.55,
+    color: 0xffe8c4,
+    emissive: 0xffd090,
+    emissiveIntensity: 1.85,
     toneMapped: false,
   });
   for (const [x, z] of [
@@ -549,29 +645,19 @@ function addStreetlights(root: THREE.Group): void {
     [6.8, 12.8],
     [12.6, 8.4],
     [13.2, -1.6],
+    [-12.4, -6.2],
   ]) {
-    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.07, 4.6, 8), poleMat);
-    pole.position.set(x, 2.3, z);
-    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.05, 0.05), poleMat);
-    arm.position.set(x - 0.35, 4.55, z);
-    const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 8), lamp);
-    bulb.position.set(x - 0.72, 4.42, z);
-    const glow = new THREE.PointLight(0xffc878, 3.2, 7, 1.8);
-    glow.position.set(x - 0.72, 4.35, z);
-    root.add(pole, arm, bulb, glow);
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.06, 5.4, 8), poleMat);
+    pole.position.set(x, 2.7, z);
+    const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.05, 20), lamp);
+    disc.position.set(x, 5.42, z);
+    root.add(pole, disc);
+    if (x === -16.8 || x === -1.2 || x === 12.6) {
+      const glow = new THREE.PointLight(0xffc878, 2.4, 8, 1.8);
+      glow.position.set(x, 5.2, z);
+      root.add(glow);
+    }
   }
-}
-
-function addPylon(root: THREE.Group): void {
-  const cream = mat(C.cream);
-  root.add(box(1.15, 5.4, 0.28, cream, -16.2, 2.7, 2.4));
-  const board = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.9, 0.7),
-    new THREE.MeshStandardMaterial({ color: C.amber, emissive: C.amber, emissiveIntensity: 1.2, toneMapped: false }),
-  );
-  board.position.set(-16.04, 3.6, 2.4);
-  board.rotation.y = Math.PI / 2;
-  root.add(board);
 }
 
 export function buildStation(): Station {
@@ -583,7 +669,6 @@ export function buildStation(): Station {
   const kiosk = addKiosk(root);
   addPlanters(root);
   addStreetlights(root);
-  addPylon(root);
 
   const bayAnchors: THREE.Object3D[] = [];
   for (const bay of BAYS) {

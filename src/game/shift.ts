@@ -160,6 +160,7 @@ export function seedOpeningLot(s: GameState): void {
   s.timeMin = SHIFT_START + 5;
   const hale = guestById(s, "hale")!;
   const ruiz = guestById(s, "ruiz")!;
+  const vora = guestById(s, "vora")!;
   const peck = guestById(s, "peck")!;
   hale.assignedBay = 1;
   hale.plugged = true;
@@ -173,10 +174,16 @@ export function seedOpeningLot(s: GameState): void {
   ruiz.greeted = true;
   ruiz.delivered = 2;
   s.bays[1].guestId = "ruiz";
+  vora.assignedBay = 4;
+  vora.plugged = true;
+  vora.authorized = true;
+  vora.greeted = true;
+  vora.delivered = 3;
+  s.bays[3].guestId = "vora";
   peck.greeted = false;
-  s.plugs = 2;
+  s.plugs = 3;
   s.autochargeSignups = 0;
-  speak(s, "Two on charge. Peck needs a bay.", 10);
+  speak(s, "Three on charge. Queue is building.", 10);
 }
 
 export function resetNight(): GameState {
