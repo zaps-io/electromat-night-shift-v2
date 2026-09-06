@@ -55,6 +55,11 @@ export function createNightProbe(renderer: THREE.WebGLRenderer): THREE.Texture {
     [-10.55, 1.4, 2.55, 0xff7a28, 0.48],
     [-16.8, 4.4, 0.4, 0xffc878, 0.22],
     [12.6, 4.4, 8.4, 0xffc878, 0.22],
+    [-7.4, 1.55, 1.6, 0xd4dae0, 0.12],
+    [-3.8, 1.55, 1.6, 0xd4dae0, 0.12],
+    [-0.2, 1.55, 1.6, 0xd4dae0, 0.12],
+    [3.4, 1.55, 1.6, 0xd4dae0, 0.12],
+    [-5.0, 1.8, -1.0, 0xeee6d8, 0.14],
   ] as const) {
     const bulb = new THREE.Mesh(
       new THREE.SphereGeometry(r, 8, 8),
