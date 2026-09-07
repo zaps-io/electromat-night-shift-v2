@@ -48,7 +48,7 @@ Cinematic WebGL lot: ACES Filmic (exposure ~0.86) + one warm dusk `DirectionalLi
 
 Official cream/red Zaps wordmarks only. Palette: `#E63225` `#1E1E24` `#E89A2E` `#00D4F5` `#F5F0E8`.
 
-Lot PBR/env pass: merge `4c80ec6`. Live hull: Tesla Model 3, opaque paint (this branch).
+Lot PBR/env pass: merge `4c80ec6`. Live hull: Tesla Model 3, opaque paint (`c9a88ca`). Gameplay/collision stills recaptured on this branch.
 
 ## Dev
 
