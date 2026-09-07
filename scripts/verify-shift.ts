@@ -47,11 +47,15 @@ const sedan = makeSolidCar(0xf4f1ea, "sedan");
 const suv = makeSolidCar(0x4a5560, "suv");
 assertOpaqueCarMaterials(sedan);
 assertOpaqueCarMaterials(suv);
-let paints = 0;
+let paintVerts = 0;
+let windows = 0;
 sedan.traverse((o) => {
-  const mesh = o as { isMesh?: boolean; name?: string };
-  if (mesh.isMesh && mesh.name === "Paint") paints += 1;
+  const mesh = o as { isMesh?: boolean; name?: string; geometry?: { getAttribute: (k: string) => { count: number } } };
+  if (!mesh.isMesh) return;
+  if (mesh.name === "Paint") paintVerts += mesh.geometry?.getAttribute("position")?.count ?? 0;
+  if (mesh.name === "Window") windows += 1;
 });
-if (paints < 2) throw new Error("solid sedan needs a closed body+cabin paint hull");
+if (paintVerts < 800) throw new Error("closed loft sedan needs a dense paint hull");
+if (!windows) throw new Error("sedan needs opaque window panels");
 
 console.log("verify-shift ok");

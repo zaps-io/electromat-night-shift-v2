@@ -42,11 +42,11 @@ Site line: **DRIVE IN. CHARGE UP. ZIP OUT.**
 
 ## Visual bar
 
-Cinematic WebGL lot: ACES Filmic (exposure ~0.86) + one warm dusk `DirectionalLight`, golden-hour `scene.environment` via `PMREMGenerator`, `postprocessing` bloom / vignette / SMAA. Twin cream canopies with a thin red fascia and official red Zaps wordmarks, 24 Slim Zeus (brushed metal, charcoal recess, cyan base, amber PLUG IN), glass lounge, grit asphalt + curb maps, mural / commercial street backdrop. Guest cars are **closed box sedans** (`MeshBasicMaterial` paint, opaque dark window panels). No Taycan/GLB hulls, no lofted shells, no transmission. Ugly-but-solid at play distance. Sketchfab Taycan remains in `public/models/` for attribution only.
+Cinematic WebGL lot: ACES Filmic (exposure ~0.86) + one warm dusk `DirectionalLight`, golden-hour `scene.environment` via `PMREMGenerator`, `postprocessing` bloom / vignette / SMAA. Twin cream canopies with a thin red fascia and official red Zaps wordmarks, 24 Slim Zeus (brushed metal, charcoal recess, cyan base, amber PLUG IN), glass lounge, grit asphalt + curb maps, mural / commercial street backdrop. Guest cars are **closed lofted EV sedans** (watertight paint volume, `MeshLambertMaterial`, opaque dark window panels, seated wheels). No Taycan/GLB hulls on the lot, no open shells, no transmission. Sketchfab Taycan remains in `public/models/` for attribution only.
 
 Official cream/red Zaps wordmarks only. Palette: `#E63225` `#1E1E24` `#E89A2E` `#00D4F5` `#F5F0E8`.
 
-Lot PBR/env pass: merge `4c80ec6`. Hull ghost fix: `f34a753`. #33 (`fe9f818`) lofted hull still ghosted — lot cars replaced by closed unlit box sedans in this PR.
+Lot PBR/env pass: merge `4c80ec6`. Hull ghost fix: `f34a753`. #33 (`fe9f818`) lofted hull still ghosted — lot cars are closed lofted sedans (this PR).
 
 ## Dev
 
