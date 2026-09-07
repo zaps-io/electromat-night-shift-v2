@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { C } from "../brand";
 import { BAY_SIZE, CANOPIES, KIOSK, PAVILION, STALLS, YARD } from "./layout";
-import { asphaltColor, asphaltRough, creamPanels, gravel, soffitPanels, stucco } from "./tex";
+import { asphaltColor, asphaltNormal, asphaltRough, creamPanels, curbColor, curbRough, gravel, soffitPanels, stucco } from "./tex";
 import { addZeusCharger } from "./zeus";
 
 export interface Station {
@@ -42,12 +42,14 @@ function makeAsphalt(root: THREE.Group): THREE.Mesh {
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(78, 68),
     new THREE.MeshStandardMaterial({
-      color: 0x0c0d10,
+      color: 0x121318,
       map: asphaltColor(),
-      roughness: 0.94,
+      roughness: 0.92,
       roughnessMap: asphaltRough(),
-      metalness: 0.015,
-      envMapIntensity: 0.1,
+      normalMap: asphaltNormal(),
+      normalScale: new THREE.Vector2(0.85, 0.85),
+      metalness: 0.02,
+      envMapIntensity: 0.22,
     }),
   );
   ground.rotation.x = -Math.PI / 2;
@@ -133,12 +135,12 @@ function roundedRectShape(w: number, d: number, r: number): THREE.Shape {
   return s;
 }
 
-function addCanopyAt(root: THREE.Group, cx: number, cz: number, w: number, d: number, y: number, shadow: boolean): void {
+function addCanopyAt(root: THREE.Group, cx: number, cz: number, w: number, d: number, y: number, _shadow: boolean): void {
   const panels = creamPanels();
-  const shell = mat(0xf7f4ee, {
-    roughness: 0.38,
-    metalness: 0.08,
-    envMapIntensity: 0.42,
+  const shell = mat(0xf4f0e8, {
+    roughness: 0.48,
+    metalness: 0.06,
+    envMapIntensity: 0.32,
     map: panels,
   });
   const under = new THREE.MeshStandardMaterial({
@@ -222,18 +224,25 @@ function addCanopyAt(root: THREE.Group, cx: number, cz: number, w: number, d: nu
     seam.position.set(cx, y + 0.59, cz + i * (d * 0.16));
     root.add(seam);
   }
-  const light = new THREE.SpotLight(0xf2c878, shadow ? 32 : 22, 12, 0.62, 0.58, 1.25);
-  light.position.set(cx, y - 0.16, cz);
-  light.target.position.set(cx, 0, cz);
-  light.castShadow = shadow;
-  root.add(light, light.target);
 
-  const pad = mat(0xd8d2c6, { roughness: 0.78, metalness: 0.03 });
+  const pad = mat(0xd8d2c6, {
+    roughness: 0.82,
+    metalness: 0.02,
+    map: curbColor(),
+    roughnessMap: curbRough(),
+    envMapIntensity: 0.12,
+  });
   const median = new THREE.Mesh(new RoundedBoxGeometry(1.35, 0.16, d - 3.2, 2, 0.05), pad);
   median.position.set(cx, 0.08, cz);
   median.receiveShadow = true;
   root.add(median);
-  const curb = mat(0xe8e2d6, { roughness: 0.7, metalness: 0.03 });
+  const curb = mat(0xe8e2d6, {
+    roughness: 0.78,
+    metalness: 0.02,
+    map: curbColor(),
+    roughnessMap: curbRough(),
+    envMapIntensity: 0.12,
+  });
   for (const sx of [-1, 1]) {
     const island = new THREE.Mesh(new RoundedBoxGeometry(0.42, 0.14, d - 2.6, 2, 0.05), curb);
     island.position.set(cx + sx * (w * 0.42), 0.07, cz);
@@ -273,13 +282,11 @@ function addPavilion(root: THREE.Group): THREE.Box3 {
   const plinth = mat(C.charcoal, { roughness: 0.62, metalness: 0.08, envMapIntensity: 0.2 });
   const glass = new THREE.MeshPhysicalMaterial({
     color: 0x6a88a0,
-    roughness: 0.035,
+    roughness: 0.04,
     metalness: 0.08,
-    transmission: 0.22,
     transparent: true,
-    opacity: 0.32,
-    thickness: 0.06,
-    envMapIntensity: 1.35,
+    opacity: 0.34,
+    envMapIntensity: 1.15,
     side: THREE.DoubleSide,
   });
   const W = PAVILION.w;
@@ -330,9 +337,7 @@ function addPavilion(root: THREE.Group): THREE.Box3 {
   g.add(box(0.6, 0.85, 0.6, shade, -0.15, 0.55, 1.05));
   addPerson(g, -1.4, -0.4, 1.4, 1.56);
   addPerson(g, -1.25, 0.55, 1.7, 1.6);
-  const spill = new THREE.PointLight(0xf0a040, 18, 9, 1.45);
-  spill.position.set(-0.3, 2.0, 0);
-  g.add(spill);
+  /* Lounge read comes from emissive interiors + scene env; skip extra point lights. */
 
   const roof = new THREE.Mesh(new RoundedBoxGeometry(W + 0.55, 0.42, D + 0.55, 3, 0.16), wall);
   roof.position.y = H + 0.12;
@@ -410,7 +415,13 @@ function gravelMap(): THREE.CanvasTexture {
 }
 
 function addDesertBed(root: THREE.Group, x: number, z: number, w: number, d: number): void {
-  const curb = mat(0xeee8dc, { roughness: 0.55, metalness: 0.04 });
+  const curb = mat(0xeee8dc, {
+    roughness: 0.7,
+    metalness: 0.03,
+    map: curbColor(),
+    roughnessMap: curbRough(),
+    envMapIntensity: 0.12,
+  });
   const bed = new THREE.Mesh(new RoundedBoxGeometry(w, 0.32, d, 2, 0.06), curb);
   bed.position.set(x, 0.16, z);
   bed.receiveShadow = true;
@@ -578,10 +589,8 @@ function addStreetlights(root: THREE.Group): void {
     disc.position.set(x, 5.22, z);
     root.add(pole, disc);
   }
-  const glow = new THREE.PointLight(0xffc878, 1.6, 8, 1.8);
-  glow.position.set(-18.0, 5.0, -17.6);
-  root.add(glow);
 }
+
 
 export function buildStation(): Station {
   const root = new THREE.Group();

@@ -7,18 +7,16 @@ const brush = brushMetal();
 
 const alum = new THREE.MeshPhysicalMaterial({
   name: "ZeusAlum",
-  color: 0xd6d8dc,
+  color: 0xc6cad0,
   map: brush.map,
   roughnessMap: brush.rough,
-  metalness: 0.78,
-  roughness: 0.24,
-  clearcoat: 0.2,
-  clearcoatRoughness: 0.38,
-  anisotropy: 0.94,
+  normalMap: brush.normal,
+  normalScale: new THREE.Vector2(0.7, 1.8),
+  metalness: 0.98,
+  roughness: 0.32,
+  anisotropy: 1,
   anisotropyRotation: Math.PI / 2,
-  envMapIntensity: 1.35,
-  emissive: 0x2a2c30,
-  emissiveIntensity: 0.08,
+  envMapIntensity: 1.2,
 });
 
 const charcoal = new THREE.MeshStandardMaterial({
@@ -54,9 +52,21 @@ const cableMat = new THREE.MeshStandardMaterial({
   metalness: 0.02,
 });
 
-const cyanSeam = new THREE.MeshBasicMaterial({
+const cyanSeam = new THREE.MeshStandardMaterial({
   color: C.cyan,
+  emissive: C.cyan,
+  emissiveIntensity: 3.4,
+  roughness: 0.22,
+  metalness: 0.05,
   toneMapped: false,
+});
+
+const cyanGlow = new THREE.MeshBasicMaterial({
+  color: 0x7ef6ff,
+  transparent: true,
+  opacity: 0.42,
+  toneMapped: false,
+  depthWrite: false,
 });
 
 const glass = new THREE.MeshPhysicalMaterial({
@@ -120,8 +130,9 @@ const geo = {
   foot: new THREE.CylinderGeometry(0.018, 0.02, 0.02, 8),
   body: new RoundedBoxGeometry(0.5, 2.08, 0.44, 4, 0.034),
   cap: new RoundedBoxGeometry(0.51, 0.05, 0.45, 3, 0.016),
-  seam: new THREE.BoxGeometry(0.52, 0.016, 0.46),
-  recess: new THREE.BoxGeometry(0.3, 1.42, 0.048),
+  seam: new THREE.BoxGeometry(0.535, 0.022, 0.475),
+  seamGlow: new THREE.BoxGeometry(0.56, 0.04, 0.5),
+  recess: new THREE.BoxGeometry(0.32, 1.48, 0.055),
   well: new THREE.BoxGeometry(0.27, 1.32, 0.02),
   screen: new THREE.BoxGeometry(0.15, 0.15, 0.012),
   bezel: new THREE.BoxGeometry(0.24, 0.07, 0.01),
@@ -202,6 +213,8 @@ export function addZeusCharger(
 
   const seam = new THREE.Mesh(geo.seam, cyanSeam);
   seam.position.y = 0.148;
+  const seamHalo = new THREE.Mesh(geo.seamGlow, cyanGlow);
+  seamHalo.position.y = 0.148;
 
   const recess = new THREE.Mesh(geo.recess, charcoal);
   recess.position.set(0, 1.28, -0.212);
@@ -221,7 +234,7 @@ export function addZeusCharger(
   addFrontHolster(g, -1, detail === "full");
   addFrontHolster(g, 1, detail === "full");
 
-  g.add(base, body, cap, seam, recess, well, screen, bezel, display);
+  g.add(base, body, cap, seam, seamHalo, recess, well, screen, bezel, display);
   root.add(g);
 }
 

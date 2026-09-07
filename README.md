@@ -42,9 +42,11 @@ Site line: **DRIVE IN. CHARGE UP. ZIP OUT.**
 
 ## Visual bar
 
-Cinematic WebGL lot: ACES Filmic + PCF-soft shadows, dusk PMREM probe, `postprocessing` bloom / vignette / SMAA. Twin cream canopies with a thin red fascia and official red Zaps wordmarks, 24 Slim Zeus (6 playable + lite impostors), glass lounge, desert gravel planters, mural / commercial street backdrop. Guest cars are **2020 Porsche Taycan** by martin002 on Sketchfab (CC BY 4.0). See `public/models/porsche-taycan-2020.ATTRIBUTION.txt`.
+Cinematic WebGL lot: ACES Filmic (exposure ~0.86) + one warm dusk `DirectionalLight`, golden-hour `scene.environment` via `PMREMGenerator`, `postprocessing` bloom / vignette / SMAA. Twin cream canopies with a thin red fascia and official red Zaps wordmarks, 24 Slim Zeus (brushed metal, charcoal recess, cyan base, amber PLUG IN), glass lounge, grit asphalt + curb maps, mural / commercial street backdrop. Guest cars use `MeshPhysicalMaterial` clearcoat (no lot-scale transmission). Hull cleanup strips Sketchfab wire-helper duplicates, thin red rays, and extra tire meshes. **2020 Porsche Taycan** by martin002 on Sketchfab (CC BY 4.0). See `public/models/porsche-taycan-2020.ATTRIBUTION.txt`.
 
 Official cream/red Zaps wordmarks only. Palette: `#E63225` `#1E1E24` `#E89A2E` `#00D4F5` `#F5F0E8`.
+
+Lot PBR/env pass: `b78b5df` on `cursor/lot-pbr-env-a5cf` (from `main` @ `3987a00`).
 
 ## Dev
 

@@ -19,47 +19,149 @@ export function canvasTex(
   return tex;
 }
 
+const ASPHALT_REPEAT_X = 16;
+const ASPHALT_REPEAT_Y = 14;
+
+function paintAsphaltHeight(ctx: CanvasRenderingContext2D, size: number): void {
+  ctx.fillStyle = "#808080";
+  ctx.fillRect(0, 0, size, size);
+  for (let i = 0; i < 48000; i++) {
+    const v = 96 + Math.random() * 80;
+    ctx.fillStyle = `rgb(${v},${v},${v})`;
+    ctx.fillRect(Math.random() * size, Math.random() * size, 1 + (i % 2), 1);
+  }
+  for (let i = 0; i < 90; i++) {
+    const v = 70 + Math.random() * 24;
+    ctx.fillStyle = `rgb(${v},${v},${v})`;
+    ctx.fillRect(Math.random() * size, Math.random() * size, 16 + Math.random() * 36, 2 + Math.random() * 5);
+  }
+}
+
 export function asphaltColor(): THREE.CanvasTexture {
   return canvasTex(1024, 1024, (ctx, size) => {
-    ctx.fillStyle = "#090a0c";
+    ctx.fillStyle = "#0a0b0d";
     ctx.fillRect(0, 0, size, size);
-    for (let i = 0; i < 62000; i++) {
+    for (let i = 0; i < 72000; i++) {
       const x = Math.random() * size;
       const y = Math.random() * size;
-      const warm = Math.random() < 0.18;
-      const n = 14 + Math.random() * 32;
+      const warm = Math.random() < 0.2;
+      const n = 16 + Math.random() * 36;
       ctx.fillStyle = warm
-        ? `rgba(${n + 16},${n + 8},${n},${0.32 + Math.random() * 0.4})`
-        : `rgba(${n},${n + 2},${n + 6},${0.26 + Math.random() * 0.42})`;
-      ctx.fillRect(x, y, 1 + (Math.random() < 0.2 ? 2 : 1), 1 + (Math.random() < 0.12 ? 2 : 0));
+        ? `rgba(${n + 18},${n + 10},${n},${0.34 + Math.random() * 0.42})`
+        : `rgba(${n},${n + 2},${n + 6},${0.28 + Math.random() * 0.44})`;
+      ctx.fillRect(x, y, 1 + (Math.random() < 0.22 ? 2 : 1), 1 + (Math.random() < 0.14 ? 2 : 0));
     }
-    for (let i = 0; i < 140; i++) {
+    for (let i = 0; i < 160; i++) {
       const x = Math.random() * size;
       const y = Math.random() * size;
-      ctx.fillStyle = `rgba(5,6,8,${0.16 + Math.random() * 0.22})`;
+      ctx.fillStyle = `rgba(6,6,8,${0.18 + Math.random() * 0.24})`;
       ctx.fillRect(x, y, 10 + Math.random() * 28, 2 + Math.random() * 7);
     }
-    for (let i = 0; i < 30; i++) {
-      ctx.strokeStyle = `rgba(18,16,14,${0.18 + Math.random() * 0.2})`;
+    for (let i = 0; i < 36; i++) {
+      ctx.strokeStyle = `rgba(20,18,16,${0.2 + Math.random() * 0.22})`;
       ctx.lineWidth = 1 + Math.random();
       ctx.beginPath();
       ctx.moveTo(Math.random() * size, Math.random() * size);
       ctx.quadraticCurveTo(Math.random() * size, Math.random() * size, Math.random() * size, Math.random() * size);
       ctx.stroke();
     }
-  }, { repeatX: 8, repeatY: 7, aniso: 8 });
+  }, { repeatX: ASPHALT_REPEAT_X, repeatY: ASPHALT_REPEAT_Y, aniso: 8 });
 }
 
 export function asphaltRough(): THREE.CanvasTexture {
   return canvasTex(1024, 1024, (ctx, size) => {
-    ctx.fillStyle = "#8a8a8a";
-    ctx.fillRect(0, 0, size, size);
-    for (let i = 0; i < 42000; i++) {
-      const v = 90 + Math.random() * 110;
+    paintAsphaltHeight(ctx, size);
+    for (let i = 0; i < 18000; i++) {
+      const v = 150 + Math.random() * 80;
       ctx.fillStyle = `rgb(${v},${v},${v})`;
-      ctx.fillRect(Math.random() * size, Math.random() * size, 2, 2);
+      ctx.fillRect(Math.random() * size, Math.random() * size, 1, 1);
     }
-  }, { repeatX: 8, repeatY: 7, srgb: false, aniso: 8 });
+  }, { repeatX: ASPHALT_REPEAT_X, repeatY: ASPHALT_REPEAT_Y, srgb: false, aniso: 8 });
+}
+
+export function asphaltNormal(): THREE.CanvasTexture {
+  const size = 512;
+  const height = document.createElement("canvas");
+  height.width = height.height = size;
+  paintAsphaltHeight(height.getContext("2d")!, size);
+  return heightToNormal(height, ASPHALT_REPEAT_X, ASPHALT_REPEAT_Y);
+}
+
+function heightToNormal(src: HTMLCanvasElement, repeatX: number, repeatY: number): THREE.CanvasTexture {
+  const size = src.width;
+  const srcCtx = src.getContext("2d")!;
+  const srcData = srcCtx.getImageData(0, 0, size, size).data;
+  const out = document.createElement("canvas");
+  out.width = out.height = size;
+  const dst = out.getContext("2d")!;
+  const img = dst.createImageData(size, size);
+  const strength = 2.4;
+  const at = (x: number, y: number) => srcData[(((y + size) % size) * size + ((x + size) % size)) * 4] / 255;
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const dx = (at(x + 1, y) - at(x - 1, y)) * strength;
+      const dy = (at(x, y + 1) - at(x, y - 1)) * strength;
+      const inv = 1 / Math.hypot(dx, dy, 1);
+      const i = (y * size + x) * 4;
+      img.data[i] = (dx * inv * 0.5 + 0.5) * 255;
+      img.data[i + 1] = (dy * inv * 0.5 + 0.5) * 255;
+      img.data[i + 2] = (inv * 0.5 + 0.5) * 255;
+      img.data[i + 3] = 255;
+    }
+  }
+  dst.putImageData(img, 0, 0);
+  const tex = new THREE.CanvasTexture(out);
+  tex.colorSpace = THREE.NoColorSpace;
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(repeatX, repeatY);
+  tex.anisotropy = 8;
+  tex.needsUpdate = true;
+  return tex;
+}
+
+export function curbColor(): THREE.CanvasTexture {
+  return canvasTex(256, 256, (ctx, w, h) => {
+    ctx.fillStyle = "#E6E0D4";
+    ctx.fillRect(0, 0, w, h);
+    for (let i = 0; i < 2400; i++) {
+      const n = 200 + Math.random() * 40;
+      ctx.fillStyle = `rgb(${n},${n - 8},${n - 18})`;
+      ctx.fillRect(Math.random() * w, Math.random() * h, 2, 2);
+    }
+    ctx.strokeStyle = "rgba(160,150,136,0.28)";
+    for (let y = 32; y < h; y += 48) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(w, y + 2);
+      ctx.stroke();
+    }
+  }, { repeatX: 2, repeatY: 6, aniso: 6 });
+}
+
+export function curbRough(): THREE.CanvasTexture {
+  return canvasTex(256, 256, (ctx, w, h) => {
+    ctx.fillStyle = "#9a9a9a";
+    ctx.fillRect(0, 0, w, h);
+    for (let i = 0; i < 1800; i++) {
+      const v = 110 + Math.random() * 70;
+      ctx.fillStyle = `rgb(${v},${v},${v})`;
+      ctx.fillRect(Math.random() * w, Math.random() * h, 2, 2);
+    }
+  }, { repeatX: 2, repeatY: 6, srgb: false });
+}
+
+export function duskSky(): THREE.CanvasTexture {
+  return canvasTex(16, 256, (ctx, w, h) => {
+    const g = ctx.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, "#1c2436");
+    g.addColorStop(0.22, "#3a3a52");
+    g.addColorStop(0.42, "#b45a2a");
+    g.addColorStop(0.6, "#f08830");
+    g.addColorStop(0.78, "#f6c060");
+    g.addColorStop(1, "#ffe8b4");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+  }, { wrap: false });
 }
 
 export function soffitPanels(): THREE.CanvasTexture {
@@ -127,20 +229,27 @@ export function stucco(base = "#F6F1E6"): THREE.CanvasTexture {
   }, { repeatX: 3, repeatY: 2 });
 }
 
-export function facade(): THREE.CanvasTexture {
+export function facade(style: "warm" | "cool" | "dark" = "warm"): THREE.CanvasTexture {
+  const plaster = style === "dark" ? "#2a2e34" : style === "cool" ? "#b8b6b0" : "#c8b8a4";
   return canvasTex(256, 512, (ctx, w, h) => {
-    ctx.fillStyle = "#c4b8a8";
+    ctx.fillStyle = plaster;
     ctx.fillRect(0, 0, w, h);
-    for (let i = 0; i < 2200; i++) {
-      const n = 170 + Math.random() * 50;
-      ctx.fillStyle = `rgb(${n},${n - 10},${n - 22})`;
+    for (let i = 0; i < 2400; i++) {
+      const n = style === "dark" ? 36 + Math.random() * 28 : 160 + Math.random() * 48;
+      ctx.fillStyle = `rgb(${n},${n - 8},${n - 16})`;
       ctx.fillRect(Math.random() * w, Math.random() * h, 2, 2);
     }
-    for (let row = 28; row < h - 24; row += 36) {
-      for (let col = 18; col < w - 16; col += 28) {
-        const on = ((row + col) * 13) % 7 !== 0;
-        ctx.fillStyle = on ? "#f0b060" : "#1c2834";
-        ctx.fillRect(col, row, 14, 8);
+    ctx.fillStyle = style === "dark" ? "rgba(12,12,16,0.35)" : "rgba(90,80,70,0.22)";
+    for (let y = 64; y < h; y += 96) ctx.fillRect(0, y, w, 3);
+    for (let row = 22; row < h - 20; row += 32) {
+      for (let col = 14; col < w - 12; col += 26) {
+        const seed = (row * 17 + col * 11) % 11;
+        const on = seed !== 0 && seed !== 4;
+        const bright = seed === 2 || seed === 7;
+        ctx.fillStyle = on ? (bright ? "#f6c878" : "#d89848") : style === "dark" ? "#0c1016" : "#1a222c";
+        ctx.fillRect(col, row, 12, 7);
+        ctx.fillStyle = "rgba(255,220,160,0.18)";
+        if (on) ctx.fillRect(col, row, 12, 2);
       }
     }
   }, { repeatX: 2, repeatY: 1 });
@@ -236,28 +345,45 @@ export function fabric(): THREE.CanvasTexture {
   }, { repeatX: 4, repeatY: 6, srgb: true });
 }
 
-export function brushMetal(): { map: THREE.CanvasTexture; rough: THREE.CanvasTexture } {
-  const map = canvasTex(128, 512, (ctx, w, h) => {
-    ctx.fillStyle = "#B8BCC0";
+export function brushMetal(): { map: THREE.CanvasTexture; rough: THREE.CanvasTexture; normal: THREE.CanvasTexture } {
+  const map = canvasTex(64, 512, (ctx, w, h) => {
+    ctx.fillStyle = "#C4C8CC";
     ctx.fillRect(0, 0, w, h);
     for (let x = 0; x < w; x++) {
-      const grain = Math.sin(x * 0.7) * 10 + Math.sin(x * 2.1) * 5 + ((x * 19) % 7);
-      const v = 150 + grain;
-      ctx.fillStyle = `rgb(${v},${v + 3},${v + 8})`;
+      const grain = Math.sin(x * 0.85) * 14 + Math.sin(x * 2.4) * 7 + ((x * 23) % 9);
+      const v = 168 + grain;
+      ctx.fillStyle = `rgb(${v},${v + 2},${v + 6})`;
       ctx.fillRect(x, 0, 1, h);
     }
-  }, { aniso: 8 });
-  const rough = canvasTex(128, 512, (ctx, w, h) => {
-    ctx.fillStyle = "#5a5a5a";
+    for (let i = 0; i < 80; i++) {
+      const x = Math.random() * w;
+      ctx.fillStyle = `rgba(255,255,255,${0.04 + Math.random() * 0.06})`;
+      ctx.fillRect(x, 0, 1, h);
+    }
+  }, { aniso: 8, wrap: true });
+  const rough = canvasTex(64, 512, (ctx, w, h) => {
+    ctx.fillStyle = "#6a6a6a";
     ctx.fillRect(0, 0, w, h);
     for (let x = 0; x < w; x++) {
-      const grain = Math.sin(x * 0.7) * 14 + ((x * 19) % 9);
-      const v = 70 + grain;
+      const grain = Math.sin(x * 0.85) * 18 + ((x * 23) % 11);
+      const v = 78 + grain;
       ctx.fillStyle = `rgb(${v},${v},${v})`;
       ctx.fillRect(x, 0, 1, h);
     }
   }, { srgb: false, aniso: 8 });
-  return { map, rough };
+  const height = document.createElement("canvas");
+  height.width = 64;
+  height.height = 512;
+  const hctx = height.getContext("2d")!;
+  hctx.fillStyle = "#808080";
+  hctx.fillRect(0, 0, 64, 512);
+  for (let x = 0; x < 64; x++) {
+    const grain = 118 + Math.sin(x * 0.85) * 22 + ((x * 23) % 10);
+    hctx.fillStyle = `rgb(${grain},${grain},${grain})`;
+    hctx.fillRect(x, 0, 1, 512);
+  }
+  const normal = heightToNormal(height, 1, 1);
+  return { map, rough, normal };
 }
 
 export function rubber(): THREE.CanvasTexture {

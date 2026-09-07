@@ -49,12 +49,202 @@ function paintMaterial(color: THREE.Color): THREE.MeshPhysicalMaterial {
   return new THREE.MeshPhysicalMaterial({
     name: "Paint",
     color,
-    metalness: 0.2,
-    roughness: 0.12,
-    clearcoat: 0.88,
-    clearcoatRoughness: 0.08,
-    envMapIntensity: 1.08,
+    metalness: 0.18,
+    roughness: 0.22,
+    clearcoat: 1,
+    clearcoatRoughness: 0.06,
+    envMapIntensity: 1.15,
   });
+}
+
+function glassMaterial(): THREE.MeshPhysicalMaterial {
+  return new THREE.MeshPhysicalMaterial({
+    name: "Glass",
+    color: 0x14181c,
+    metalness: 0.04,
+    roughness: 0.05,
+    transparent: true,
+    opacity: 0.36,
+    envMapIntensity: 0.95,
+  });
+}
+
+function labelKey(mesh: THREE.Mesh): string {
+  return `${mesh.name} ${labelOf(mesh)}`.toLowerCase();
+}
+
+function isInteriorLabel(n: string): boolean {
+  return (
+    n.includes("seat") ||
+    n.includes("carpet") ||
+    n.includes("lcd") ||
+    n.includes("button") ||
+    n.includes("steer") ||
+    n.includes("dvor") ||
+    n.includes("suspensi") ||
+    n.includes("belt") ||
+    n.includes("leather") ||
+    n.includes("alcantara") ||
+    n.includes("stitch") ||
+    n.includes("burmester") ||
+    n.includes("intporsche") ||
+    n.includes("intex") ||
+    n.includes("intgrid") ||
+    n.startsWith("int") ||
+    n.includes(" int")
+  );
+}
+
+function isJunkHelper(n: string): boolean {
+  return (
+    n.includes("wire_088199225") ||
+    n.includes("wire_135006006") ||
+    n.includes("wire_087225087") ||
+    n.includes("plasticred") ||
+    n.includes("plasticnumber") ||
+    n.includes("palm") ||
+    n.includes("tree") ||
+    n.includes("star-card") ||
+    n.includes("shadowplane")
+  );
+}
+
+function pruneHidden(root: THREE.Object3D): void {
+  const dump: THREE.Object3D[] = [];
+  root.traverse((o) => {
+    if (!o.visible) dump.push(o);
+  });
+  for (const o of dump) o.parent?.remove(o);
+}
+
+function hideDuplicateMeshes(root: THREE.Object3D): void {
+  root.updateMatrixWorld(true);
+  const groups = new Map<string, THREE.Mesh[]>();
+  root.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh || !mesh.visible) return;
+    const box = new THREE.Box3().setFromObject(mesh);
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+    if (size.length() < 0.02) {
+      mesh.visible = false;
+      return;
+    }
+    const key = [center.x, center.y, center.z, size.x, size.y, size.z]
+      .map((n) => Math.round(n * 8))
+      .join(":");
+    const list = groups.get(key) ?? [];
+    list.push(mesh);
+    groups.set(key, list);
+  });
+  for (const list of groups.values()) {
+    if (list.length < 2) continue;
+    list.sort((a, b) => {
+      const an = labelKey(a);
+      const bn = labelKey(b);
+      const score = (n: string) =>
+        (n.includes("paint") || n.includes("primary") || n.includes("wire_027") ? 8 : 0) +
+        (n.includes("wheel") || n.includes("tire") ? 6 : 0) +
+        (n.includes("glass") ? 5 : 0) +
+        (n.includes("wire_") ? -4 : 0);
+      return score(bn) - score(an);
+    });
+    for (const extra of list.slice(1)) extra.visible = false;
+  }
+}
+
+function isWheelLabel(n: string): boolean {
+  return (
+    n.includes("wheeltire") ||
+    n.includes("wheelcaliper") ||
+    n.includes("wheelplastic") ||
+    n.includes("tire") ||
+    n.includes("caliper") ||
+    (n.includes("rubber") && !n.includes("paint"))
+  );
+}
+
+function hideStockWheels(root: THREE.Object3D): void {
+  root.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (mesh.isMesh && isWheelLabel(labelKey(mesh))) mesh.visible = false;
+  });
+}
+
+const wheelTireMat = new THREE.MeshStandardMaterial({
+  name: "Rubber",
+  color: 0x141416,
+  map: rubber(),
+  roughness: 0.94,
+  metalness: 0.02,
+});
+const wheelRimMat = new THREE.MeshPhysicalMaterial({
+  name: "Chrome",
+  color: 0xc5c9ce,
+  metalness: 0.92,
+  roughness: 0.18,
+  envMapIntensity: 1.05,
+});
+const wheelTireGeo = new THREE.CylinderGeometry(0.33, 0.33, 0.22, 18);
+const wheelRimGeo = new THREE.CylinderGeometry(0.22, 0.22, 0.16, 16);
+const wheelHubGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.17, 12);
+
+function addStudioWheels(root: THREE.Group): void {
+  hideStockWheels(root);
+  const box = paintBounds(root);
+  const x0 = box.min.x + 0.82;
+  const x1 = box.max.x - 0.82;
+  const z = Math.max(0.74, (box.max.z - box.min.z) * 0.41);
+  const y = 0.33;
+  const hubs = [
+    new THREE.Vector3(x0, y, z),
+    new THREE.Vector3(x0, y, -z),
+    new THREE.Vector3(x1, y, z),
+    new THREE.Vector3(x1, y, -z),
+  ];
+  root.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh || !mesh.visible || mesh.userData.studioWheel) return;
+    const b = new THREE.Box3().setFromObject(mesh);
+    const c = b.getCenter(new THREE.Vector3());
+    const s = b.getSize(new THREE.Vector3());
+    if (s.x > 0.95 || s.y > 0.9 || s.z > 0.95) return;
+    if (hubs.some((h) => c.distanceTo(h) < 0.36)) mesh.visible = false;
+  });
+  for (const hubAt of hubs) {
+    const tire = new THREE.Mesh(wheelTireGeo, wheelTireMat);
+    tire.rotation.z = Math.PI / 2;
+    tire.position.copy(hubAt);
+    tire.castShadow = true;
+    tire.userData.studioWheel = true;
+    const rim = new THREE.Mesh(wheelRimGeo, wheelRimMat);
+    rim.rotation.z = Math.PI / 2;
+    rim.position.copy(hubAt);
+    rim.userData.studioWheel = true;
+    const hub = new THREE.Mesh(wheelHubGeo, wheelTireMat);
+    hub.rotation.z = Math.PI / 2;
+    hub.position.copy(hubAt);
+    hub.userData.studioWheel = true;
+    root.add(tire, rim, hub);
+  }
+}
+
+function paintBounds(root: THREE.Object3D): THREE.Box3 {
+  const box = new THREE.Box3();
+  let found = false;
+  root.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh || !mesh.visible) return;
+    const n = labelKey(mesh);
+    if (!n.includes("paint") && !n.includes("primary") && !n.includes("wire_027")) return;
+    const b = new THREE.Box3().setFromObject(mesh);
+    if (!found) {
+      box.copy(b);
+      found = true;
+    } else box.union(b);
+  });
+  if (!found) box.setFromObject(root);
+  return box;
 }
 
 function dressAuthored(root: THREE.Object3D): void {
@@ -68,17 +258,7 @@ function dressAuthored(root: THREE.Object3D): void {
       const color = (mesh.material as THREE.MeshStandardMaterial).color?.clone?.() ?? new THREE.Color(0xf4f1ea);
       mesh.material = paintMaterial(color);
     } else if (label.includes("glass")) {
-      mesh.material = new THREE.MeshPhysicalMaterial({
-        name: "Glass",
-        color: 0x243038,
-        metalness: 0.2,
-        roughness: 0.06,
-        transparent: true,
-        opacity: 0.42,
-        transmission: 0.28,
-        thickness: 0.08,
-        envMapIntensity: 0.9,
-      });
+      mesh.material = glassMaterial();
     } else if (label.includes("chrome")) {
       mesh.material = new THREE.MeshPhysicalMaterial({
         name: "Chrome",
@@ -171,25 +351,26 @@ function dressSedan(root: THREE.Object3D): void {
           : paint;
         return;
       }
-      if (isTailName(mn) || em > 0x800000 || (hex > 0x880000 && metal < 0.15 && rough < 0.2)) {
+      if (
+        isTailName(mn) ||
+        mn.includes("redlight") ||
+        mn.includes("plasticred") ||
+        em > 0x800000 ||
+        (hex > 0x880000 && metal < 0.15 && rough < 0.2)
+      ) {
         mesh.visible = false;
         return;
       }
-      if (isHeadName(mn)) {
+      if (isHeadName(mn) || mn.includes("blueglass")) {
         m.emissive?.setHex(0xfff4dc);
         m.emissiveIntensity = 0.72;
         m.toneMapped = false;
         return;
       }
       if (isGlassName(mn) || (metal < 0.08 && rough < 0.08 && hex < 0x111111)) {
-        m.name = "Glass";
-        m.color?.setHex(0x14181c);
-        m.roughness = 0.04;
-        m.metalness = 0.04;
-        m.transparent = true;
-        m.opacity = 0.34;
-        if ("transmission" in m) m.transmission = 0.62;
-        m.envMapIntensity = 0.85;
+        mesh.material = Array.isArray(mesh.material)
+          ? mesh.material.map((old) => (old === m ? glassMaterial() : old))
+          : glassMaterial();
         return;
       }
       if (metal > 0.85 && rough < 0.12) {
@@ -203,34 +384,24 @@ function dressSedan(root: THREE.Object3D): void {
 }
 
 function hideCabinAndCards(root: THREE.Object3D): void {
+  root.updateMatrixWorld(true);
   root.traverse((o) => {
     const mesh = o as THREE.Mesh;
     if (!mesh.isMesh) return;
-    const n = `${mesh.name} ${(mesh.material as THREE.Material)?.name ?? ""}`.toLowerCase();
-    if (
-      n.includes("seat") ||
-      n.includes("carpet") ||
-      n.includes("lcd") ||
-      n.includes("button") ||
-      n.includes("steer") ||
-      n.includes("dvor") ||
-      n.includes("suspensi") ||
-      n.includes("belt") ||
-      n.includes("leather") ||
-      n.includes("alcantara") ||
-      n.includes("stitch") ||
-      n.includes("burmester") ||
-      n.startsWith("int") ||
-      n.includes(" int")
-    ) {
+    const n = labelKey(mesh);
+    if (isInteriorLabel(n) || isJunkHelper(n)) {
       mesh.visible = false;
       return;
     }
     const b = new THREE.Box3().setFromObject(mesh);
     const bh = b.max.y - b.min.y;
     const bw = Math.max(b.max.x - b.min.x, b.max.z - b.min.z);
+    const bd = Math.min(b.max.x - b.min.x, b.max.z - b.min.z, bh);
     if (bh < 0.07 && bw > 1.1 && b.min.y < 0.18) mesh.visible = false;
+    if (bd < 0.03 && bw > 1.4) mesh.visible = false;
   });
+  hideDuplicateMeshes(root);
+  hideStockWheels(root);
 }
 
 function lightAxis(root: THREE.Object3D): number {
@@ -286,9 +457,12 @@ function fitSedan(scene: THREE.Group, kind: HullKind): THREE.Group {
   scene.position.y -= box.min.y;
   wrap.updateMatrixWorld(true);
   hideCabinAndCards(wrap);
+  pruneHidden(wrap);
   wrap.updateMatrixWorld(true);
   box.setFromObject(wrap);
   scene.position.y -= box.min.y + 0.03;
+  wrap.updateMatrixWorld(true);
+  addStudioWheels(wrap);
   wrap.updateMatrixWorld(true);
   return wrap;
 }
@@ -307,50 +481,11 @@ function makeCrossover(sedan: THREE.Group): THREE.Group {
 }
 
 function addEvCues(root: THREE.Group): { x: number; y: number; z: number } {
-  const box = new THREE.Box3().setFromObject(root);
-  let yBar = THREE.MathUtils.lerp(box.min.y, box.max.y, 0.58);
-  const lamps = new THREE.Box3();
-  let hasLamps = false;
-  root.traverse((o) => {
-    const mesh = o as THREE.Mesh;
-    if (!mesh.isMesh) return;
-    const n = `${mesh.name} ${(mesh.material as THREE.Material)?.name ?? ""}`.toLowerCase();
-    if (!isTailName(n)) return;
-    const b = new THREE.Box3().setFromObject(mesh);
-    if (!hasLamps) {
-      lamps.copy(b);
-      hasLamps = true;
-    } else lamps.union(b);
-  });
-  if (hasLamps) yBar = (lamps.min.y + lamps.max.y) * 0.5;
-  const xRear = box.min.x + 0.012;
-  const half = Math.min(1.18, (box.max.z - box.min.z) * 0.47);
-  const bar = new THREE.Mesh(
-    new THREE.BoxGeometry(0.018, 0.016, half * 2),
-    new THREE.MeshBasicMaterial({ name: "LightBar", color: 0xff241c, toneMapped: false }),
-  );
-  bar.position.set(xRear, yBar, 0);
-  bar.castShadow = false;
-  root.add(bar);
-  const glow = new THREE.Mesh(
-    new THREE.BoxGeometry(0.01, 0.028, half * 2 + 0.04),
-    new THREE.MeshBasicMaterial({
-      name: "LightBar",
-      color: 0xff2a22,
-      transparent: true,
-      opacity: 0.42,
-      toneMapped: false,
-      depthWrite: false,
-    }),
-  );
-  glow.position.set(xRear - 0.006, yBar, 0);
-  glow.castShadow = false;
-  root.add(glow);
-
+  const box = paintBounds(root);
   const inlet = {
-    x: box.max.x - 0.38,
-    y: THREE.MathUtils.lerp(box.min.y, box.max.y, 0.46),
-    z: box.max.z - 0.03,
+    x: THREE.MathUtils.lerp(box.min.x, box.max.x, 0.62),
+    y: THREE.MathUtils.lerp(box.min.y, box.max.y, 0.42),
+    z: box.max.z + 0.01,
   };
   const port = new THREE.Mesh(
     new THREE.CircleGeometry(0.07, 22),
@@ -365,10 +500,11 @@ function addEvCues(root: THREE.Group): { x: number; y: number; z: number } {
   port.position.set(inlet.x, inlet.y, inlet.z + 0.012);
   root.add(port);
   const ring = new THREE.Mesh(
-    new THREE.RingGeometry(0.08, 0.13, 22),
+    new THREE.RingGeometry(0.075, 0.1, 18),
     new THREE.MeshBasicMaterial({ color: 0x7ef6ff, toneMapped: false, side: THREE.DoubleSide }),
   );
   ring.position.set(inlet.x, inlet.y, inlet.z + 0.014);
+  ring.rotation.y = Math.PI / 2;
   root.add(ring);
   return inlet;
 }
@@ -377,7 +513,7 @@ function partsToGroup(parts: BuiltPart[]): THREE.Group {
   const root = new THREE.Group();
   const mats: Record<string, THREE.Material> = {
     paint: paintMaterial(new THREE.Color(0xf4f1ea)),
-    glass: new THREE.MeshPhysicalMaterial({ name: "Glass", color: 0x151c22, metalness: 0.15, roughness: 0.04, transparent: true, opacity: 0.28, transmission: 0.7 }),
+    glass: glassMaterial(),
     chrome: new THREE.MeshPhysicalMaterial({ name: "Chrome", color: 0xc5c9ce, metalness: 0.9, roughness: 0.16 }),
     rubber: new THREE.MeshStandardMaterial({ name: "Rubber", color: 0x1a1a1e, map: rubber(), roughness: 0.94, metalness: 0.02 }),
     light: new THREE.MeshStandardMaterial({ name: "LightBar", color: 0xe63225, emissive: 0xe63225, emissiveIntensity: 2.6, toneMapped: false }),
@@ -452,7 +588,7 @@ export async function loadCarPrototypes(): Promise<void> {
 
 type LodBucket = "paint" | "glass" | "dark" | "lamp" | "tail";
 
-const lodPaintMats = new Map<number, THREE.MeshStandardMaterial>();
+const lodPaintMats = new Map<number, THREE.MeshPhysicalMaterial>();
 const lodGlass = new THREE.MeshStandardMaterial({
   name: "LodGlass",
   color: 0x14181c,
@@ -484,15 +620,17 @@ const lodTail = new THREE.MeshBasicMaterial({
 let lodTemplate: THREE.Group | null = null;
 const lodFillerRoots: THREE.Group[] = [];
 
-function lodPaint(color: number): THREE.MeshStandardMaterial {
+function lodPaint(color: number): THREE.MeshPhysicalMaterial {
   let mat = lodPaintMats.get(color);
   if (!mat) {
-    mat = new THREE.MeshStandardMaterial({
+    mat = new THREE.MeshPhysicalMaterial({
       name: "LodPaint",
       color,
-      roughness: 0.16,
-      metalness: 0.42,
-      envMapIntensity: 1.5,
+      roughness: 0.24,
+      metalness: 0.16,
+      clearcoat: 0.92,
+      clearcoatRoughness: 0.08,
+      envMapIntensity: 1.2,
     });
     lodPaintMats.set(color, mat);
   }
