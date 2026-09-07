@@ -25,8 +25,8 @@ interface Profile {
 
 function sedanProfile(): Profile {
   return {
-    s0: -2.28,
-    s1: 2.32,
+    s0: -1.9,
+    s1: 2.16,
     front: 1.42,
     rear: -1.42,
     belt: 0.9,
@@ -44,8 +44,8 @@ function sedanProfile(): Profile {
 
 function suvProfile(): Profile {
   return {
-    s0: -2.22,
-    s1: 2.26,
+    s0: -1.86,
+    s1: 2.12,
     front: 1.36,
     rear: -1.38,
     belt: 1.02,
