@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { WALK_BOUNDS } from "../world/layout";
 
 const MOVE = new Set(["KeyW", "KeyA", "KeyS", "KeyD", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
 
@@ -86,6 +87,8 @@ export class Walker {
 
   walkTo(point: THREE.Vector3): void {
     this.destination = point.clone();
+    this.destination.x = THREE.MathUtils.clamp(this.destination.x, WALK_BOUNDS.xmin, WALK_BOUNDS.xmax);
+    this.destination.z = THREE.MathUtils.clamp(this.destination.z, WALK_BOUNDS.zmin, WALK_BOUNDS.zmax);
     this.destination.y = this.position.y;
   }
 
@@ -134,8 +137,8 @@ export class Walker {
         this.yaw = Math.atan2(-delta.x, -delta.z);
       }
     }
-    this.position.x = THREE.MathUtils.clamp(this.position.x, -29.2, 28);
-    this.position.z = THREE.MathUtils.clamp(this.position.z, -26, 22);
+    this.position.x = THREE.MathUtils.clamp(this.position.x, WALK_BOUNDS.xmin, WALK_BOUNDS.xmax);
+    this.position.z = THREE.MathUtils.clamp(this.position.z, WALK_BOUNDS.zmin, WALK_BOUNDS.zmax);
     this.sync();
   }
 

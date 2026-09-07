@@ -17,10 +17,14 @@ import { assertOpaqueCarMaterials, glassMaterial, paintMaterial } from "../src/c
 import {
   BAYS,
   CAR_LENGTH,
+  KIOSK_REACH,
+  PAY_POINTS,
   QUEUE_GAP,
+  START_SHOT,
   STALL_CLEARANCE,
   STALLS,
   WAIT_SLOTS,
+  WALK_BOUNDS,
   ZEUS_HALF_DEPTH,
 } from "../src/world/layout.ts";
 import * as THREE from "three";
@@ -43,6 +47,17 @@ for (const name of [
 if (STALLS.length !== 24) throw new Error(`expected 24 chargers, got ${STALLS.length}`);
 if (BAYS.length !== 6) throw new Error(`expected 6 playable bays, got ${BAYS.length}`);
 if (BAYS.some((b, i) => b.playable !== i + 1)) throw new Error("playable bay ids must be 1..6");
+
+if (STALL_CLEARANCE < 0.85) throw new Error("stall clearance must keep Tesla off Zeus");
+if (KIOSK_REACH < 6) throw new Error("kiosk reach must not require pixel-perfect aim");
+if (PAY_POINTS.length < 2) throw new Error("need lot PAY kiosk and lounge door");
+if (START_SHOT.x < WALK_BOUNDS.xmin || START_SHOT.x > WALK_BOUNDS.xmax) throw new Error("start X outside walk");
+if (START_SHOT.z < WALK_BOUNDS.zmin || START_SHOT.z > WALK_BOUNDS.zmax) throw new Error("start Z outside walk");
+for (const p of PAY_POINTS) {
+  if (p.x < WALK_BOUNDS.xmin || p.x > WALK_BOUNDS.xmax || p.z < WALK_BOUNDS.zmin || p.z > WALK_BOUNDS.zmax) {
+    throw new Error("PAY point outside walk bounds");
+  }
+}
 
 const minStall = CAR_LENGTH * 0.5 + ZEUS_HALF_DEPTH + STALL_CLEARANCE;
 for (const stall of STALLS) {

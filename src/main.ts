@@ -6,6 +6,7 @@ import {
   enrollAuto,
   greetDriver,
   guestAction,
+  nudgePay,
   parkInBay,
   payKiosk,
   pendingPayGuest,
@@ -19,7 +20,7 @@ import {
 import { Walker } from "./input/walker";
 import { configureKeyLight, createDuskEnvironment, createPipeline, createRenderer } from "./render/pipeline";
 import { addLodFillers, hullDebug, loadCarPrototypes, syncCars, trimLodFillers, type CarView } from "./world/cars";
-import { CANOPY_SHOT, KIOSK, REAR_SHOT, START_SHOT, WIDE_SHOT, ZEUS_SHOT } from "./world/layout";
+import { CANOPY_SHOT, KIOSK_REACH, PAY_POINTS, REAR_SHOT, START_SHOT, WIDE_SHOT, ZEUS_SHOT } from "./world/layout";
 import { addBrandSignage } from "./world/branding";
 import { makeAttendantHand, tickHand } from "./world/hand";
 import { buildSkyline } from "./world/skyline";
@@ -124,9 +125,13 @@ function restart(): void {
 }
 
 function pickables(): THREE.Object3D[] {
-  const list: THREE.Object3D[] = [station.kiosk, ...station.bayAnchors];
+  const list: THREE.Object3D[] = [...station.kiosks, ...station.bayAnchors];
   for (const view of cars.values()) list.push(view.root, view.inlet, view.driver);
   return list;
+}
+
+function nearKiosk(max = KIOSK_REACH): boolean {
+  return PAY_POINTS.some((p) => walker.position.distanceTo(new THREE.Vector3(p.x, walker.position.y, p.z)) < max);
 }
 
 function aim(): THREE.Intersection | null {
@@ -263,15 +268,15 @@ function act(): void {
   const kind = kindOf(hit?.object);
   const bayId = typeof hit?.object.userData.bayId === "number" ? hit.object.userData.bayId : bayIdOf(hit?.object);
   if (kind === "kiosk") {
-    tryPay();
+    if (!tryPay()) nudgePay(state);
     return;
   }
   if (kind === "bay" && bayId && parkIntoBay(bayId)) return;
   if (id && useGuest(id)) return;
   const near = nearbyGuestId();
   if (near && useGuest(near)) return;
-  const kioskDist = walker.position.distanceTo(new THREE.Vector3(KIOSK.x, walker.position.y, KIOSK.z));
-  if (kioskDist < 4.2) tryPay();
+  if (nearKiosk() && tryPay()) return;
+  if (pendingPayGuest(state)) nudgePay(state);
 }
 
 function bayIdOf(obj: THREE.Object3D | undefined): number | undefined {
@@ -301,15 +306,13 @@ function paintHud(): void {
   const pending = pendingPayGuest(state);
   const bayOpen = bayId != null && !state.bays.find((b) => b.id === bayId)?.guestId;
   let prompt = "";
+  for (const spr of station.kioskAlerts) spr.visible = !!pending;
   if (kind === "kiosk") prompt = pending ? promptFor("pay", pending.name) : "";
   else if (kind === "bay" && bayOpen && waitingParker(state)) prompt = promptFor("park", waitingParker(state)?.name);
   else if (kind === "inlet" && guestNeed(id) === "plug") prompt = promptFor("plug", guestName(id));
   else if (id) prompt = promptFor(guestNeed(id), guestName(id));
   if (!prompt) prompt = promptFor(guestNeed(nearbyGuestId()), guestName(nearbyGuestId()));
-  if (!prompt && pending) {
-    const kioskDist = walker.position.distanceTo(new THREE.Vector3(KIOSK.x, walker.position.y, KIOSK.z));
-    if (kioskDist < 4.2) prompt = promptFor("pay", pending.name);
-  }
+  if (!prompt && pending && nearKiosk()) prompt = promptFor("pay", pending.name);
   promptEl.textContent = prompt;
   toastEl.textContent = live && state.toastUntil > state.timeMin ? state.toast : "";
   crossEl.classList.toggle("ready", !!prompt);

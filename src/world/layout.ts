@@ -30,7 +30,8 @@ export const RIGHT_EAST_ZEUS_X = 11.7;
 export const CAR_LENGTH = 4.72;
 export const QUEUE_GAP = 1.7;
 export const ZEUS_HALF_DEPTH = 0.28;
-export const STALL_CLEARANCE = 0.5;
+/** Bumper-to-Zeus face. Live playtest stills showed ~0 gap at 1.5m centers. */
+export const STALL_CLEARANCE = 0.9;
 
 function stallCarX(zeusX: number, aisleSign: 1 | -1): number {
   return zeusX + aisleSign * (CAR_LENGTH * 0.5 + ZEUS_HALF_DEPTH + STALL_CLEARANCE);
@@ -104,7 +105,16 @@ export const WAIT_ORDER = ["peck", "ng", "kim", "das", "ortiz"] as const;
 
 export const BAY_SIZE = { w: 2.6, d: CAR_LENGTH + STALL_CLEARANCE + 0.35 };
 
-export const KIOSK = { x: -23.2, z: -3.55 };
+/** Lot PAY terminal (west of left canopy) + lounge door. Either completes kiosk pay. */
+export const PAY_POINTS = [
+  { x: -15.2, z: -10.4 },
+  { x: -22.6, z: -3.7 },
+] as const;
+export const KIOSK = PAY_POINTS[0];
+export const KIOSK_REACH = 7.2;
+
+/** Keep Zoey on the asphalt / lounge apron — no unrendered void. */
+export const WALK_BOUNDS = { xmin: -26.2, xmax: 23.2, zmin: -21.6, zmax: 17.4 };
 
 export const PAVILION = { x: -23.4, z: 3.4, yaw: 0, w: 11.6, d: 13.4, h: 3.35 };
 
