@@ -127,27 +127,26 @@ export function makeSolidCar(color: number, kind: HullKind = "sedan"): THREE.Gro
     toneMapped: false,
   });
 
+  // Two non-overlapping closed boxes only. Nested/overlapping paint volumes
+  // z-fight and punch asphalt through the hull on dusk stills.
   const width = suv ? 2.08 : 1.92;
-  const bodyH = suv ? 1.02 : 0.9;
-  const bodyY = suv ? 0.68 : 0.62;
-  const cabinH = suv ? 0.72 : 0.58;
-  const cabinY = bodyY + bodyH * 0.5 + cabinH * 0.5 - 0.06;
+  const bodyH = suv ? 1.12 : 1.0;
+  const bodyBottom = 0.16;
+  const bodyY = bodyBottom + bodyH * 0.5;
+  const cabinH = suv ? 0.7 : 0.56;
+  const cabinY = bodyY + bodyH * 0.5 + cabinH * 0.5;
 
-  // Closed volumes only — rocker sits on the tires so asphalt cannot show
-  // through a floating hull gap.
-  root.add(box(4.64, bodyH, width, paint, 0, bodyY, 0, "Paint"));
-  root.add(box(4.4, 0.36, width * 0.96, paint, 0, 0.3, 0, "Paint"));
-  root.add(box(2.36, cabinH, width * 0.88, paint, -0.18, cabinY, 0, "Paint"));
-  root.add(box(0.32, bodyH * 0.55, width * 0.94, paint, 2.36, bodyY - 0.06, 0, "Paint"));
-  root.add(box(0.28, bodyH * 0.5, width * 0.94, paint, -2.34, bodyY - 0.06, 0, "Paint"));
+  root.add(box(4.72, bodyH, width, paint, 0, bodyY, 0, "Paint"));
+  root.add(box(2.28, cabinH, width * 0.86, paint, -0.16, cabinY, 0, "Paint"));
 
-  const winY = cabinY + 0.02;
-  root.add(box(0.05, cabinH * 0.62, width * 0.7, window, 0.96, winY, 0, "Window"));
-  root.add(box(0.05, cabinH * 0.55, width * 0.7, window, -1.28, winY, 0, "Window"));
-  root.add(box(1.78, cabinH * 0.55, 0.05, window, -0.18, winY, width * 0.45, "Window"));
-  root.add(box(1.78, cabinH * 0.55, 0.05, window, -0.18, winY, -width * 0.45, "Window"));
+  const winY = cabinY;
+  const winOut = width * 0.43 + 0.03;
+  root.add(box(0.04, cabinH * 0.62, width * 0.68, window, 0.96, winY, 0, "Window"));
+  root.add(box(0.04, cabinH * 0.55, width * 0.68, window, -1.24, winY, 0, "Window"));
+  root.add(box(1.7, cabinH * 0.52, 0.04, window, -0.16, winY, winOut, "Window"));
+  root.add(box(1.7, cabinH * 0.52, 0.04, window, -0.16, winY, -winOut, "Window"));
 
-  root.add(box(0.07, 0.1, width * 0.8, lamp, -2.46, bodyY + 0.2, 0, "LightBar"));
+  root.add(box(0.08, 0.1, width * 0.72, lamp, -2.4, bodyY + bodyH * 0.28, 0, "LightBar"));
   const inlet = suv ? SOLID_SUV_INLET : SOLID_SEDAN_INLET;
   const plug = new THREE.Mesh(new THREE.CircleGeometry(0.08, 14), port);
   plug.position.set(inlet.x, inlet.y, inlet.z);

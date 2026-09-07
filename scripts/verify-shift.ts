@@ -52,6 +52,6 @@ sedan.traverse((o) => {
   const mesh = o as { isMesh?: boolean; name?: string };
   if (mesh.isMesh && mesh.name === "Paint") paints += 1;
 });
-if (paints < 3) throw new Error("solid sedan needs a closed multi-box paint hull");
+if (paints < 2) throw new Error("solid sedan needs a closed body+cabin paint hull");
 
 console.log("verify-shift ok");
