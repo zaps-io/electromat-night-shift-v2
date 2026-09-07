@@ -55,11 +55,11 @@ function eachMat(mesh: THREE.Mesh, fn: (m: THREE.MeshPhysicalMaterial) => void):
   for (const mat of list) fn(mat as THREE.MeshPhysicalMaterial);
 }
 
-function paintMaterial(color: THREE.Color): THREE.MeshPhysicalMaterial {
+function paintMaterial(color: THREE.Color): THREE.MeshStandardMaterial {
   return opaquePaintMaterial(color);
 }
 
-function glassMaterial(): THREE.MeshPhysicalMaterial {
+function glassMaterial(): THREE.MeshStandardMaterial {
   return windowGlassMaterial();
 }
 
@@ -198,6 +198,21 @@ function addStudioWheels(root: THREE.Group): void {
   }
 }
 
+function addAuthoredOpaqueBody(root: THREE.Group): void {
+  const parts = buildSedanParts().filter((p) => p.name !== "rubber");
+  const body = partsToGroup(parts);
+  dressAuthored(body);
+  hardenCarMaterials(body);
+  body.name = "AuthoredHull";
+  body.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    const mn = ((mesh.material as THREE.Material)?.name ?? mesh.name).toLowerCase();
+    if (mn.includes("paint")) mesh.userData.lodPaint = true;
+  });
+  root.add(body);
+}
+
 function collapsePaintHulls(root: THREE.Object3D): void {
   root.updateMatrixWorld(true);
   const paints: THREE.Mesh[] = [];
@@ -234,7 +249,7 @@ function hardenCarMaterials(root: THREE.Object3D): void {
     if (!mesh.isMesh) return;
     const list = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
     for (const raw of list) {
-      const mat = raw as THREE.MeshPhysicalMaterial;
+      const mat = raw as THREE.MeshStandardMaterial;
       const n = `${labelKey(mesh)} ${mat?.name ?? ""}`.toLowerCase();
       if (isWindowGlassName(n) || mat.name === "Glass" || mat.name === "LodGlass") {
         hardenWindowGlass(mat);
@@ -244,7 +259,8 @@ function hardenCarMaterials(root: THREE.Object3D): void {
         hardenPaint(mat);
         continue;
       }
-      if ((mat.transmission ?? 0) > 0 || (mat.transparent && (mat.opacity ?? 1) < 0.95 && !n.includes("glow") && !n.includes("icon"))) {
+      const transmission = (mat as THREE.MeshPhysicalMaterial).transmission ?? 0;
+      if (transmission > 0 || (mat.transparent && (mat.opacity ?? 1) < 0.95 && !n.includes("glow") && !n.includes("icon"))) {
         if (!n.includes("light") && !n.includes("port") && !n.includes("charge")) hardenPaint(mat);
       }
     }
@@ -542,6 +558,8 @@ async function loadHull(kind: HullKind, file: string, fallback: () => BuiltPart[
       collapsePaintHulls(fitted);
       hardenCarMaterials(fitted);
       pruneHidden(fitted);
+      addAuthoredOpaqueBody(fitted);
+      pruneHidden(fitted);
       inletByKind[kind] = addEvCues(fitted);
       prototypes[kind] = fitted;
       const keptNames: string[] = [];
@@ -587,7 +605,7 @@ export async function loadCarPrototypes(): Promise<void> {
 
 type LodBucket = "paint" | "glass" | "dark" | "lamp" | "tail";
 
-const lodPaintMats = new Map<number, THREE.MeshPhysicalMaterial>();
+const lodPaintMats = new Map<number, THREE.MeshStandardMaterial>();
 const lodGlass = windowGlassMaterial();
 lodGlass.name = "LodGlass";
 const lodDark = new THREE.MeshStandardMaterial({
@@ -613,7 +631,7 @@ const lodTail = new THREE.MeshBasicMaterial({
 let lodTemplate: THREE.Group | null = null;
 const lodFillerRoots: THREE.Group[] = [];
 
-function lodPaint(color: number): THREE.MeshPhysicalMaterial {
+function lodPaint(color: number): THREE.MeshStandardMaterial {
   let mat = lodPaintMats.get(color);
   if (!mat) {
     mat = opaquePaintMaterial(new THREE.Color(color));

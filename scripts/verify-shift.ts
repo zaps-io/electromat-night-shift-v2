@@ -49,17 +49,17 @@ if (!isHullGlassShell("glass")) throw new Error("Glass helper is the opaque hull
 if (isWindowGlassName("glass")) throw new Error("bare Glass must not be window glass");
 if (!isWindowGlassName("glasswinds")) throw new Error("GlassWinds must stay windows");
 if (isPaintName("glasswinds")) throw new Error("windscreen must not be remapped to paint");
-if (!isExteriorKeep("object_27 object_27 glass")) throw new Error("Glass overlay must be kept");
-if (!isExteriorKeep("object_16 object_16 wire_027177027")) throw new Error("wire_027 hull must be kept");
+if (isExteriorKeep("object_27 object_27 glass")) throw new Error("Taycan Glass overlay must not be the live hull");
+if (isExteriorKeep("object_16 object_16 wire_027177027")) throw new Error("Taycan wire helper must not be the live hull");
 
 const paint = opaquePaintMaterial(new THREE.Color(0x1c2434));
 if (!isSolidPaint(paint)) throw new Error("body paint must be opaque (no transmission/alpha)");
-if (paint.transmission !== 0) throw new Error("paint transmission must be 0");
+if (((paint as THREE.MeshPhysicalMaterial).transmission ?? 0) !== 0) throw new Error("paint transmission must be 0");
 if (paint.transparent) throw new Error("paint must not be transparent");
 if (paint.depthWrite !== true) throw new Error("paint must depthWrite");
 
 const glass = windowGlassMaterial();
-if (glass.transmission !== 0) throw new Error("window glass must not use transmission");
+if (((glass as THREE.MeshPhysicalMaterial).transmission ?? 0) !== 0) throw new Error("window glass must not use transmission");
 if (!glass.transparent) throw new Error("window glass may stay slightly tinted");
 if ((glass.opacity ?? 0) < 0.4) throw new Error("window glass tint is too thin");
 

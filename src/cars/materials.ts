@@ -39,35 +39,22 @@ export function isPaintName(mn: string): boolean {
   );
 }
 
-export function isExteriorKeep(n: string): boolean {
-  const key = materialKey(n);
-  if (key.includes("redlight") || key.includes("glassred") || key.includes("glassmat") || key.includes("int")) {
-    return false;
-  }
-  return (
-    key.includes(TAYCAN_PAINT_NAME) ||
-    key.includes("paint") ||
-    key.includes("primary") ||
-    key.includes("glasswinds") ||
-    key.includes("blueglass") ||
-    key.includes("extaluminium") ||
-    isHullGlassShell(key)
-  );
+export function isExteriorKeep(_n: string): boolean {
+  // Taycan GLB paint/Glass helpers are open cages or x-ray shells. The
+  // authored notchback hull is the player-visible opaque body.
+  return false;
 }
 
-export function opaquePaintMaterial(color: THREE.Color): THREE.MeshPhysicalMaterial {
-  return new THREE.MeshPhysicalMaterial({
+/** Opaque body paint. Standard — Physical/clearcoat/transmission read as ghost hulls. */
+export function opaquePaintMaterial(color: THREE.Color): THREE.MeshStandardMaterial {
+  return new THREE.MeshStandardMaterial({
     name: "Paint",
     color,
-    metalness: 0.2,
-    roughness: 0.26,
-    clearcoat: 0.62,
-    clearcoatRoughness: 0.14,
-    envMapIntensity: 0.88,
+    metalness: 0.18,
+    roughness: 0.32,
+    envMapIntensity: 0.7,
     transparent: false,
     opacity: 1,
-    transmission: 0,
-    thickness: 0,
     depthWrite: true,
     depthTest: true,
     alphaTest: 0,
@@ -76,47 +63,48 @@ export function opaquePaintMaterial(color: THREE.Color): THREE.MeshPhysicalMater
 }
 
 /** Slightly tinted cabin glass. No transmission — that reads as missing paint. */
-export function windowGlassMaterial(): THREE.MeshPhysicalMaterial {
-  return new THREE.MeshPhysicalMaterial({
+export function windowGlassMaterial(): THREE.MeshStandardMaterial {
+  return new THREE.MeshStandardMaterial({
     name: "Glass",
     color: 0x1a2228,
-    metalness: 0.06,
-    roughness: 0.08,
+    metalness: 0.04,
+    roughness: 0.12,
     transparent: true,
-    opacity: 0.52,
-    transmission: 0,
-    thickness: 0,
+    opacity: 0.55,
     depthWrite: true,
     depthTest: true,
-    envMapIntensity: 0.7,
+    envMapIntensity: 0.45,
     side: THREE.DoubleSide,
   });
 }
 
-export function hardenPaint(mat: THREE.MeshPhysicalMaterial, color?: THREE.Color): void {
+export function hardenPaint(mat: THREE.MeshStandardMaterial, color?: THREE.Color): void {
   if (color) mat.color.copy(color);
   mat.name = "Paint";
   mat.transparent = false;
   mat.opacity = 1;
-  mat.transmission = 0;
-  mat.thickness = 0;
   mat.depthWrite = true;
   mat.depthTest = true;
   mat.alphaTest = 0;
   mat.alphaHash = false;
   mat.side = THREE.DoubleSide;
-  if ("attenuationDistance" in mat) mat.attenuationDistance = Infinity;
+  const physical = mat as THREE.MeshPhysicalMaterial;
+  if ("transmission" in physical) physical.transmission = 0;
+  if ("thickness" in physical) physical.thickness = 0;
+  if ("clearcoat" in physical) physical.clearcoat = 0;
+  if ("attenuationDistance" in physical) physical.attenuationDistance = Infinity;
 }
 
-export function hardenWindowGlass(mat: THREE.MeshPhysicalMaterial): void {
+export function hardenWindowGlass(mat: THREE.MeshStandardMaterial): void {
   mat.name = "Glass";
   mat.transparent = true;
   mat.opacity = Math.min(0.62, Math.max(0.42, mat.opacity || 0.52));
-  mat.transmission = 0;
-  mat.thickness = 0;
   mat.depthWrite = true;
   mat.depthTest = true;
-  if ("attenuationDistance" in mat) mat.attenuationDistance = Infinity;
+  const physical = mat as THREE.MeshPhysicalMaterial;
+  if ("transmission" in physical) physical.transmission = 0;
+  if ("thickness" in physical) physical.thickness = 0;
+  if ("attenuationDistance" in physical) physical.attenuationDistance = Infinity;
 }
 
 export function isSolidPaint(mat: THREE.Material): boolean {
