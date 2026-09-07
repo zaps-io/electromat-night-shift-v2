@@ -210,6 +210,14 @@ function addAuthoredOpaqueBody(root: THREE.Group): void {
     const mn = ((mesh.material as THREE.Material)?.name ?? mesh.name).toLowerCase();
     if (mn.includes("paint")) mesh.userData.lodPaint = true;
   });
+  // Closed volume so open loft ends / cabin glass cannot read as a missing hull.
+  const core = new THREE.Mesh(new THREE.BoxGeometry(4.15, 0.92, 1.62), paintMaterial(new THREE.Color(0xf4f1ea)));
+  core.name = "Paint";
+  core.position.set(0.02, 0.7, 0);
+  core.castShadow = true;
+  core.receiveShadow = true;
+  core.userData.lodPaint = true;
+  body.add(core);
   root.add(body);
 }
 
