@@ -1,17 +1,7 @@
 import { readFileSync } from "node:fs";
-import * as THREE from "three";
 import { greetDriver, payKiosk, plugInlet, resetNight, seedOpeningLot } from "../src/game/shift.ts";
-import {
-  isExteriorKeep,
-  isHullGlassShell,
-  isPaintName,
-  isSolidPaint,
-  isWindowGlassName,
-  opaquePaintMaterial,
-  windowGlassMaterial,
-} from "../src/cars/materials.ts";
+import { assertOpaqueCarMaterials, makeSolidCar, solidPaintMaterial, solidWindowMaterial } from "../src/cars/solid.ts";
 import { BAYS, STALLS } from "../src/world/layout.ts";
-import { buildSedanParts } from "../src/cars/sedan.ts";
 
 for (const name of [
   "zaps-wordmark-only-cream.svg",
@@ -43,31 +33,29 @@ if (peck.assignedBay == null || !peck.plugged) throw new Error("Peck should be i
 if (!payKiosk(s, "peck")) throw new Error("kiosk pay failed");
 if (!peck.authorized) throw new Error("Peck should be authorized");
 
-if (!isPaintName("wire_027177027")) throw new Error("Taycan hull paint name must classify as paint");
-if (!isPaintName("glass")) throw new Error("full-car Glass helper must classify as paint, not window");
-if (!isPaintName("object_27 object_27 glass")) throw new Error("Glass overlay label must classify as paint");
-if (!isHullGlassShell("glass")) throw new Error("Glass helper is the opaque hull shell");
-if (isWindowGlassName("glass")) throw new Error("bare Glass must not be window glass");
-if (!isWindowGlassName("glasswinds")) throw new Error("GlassWinds must stay windows");
-if (isPaintName("glasswinds")) throw new Error("windscreen must not be remapped to paint");
-if (isExteriorKeep("object_27 object_27 glass")) throw new Error("Taycan Glass overlay must not be the live hull");
-if (isExteriorKeep("object_16 object_16 wire_027177027")) throw new Error("Taycan wire helper must not be the live hull");
-
-const paint = opaquePaintMaterial(new THREE.Color(0x1c2434));
-if (!isSolidPaint(paint)) throw new Error("body paint must be opaque (no transmission/alpha)");
-if (((paint as THREE.MeshPhysicalMaterial).transmission ?? 0) !== 0) throw new Error("paint transmission must be 0");
-if (paint.transparent) throw new Error("paint must not be transparent");
+const paint = solidPaintMaterial(0x1c2434);
+if (paint.transparent || paint.opacity < 1) throw new Error("paint must be fully opaque");
 if (paint.depthWrite !== true) throw new Error("paint must depthWrite");
+if ("transmission" in paint && (paint as { transmission?: number }).transmission) {
+  throw new Error("paint must not use transmission");
+}
 
-const glass = windowGlassMaterial();
-if (((glass as THREE.MeshPhysicalMaterial).transmission ?? 0) !== 0) throw new Error("window glass must not use transmission");
-if (!glass.transparent) throw new Error("window glass may stay slightly tinted");
-if ((glass.opacity ?? 0) < 0.5) throw new Error("window glass tint is too thin");
+const window = solidWindowMaterial();
+if (window.transparent || window.opacity < 1) throw new Error("window panels must be opaque dark, not glass");
 
-const authored = buildSedanParts();
-const paintPart = authored.find((p) => p.name === "paint");
-if (!paintPart || paintPart.indices.length < 3000) throw new Error("authored paint hull is missing or too thin");
-const glassPart = authored.find((p) => p.name === "glass");
-if (!glassPart || glassPart.indices.length < 100) throw new Error("authored glass missing");
+const sedan = makeSolidCar(0xf4f1ea, "sedan");
+const suv = makeSolidCar(0x4a5560, "suv");
+assertOpaqueCarMaterials(sedan);
+assertOpaqueCarMaterials(suv);
+let paintVerts = 0;
+let windows = 0;
+sedan.traverse((o) => {
+  const mesh = o as { isMesh?: boolean; name?: string; geometry?: { getAttribute: (k: string) => { count: number } } };
+  if (!mesh.isMesh) return;
+  if (mesh.name === "Paint") paintVerts += mesh.geometry?.getAttribute("position")?.count ?? 0;
+  if (mesh.name === "Window") windows += 1;
+});
+if (paintVerts < 800) throw new Error("closed loft sedan needs a dense paint hull");
+if (!windows) throw new Error("sedan needs opaque window panels");
 
 console.log("verify-shift ok");

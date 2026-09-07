@@ -9,13 +9,9 @@ interface ElectromatApi {
   hullDebug: () => {
     source?: string;
     meshCount?: number;
-    kept?: string[];
-    lodMeshes?: number;
     lodFillers?: number;
-    fullPbr?: string[];
-    paintOpaque?: number;
-    glassMeshes?: number;
     transmission?: number;
+    transparentBody?: number;
   };
   state: import("./game/state").GameState;
 }

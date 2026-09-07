@@ -11,7 +11,7 @@ This is a clean restart. It does not clone or depend on `zaps-io/electromat-nigh
 Default `startNight()` lot view (no local build required):
 
 - [`docs/shots/startnight-lot.png`](docs/shots/startnight-lot.png) — HUD `ZOEY · STATION MASTER`, twin canopies, charging EVs
-- [`docs/shots/lot-rear34.png`](docs/shots/lot-rear34.png) — rear 3/4 of the Sketchfab 2020 Porsche Taycan guest hull
+- [`docs/shots/lot-rear34.png`](docs/shots/lot-rear34.png) — rear 3/4 of closed lofted guest hulls (opaque paint)
 - [`docs/shots/lot-wide.png`](docs/shots/lot-wide.png) — elevated dual-canopy Electromat site
 - [`docs/shots/canopy-fascia.png`](docs/shots/canopy-fascia.png) — official red Zaps on the cream canopy fascia
 - [`docs/shots/slim-zeus.png`](docs/shots/slim-zeus.png) — Slim Zeus product face (brushed metal, charcoal recess, front holsters)
@@ -42,11 +42,11 @@ Site line: **DRIVE IN. CHARGE UP. ZIP OUT.**
 
 ## Visual bar
 
-Cinematic WebGL lot: ACES Filmic (exposure ~0.86) + one warm dusk `DirectionalLight`, golden-hour `scene.environment` via `PMREMGenerator`, `postprocessing` bloom / vignette / SMAA. Twin cream canopies with a thin red fascia and official red Zaps wordmarks, 24 Slim Zeus (brushed metal, charcoal recess, cyan base, amber PLUG IN), glass lounge, grit asphalt + curb maps, mural / commercial street backdrop. Guest cars use an authored opaque notchback hull (`MeshStandardMaterial` paint, tinted glass, no transmission). The Sketchfab Taycan GLB keeps studio wheels only — its Glass/wire helpers were x-ray cages, not solid paint. **2020 Porsche Taycan** by martin002 on Sketchfab (CC BY 4.0). See `public/models/porsche-taycan-2020.ATTRIBUTION.txt`.
+Cinematic WebGL lot: ACES Filmic (exposure ~0.86) + one warm dusk `DirectionalLight`, golden-hour `scene.environment` via `PMREMGenerator`, `postprocessing` bloom / vignette / SMAA. Twin cream canopies with a thin red fascia and official red Zaps wordmarks, 24 Slim Zeus (brushed metal, charcoal recess, cyan base, amber PLUG IN), glass lounge, grit asphalt + curb maps, mural / commercial street backdrop. Guest cars are **closed lofted EV sedans** (watertight paint volume, `MeshLambertMaterial`, opaque dark window panels, seated wheels). No Taycan/GLB hulls on the lot, no open shells, no transmission. Sketchfab Taycan remains in `public/models/` for attribution only.
 
 Official cream/red Zaps wordmarks only. Palette: `#E63225` `#1E1E24` `#E89A2E` `#00D4F5` `#F5F0E8`.
 
-Lot PBR/env pass: merge `4c80ec6`. Hull ghost fix: `f34a753`. Opaque body fix: `565864e` (authored notchback hull + closed paint core, Standard materials, no transmission).
+Lot PBR/env pass: merge `4c80ec6`. Hull ghost fix: `f34a753`. #33 (`fe9f818`) still ghosted. Closed lofted lot cars + recaptured stills: `f95cb80` (`f95cb8059ba61a476cc81d4482e406dbf788eb41`).
 
 ## Dev
 
