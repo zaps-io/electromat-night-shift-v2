@@ -7,6 +7,7 @@ import {
   SMAAEffect,
   VignetteEffect,
 } from "postprocessing";
+import { duskSky } from "../world/tex";
 
 export interface CinematicPipeline {
   composer: EffectComposer;
@@ -25,43 +26,68 @@ export function createRenderer(canvas: HTMLCanvasElement): THREE.WebGLRenderer {
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.08;
+  renderer.toneMappingExposure = 0.86;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   return renderer;
 }
 
-export function createNightProbe(renderer: THREE.WebGLRenderer): THREE.Texture {
+/** Golden-hour IBL so metals and clearcoat read as painted, not plastic. */
+export function createDuskEnvironment(renderer: THREE.WebGLRenderer): THREE.Texture {
   const pmrem = new THREE.PMREMGenerator(renderer);
   const env = new THREE.Scene();
-  env.add(new THREE.HemisphereLight(0xffd4a8, 0x12141c, 0.48));
+
   const sky = new THREE.Mesh(
-    new THREE.SphereGeometry(40, 16, 12),
-    new THREE.MeshBasicMaterial({ color: 0x2a2430, side: THREE.BackSide }),
+    new THREE.SphereGeometry(90, 32, 20),
+    new THREE.MeshBasicMaterial({ map: duskSky(), side: THREE.BackSide }),
   );
   env.add(sky);
-  for (const [x, y, z, color, r] of [
-    [-13.6, 5.05, 4.4, 0xf2e4c4, 0.2],
-    [-9.9, 5.05, 4.4, 0xf2e4c4, 0.22],
-    [-6.2, 5.05, 4.4, 0xf2e4c4, 0.2],
-    [8.2, 5.05, 4.4, 0xf2e4c4, 0.2],
-    [11.8, 5.05, 4.4, 0xf2e4c4, 0.22],
-    [15.4, 5.05, 4.4, 0xf2e4c4, 0.2],
-    [-9.9, 5.1, -2.8, 0xf0d8b0, 0.26],
-    [11.8, 5.1, -2.8, 0xf0d8b0, 0.26],
-    [-22.8, 1.6, 3.4, 0xc46a28, 0.22],
-    [-18.0, 4.8, -17.6, 0xffc878, 0.16],
-    [18.0, 4.8, -17.6, 0xffc878, 0.16],
-    [-8.8, 1.55, 2.15, 0x8a9098, 0.05],
-    [11.4, 1.55, 2.15, 0x8a9098, 0.05],
+
+  const sun = new THREE.Mesh(
+    new THREE.SphereGeometry(7.2, 20, 16),
+    new THREE.MeshBasicMaterial({ color: 0xffe2a8 }),
+  );
+  sun.position.set(-48, 16, -30);
+  env.add(sun);
+  const halo = new THREE.Mesh(
+    new THREE.SphereGeometry(12, 16, 12),
+    new THREE.MeshBasicMaterial({ color: 0xffb060, transparent: true, opacity: 0.55 }),
+  );
+  halo.position.copy(sun.position);
+  env.add(halo);
+
+  const ground = new THREE.Mesh(
+    new THREE.CircleGeometry(70, 24),
+    new THREE.MeshBasicMaterial({ color: 0x14120e }),
+  );
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.y = -0.4;
+  env.add(ground);
+
+  const bounce = new THREE.Mesh(
+    new THREE.PlaneGeometry(36, 20),
+    new THREE.MeshBasicMaterial({ color: 0xc47838 }),
+  );
+  bounce.position.set(-18, 1.2, -22);
+  bounce.rotation.y = 0.4;
+  env.add(bounce);
+
+  for (const [x, y, z, w, h, color] of [
+    [-10, 6.2, 2, 12, 0.7, 0xf4efe6],
+    [10, 6.2, 3, 14, 0.7, 0xf4efe6],
+    [-22, 2.4, 4, 10, 3.2, 0xf2eee6],
+    [22, 3.2, 8, 8, 4.4, 0x2a3238],
+    [-8, 1.1, 1.2, 0.4, 2.0, 0xc8ccd0],
+    [10, 1.1, 2.4, 0.4, 2.0, 0xc8ccd0],
   ] as const) {
-    const bulb = new THREE.Mesh(
-      new THREE.SphereGeometry(r, 8, 8),
-      new THREE.MeshBasicMaterial({ color }),
-    );
-    bulb.position.set(x, y, z);
-    env.add(bulb);
+    const card = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.4), new THREE.MeshBasicMaterial({ color }));
+    card.position.set(x, y, z);
+    env.add(card);
   }
-  const tex = pmrem.fromScene(env, 0.04).texture;
+
+  const hemi = new THREE.HemisphereLight(0xffd2a0, 0x16141c, 0.55);
+  env.add(hemi);
+
+  const tex = pmrem.fromScene(env, 0.035).texture;
   pmrem.dispose();
   return tex;
 }
@@ -77,16 +103,16 @@ export function createPipeline(
   });
   composer.addPass(new RenderPass(scene, camera));
   const bloom = new BloomEffect({
-    intensity: 0.05,
-    luminanceThreshold: 0.86,
-    luminanceSmoothing: 0.32,
+    intensity: 0.035,
+    luminanceThreshold: 0.9,
+    luminanceSmoothing: 0.28,
     mipmapBlur: true,
-    radius: 0.2,
+    radius: 0.18,
   });
   const vignette = new VignetteEffect({
     eskil: false,
-    offset: 0.32,
-    darkness: 0.52,
+    offset: 0.3,
+    darkness: 0.46,
   });
   const smaa = new SMAAEffect();
   composer.addPass(new EffectPass(camera, bloom, vignette, smaa));
@@ -106,11 +132,11 @@ export function configureKeyLight(light: THREE.DirectionalLight): void {
   light.castShadow = true;
   light.shadow.mapSize.set(2048, 2048);
   light.shadow.camera.near = 2;
-  light.shadow.camera.far = 48;
-  light.shadow.camera.left = -30;
-  light.shadow.camera.right = 30;
-  light.shadow.camera.top = 24;
-  light.shadow.camera.bottom = -24;
+  light.shadow.camera.far = 56;
+  light.shadow.camera.left = -32;
+  light.shadow.camera.right = 32;
+  light.shadow.camera.top = 26;
+  light.shadow.camera.bottom = -26;
   light.shadow.bias = -0.00035;
   light.shadow.normalBias = 0.03;
 }

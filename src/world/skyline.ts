@@ -1,40 +1,90 @@
 import * as THREE from "three";
-import { C } from "../brand";
-import { facade, mural, street } from "./tex";
+import { duskSky, facade, mural, street } from "./tex";
 
-function duskSky(): THREE.CanvasTexture {
-  const c = document.createElement("canvas");
-  c.width = 16;
-  c.height = 256;
-  const ctx = c.getContext("2d")!;
-  const g = ctx.createLinearGradient(0, 0, 0, 256);
-  g.addColorStop(0, "#243044");
-  g.addColorStop(0.26, "#5a4a62");
-  g.addColorStop(0.46, "#c8682c");
-  g.addColorStop(0.64, "#f09038");
-  g.addColorStop(0.82, "#f8c060");
-  g.addColorStop(1, "#ffe4a8");
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, 16, 256);
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
-}
+const plaster = new THREE.MeshStandardMaterial({
+  color: 0xd4c8b6,
+  map: facade("warm"),
+  roughness: 0.78,
+  metalness: 0.04,
+  envMapIntensity: 0.28,
+});
+const plasterCool = new THREE.MeshStandardMaterial({
+  color: 0xc4c4be,
+  map: facade("cool"),
+  roughness: 0.76,
+  metalness: 0.04,
+  envMapIntensity: 0.28,
+});
+const concrete = new THREE.MeshStandardMaterial({
+  color: 0x9aa0a6,
+  map: facade("cool"),
+  roughness: 0.8,
+  metalness: 0.06,
+  envMapIntensity: 0.22,
+});
+const night = new THREE.MeshStandardMaterial({
+  color: 0x1a1c22,
+  map: facade("dark"),
+  roughness: 0.68,
+  metalness: 0.08,
+  envMapIntensity: 0.2,
+});
+const darkGlass = new THREE.MeshStandardMaterial({
+  color: 0x2a6870,
+  roughness: 0.08,
+  metalness: 0.28,
+  envMapIntensity: 1.05,
+});
+const roof = new THREE.MeshStandardMaterial({ color: 0x4a463e, roughness: 0.86, metalness: 0.04 });
+const steel = new THREE.MeshStandardMaterial({ color: 0x8a9096, roughness: 0.38, metalness: 0.55, envMapIntensity: 0.7 });
+const house = new THREE.MeshStandardMaterial({ color: 0xb8a890, roughness: 0.82, envMapIntensity: 0.16 });
+const paint = (color: number) =>
+  new THREE.MeshPhysicalMaterial({
+    color,
+    roughness: 0.22,
+    metalness: 0.16,
+    clearcoat: 0.7,
+    clearcoatRoughness: 0.12,
+    envMapIntensity: 0.9,
+  });
 
 function addStreetCar(root: THREE.Group, x: number, z: number, yaw: number, color: number): void {
-  const body = new THREE.Mesh(
-    new THREE.BoxGeometry(4.4, 1.15, 1.8),
-    new THREE.MeshStandardMaterial({ color, roughness: 0.22, metalness: 0.28, envMapIntensity: 0.7 }),
-  );
+  const body = new THREE.Mesh(new THREE.BoxGeometry(4.4, 1.15, 1.8), paint(color));
   body.position.set(x, 0.72, z);
   body.rotation.y = yaw;
   const cabin = new THREE.Mesh(
     new THREE.BoxGeometry(1.8, 0.7, 1.6),
-    new THREE.MeshStandardMaterial({ color: 0x1a2028, roughness: 0.1, metalness: 0.08 }),
+    new THREE.MeshStandardMaterial({ color: 0x1a2028, roughness: 0.08, metalness: 0.06, envMapIntensity: 0.7 }),
   );
   cabin.position.set(x + Math.cos(yaw) * 0.35, 1.42, z + Math.sin(yaw) * 0.08);
   cabin.rotation.y = yaw;
   root.add(body, cabin);
+}
+
+function addRoofGear(root: THREE.Group, x: number, y: number, z: number): void {
+  const unit = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.55, 1.1), steel);
+  unit.position.set(x, y, z);
+  const vent = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.35, 0.7), roof);
+  vent.position.set(x + 1.4, y - 0.08, z + 0.2);
+  root.add(unit, vent);
+}
+
+function addTower(
+  root: THREE.Group,
+  spec: { x: number; z: number; w: number; h: number; d: number; mat: THREE.Material; balconies?: boolean },
+): void {
+  const tower = new THREE.Mesh(new THREE.BoxGeometry(spec.w, spec.h, spec.d), spec.mat);
+  tower.position.set(spec.x, spec.h * 0.5 - 0.15, spec.z);
+  const cap = new THREE.Mesh(new THREE.BoxGeometry(spec.w + 0.35, 0.28, spec.d + 0.35), roof);
+  cap.position.set(spec.x, spec.h - 0.08, spec.z);
+  root.add(tower, cap);
+  addRoofGear(root, spec.x - spec.w * 0.18, spec.h + 0.22, spec.z);
+  if (!spec.balconies) return;
+  for (let i = 1; i < 4; i++) {
+    const slab = new THREE.Mesh(new THREE.BoxGeometry(spec.w * 0.42, 0.08, 0.7), concrete);
+    slab.position.set(spec.x + spec.w * 0.28, 1.4 + i * (spec.h * 0.22), spec.z - spec.d * 0.5 - 0.28);
+    root.add(slab);
+  }
 }
 
 export function buildSkyline(): THREE.Group {
@@ -46,57 +96,29 @@ export function buildSkyline(): THREE.Group {
   root.add(sky);
 
   const mountain = new THREE.Mesh(
-    new THREE.PlaneGeometry(280, 38),
+    new THREE.PlaneGeometry(280, 42),
     new THREE.MeshBasicMaterial({ color: 0x3a3228, fog: false }),
   );
-  mountain.position.set(8, 7.6, 54);
+  mountain.position.set(8, 8.2, 56);
   mountain.rotation.y = Math.PI;
   root.add(mountain);
   const ridge = new THREE.Mesh(
-    new THREE.PlaneGeometry(160, 18),
+    new THREE.PlaneGeometry(160, 20),
     new THREE.MeshBasicMaterial({ color: 0x2a241c, fog: false }),
   );
-  ridge.position.set(-18, 5.4, 50);
+  ridge.position.set(-18, 5.8, 52);
   ridge.rotation.y = Math.PI;
   root.add(ridge);
 
-  const plaster = new THREE.MeshStandardMaterial({
-    color: 0xd4c8b6,
-    map: facade(),
-    roughness: 0.8,
-    metalness: 0.04,
-  });
-  const plasterCool = new THREE.MeshStandardMaterial({
-    color: 0xc8c6c0,
-    map: facade(),
-    roughness: 0.78,
-    metalness: 0.04,
-  });
-  const night = new THREE.MeshStandardMaterial({ color: 0x1a1c22, roughness: 0.7, metalness: 0.08 });
-  const darkGlass = new THREE.MeshStandardMaterial({
-    color: 0x2a6870,
-    roughness: 0.08,
-    metalness: 0.28,
-    envMapIntensity: 0.95,
-  });
+  addTower(root, { x: -24, z: 28.2, w: 8.0, h: 10.4, d: 4.0, mat: plaster });
+  addTower(root, { x: -14, z: 29.4, w: 7.0, h: 14.2, d: 3.6, mat: plasterCool, balconies: true });
+  addTower(root, { x: -4.2, z: 27.8, w: 8.6, h: 11.0, d: 4.0, mat: plaster });
+  addTower(root, { x: 6.4, z: 29.0, w: 7.4, h: 15.0, d: 3.5, mat: concrete, balconies: true });
+  addTower(root, { x: 16.8, z: 28.0, w: 8.4, h: 12.4, d: 4.2, mat: plaster });
+  addTower(root, { x: 27.2, z: 30.0, w: 6.2, h: 9.2, d: 3.2, mat: plasterCool });
+  addTower(root, { x: -32.4, z: 22.4, w: 5.6, h: 6.4, d: 5.2, mat: plaster });
+  addTower(root, { x: 33.0, z: 22.0, w: 6.0, h: 7.2, d: 4.6, mat: concrete });
 
-  const towers = [
-    { x: -24, z: 28.2, w: 8.0, h: 10.4, d: 4.0, cool: false },
-    { x: -14, z: 29.4, w: 7.0, h: 14.2, d: 3.6, cool: true },
-    { x: -4.2, z: 27.8, w: 8.6, h: 11.0, d: 4.0, cool: false },
-    { x: 6.4, z: 29.0, w: 7.4, h: 15.0, d: 3.5, cool: true },
-    { x: 16.8, z: 28.0, w: 8.4, h: 12.4, d: 4.2, cool: false },
-    { x: 27.2, z: 30.0, w: 6.2, h: 9.2, d: 3.2, cool: true },
-    { x: -32.4, z: 22.4, w: 5.6, h: 6.4, d: 5.2, cool: false },
-    { x: 33.0, z: 22.0, w: 6.0, h: 7.2, d: 4.6, cool: true },
-  ];
-  for (const t of towers) {
-    const tower = new THREE.Mesh(new THREE.BoxGeometry(t.w, t.h, t.d), t.cool ? plasterCool : plaster);
-    tower.position.set(t.x, t.h * 0.5 - 0.15, t.z);
-    root.add(tower);
-  }
-
-  const house = new THREE.MeshStandardMaterial({ color: 0xb8a890, roughness: 0.82 });
   for (const [x, z, w, h] of [
     [-28.4, 18.6, 4.2, 3.4],
     [30.8, 16.8, 4.6, 3.2],
@@ -141,7 +163,18 @@ export function buildSkyline(): THREE.Group {
     new THREE.MeshStandardMaterial({ color: 0x121416, roughness: 0.55 }),
   );
   pylon.position.set(24.6, 1.3, -2.2);
-  root.add(shop, shopGlass, shopSide, pylon);
+  const sign = new THREE.Mesh(
+    new THREE.BoxGeometry(3.4, 0.7, 0.12),
+    new THREE.MeshStandardMaterial({ color: 0xe89a2e, emissive: 0xc46a20, emissiveIntensity: 0.45 }),
+  );
+  sign.position.set(24.4, 4.6, 1.2);
+  const lot = new THREE.Mesh(
+    new THREE.PlaneGeometry(16, 10),
+    new THREE.MeshStandardMaterial({ color: 0x2a2824, roughness: 0.94 }),
+  );
+  lot.rotation.x = -Math.PI / 2;
+  lot.position.set(30.4, 0.01, 12.4);
+  root.add(shop, shopGlass, shopSide, pylon, sign, lot);
 
   const road = new THREE.Mesh(
     new THREE.PlaneGeometry(96, 13.2),
@@ -166,9 +199,5 @@ export function buildSkyline(): THREE.Group {
   addStreetCar(root, -2.6, -25.4, 0.02, 0xc42820);
   addStreetCar(root, 7.2, -25.0, -0.03, 0xc8ccd0);
 
-  const hemi = new THREE.HemisphereLight(0xffd4a8, C.charcoal, 0.18);
-  const sun = new THREE.DirectionalLight(0xffc070, 0.2);
-  sun.position.set(-30, 10, -14);
-  root.add(hemi, sun);
   return root;
 }

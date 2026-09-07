@@ -12,7 +12,7 @@ import {
   tick,
 } from "./game/shift";
 import { Walker } from "./input/walker";
-import { configureKeyLight, createNightProbe, createPipeline, createRenderer } from "./render/pipeline";
+import { configureKeyLight, createDuskEnvironment, createPipeline, createRenderer } from "./render/pipeline";
 import { addLodFillers, hullDebug, loadCarPrototypes, syncCars, trimLodFillers, type CarView } from "./world/cars";
 import { CANOPY_SHOT, KIOSK, REAR_SHOT, START_SHOT, WIDE_SHOT, ZEUS_SHOT } from "./world/layout";
 import { addBrandSignage } from "./world/branding";
@@ -38,19 +38,13 @@ const pips = document.querySelectorAll("#pips i");
 const renderer = createRenderer(canvas);
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x2a2430);
-scene.fog = new THREE.Fog(0x3a3028, 82, 186);
-scene.add(new THREE.AmbientLight(0xc8b8a8, 0.16));
-const fill = new THREE.DirectionalLight(0xffc070, 1.02);
-fill.position.set(-28, 11, -12);
-configureKeyLight(fill);
-scene.add(fill);
-const rim = new THREE.DirectionalLight(0x88a0bc, 0.38);
-rim.position.set(18, 10, 20);
-scene.add(rim);
-const skyFill = new THREE.DirectionalLight(0x6a8098, 0.14);
-skyFill.position.set(4, 18, -8);
-scene.add(skyFill);
+scene.background = new THREE.Color(0x2a2438);
+scene.fog = new THREE.Fog(0x4a3828, 88, 198);
+scene.add(new THREE.HemisphereLight(0xffd4a8, 0x16141c, 0.12));
+const sun = new THREE.DirectionalLight(0xffc078, 0.92);
+sun.position.set(-30, 12, -14);
+configureKeyLight(sun);
+scene.add(sun);
 
 const station = buildStation();
 addLotMirror(station.root, renderer);
@@ -63,7 +57,7 @@ walker.camera.add(hand);
 scene.add(walker.camera);
 const brandingReady = addBrandSignage(station.root);
 
-scene.environment = createNightProbe(renderer);
+scene.environment = createDuskEnvironment(renderer);
 const pipeline = createPipeline(renderer, scene, walker.camera);
 
 let state = resetNight();
