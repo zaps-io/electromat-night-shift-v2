@@ -46,7 +46,7 @@ Cinematic WebGL lot: ACES Filmic (exposure ~0.86) + one warm dusk `DirectionalLi
 
 Official cream/red Zaps wordmarks only. Palette: `#E63225` `#1E1E24` `#E89A2E` `#00D4F5` `#F5F0E8`.
 
-Lot PBR/env pass: merge `4c80ec6`. Hull ghost fix: `f34a753`. #33 (`fe9f818`) still ghosted. Closed lofted lot cars + recaptured stills: `ce64ac2` (`ce64ac23bab94f495d408b98bb0703ee77a6d741`).
+Lot PBR/env pass: merge `4c80ec6`. Hull ghost fix: `f34a753`. #33 (`fe9f818`) still ghosted. Closed lofted lot cars + recaptured stills: `f95cb80` (`f95cb8059ba61a476cc81d4482e406dbf788eb41`).
 
 ## Dev
 
