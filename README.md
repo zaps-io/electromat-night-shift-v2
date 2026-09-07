@@ -11,7 +11,7 @@ This is a clean restart. It does not clone or depend on `zaps-io/electromat-nigh
 Default `startNight()` lot view (no local build required):
 
 - [`docs/shots/startnight-lot.png`](docs/shots/startnight-lot.png) — HUD `ZOEY · STATION MASTER`, twin canopies, charging EVs
-- [`docs/shots/lot-rear34.png`](docs/shots/lot-rear34.png) — rear 3/4 of closed box guest hulls (opaque paint)
+- [`docs/shots/lot-rear34.png`](docs/shots/lot-rear34.png) — rear 3/4 of closed lofted guest hulls (opaque paint)
 - [`docs/shots/lot-wide.png`](docs/shots/lot-wide.png) — elevated dual-canopy Electromat site
 - [`docs/shots/canopy-fascia.png`](docs/shots/canopy-fascia.png) — official red Zaps on the cream canopy fascia
 - [`docs/shots/slim-zeus.png`](docs/shots/slim-zeus.png) — Slim Zeus product face (brushed metal, charcoal recess, front holsters)
@@ -46,7 +46,7 @@ Cinematic WebGL lot: ACES Filmic (exposure ~0.86) + one warm dusk `DirectionalLi
 
 Official cream/red Zaps wordmarks only. Palette: `#E63225` `#1E1E24` `#E89A2E` `#00D4F5` `#F5F0E8`.
 
-Lot PBR/env pass: merge `4c80ec6`. Hull ghost fix: `f34a753`. #33 (`fe9f818`) lofted hull still ghosted — lot cars are closed lofted sedans (this PR).
+Lot PBR/env pass: merge `4c80ec6`. Hull ghost fix: `f34a753`. #33 (`fe9f818`) still ghosted. Closed lofted lot cars + recaptured stills: `ce64ac2` (`ce64ac23bab94f495d408b98bb0703ee77a6d741`).
 
 ## Dev
 
