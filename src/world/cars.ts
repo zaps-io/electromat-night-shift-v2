@@ -95,17 +95,15 @@ function isInteriorLabel(n: string): boolean {
   );
 }
 
-function isJunkHelper(n: string): boolean {
+function isExteriorKeep(n: string): boolean {
+  if (n.includes("redlight") || n.includes("glassred") || n.includes("glassmat")) return false;
   return (
-    n.includes("wire_088199225") ||
-    n.includes("wire_135006006") ||
-    n.includes("wire_087225087") ||
-    n.includes("plasticred") ||
-    n.includes("plasticnumber") ||
-    n.includes("palm") ||
-    n.includes("tree") ||
-    n.includes("star-card") ||
-    n.includes("shadowplane")
+    n.includes("wire_027177027") ||
+    n.includes("paint") ||
+    n.includes("primary") ||
+    n.includes("glasswinds") ||
+    n.includes("blueglass") ||
+    n.includes("extaluminium")
   );
 }
 
@@ -185,66 +183,36 @@ const wheelRimMat = new THREE.MeshPhysicalMaterial({
   roughness: 0.18,
   envMapIntensity: 1.05,
 });
-const wheelTireGeo = new THREE.CylinderGeometry(0.33, 0.33, 0.22, 18);
-const wheelRimGeo = new THREE.CylinderGeometry(0.22, 0.22, 0.16, 16);
-const wheelHubGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.17, 12);
+const wheelTireGeo = new THREE.TorusGeometry(0.3, 0.075, 8, 18);
+const wheelRimGeo = new THREE.CylinderGeometry(0.23, 0.23, 0.14, 16);
+const wheelHubGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.15, 12);
 
 function addStudioWheels(root: THREE.Group): void {
   hideStockWheels(root);
-  const box = paintBounds(root);
-  const x0 = box.min.x + 0.82;
-  const x1 = box.max.x - 0.82;
-  const z = Math.max(0.74, (box.max.z - box.min.z) * 0.41);
+  const x0 = -1.52;
+  const x1 = 1.52;
+  const z = 0.82;
   const y = 0.33;
-  const hubs = [
+  for (const hubAt of [
     new THREE.Vector3(x0, y, z),
     new THREE.Vector3(x0, y, -z),
     new THREE.Vector3(x1, y, z),
     new THREE.Vector3(x1, y, -z),
-  ];
-  root.traverse((o) => {
-    const mesh = o as THREE.Mesh;
-    if (!mesh.isMesh || !mesh.visible || mesh.userData.studioWheel) return;
-    const b = new THREE.Box3().setFromObject(mesh);
-    const c = b.getCenter(new THREE.Vector3());
-    const s = b.getSize(new THREE.Vector3());
-    if (s.x > 0.95 || s.y > 0.9 || s.z > 0.95) return;
-    if (hubs.some((h) => c.distanceTo(h) < 0.36)) mesh.visible = false;
-  });
-  for (const hubAt of hubs) {
+  ]) {
     const tire = new THREE.Mesh(wheelTireGeo, wheelTireMat);
-    tire.rotation.z = Math.PI / 2;
     tire.position.copy(hubAt);
     tire.castShadow = true;
     tire.userData.studioWheel = true;
     const rim = new THREE.Mesh(wheelRimGeo, wheelRimMat);
-    rim.rotation.z = Math.PI / 2;
+    rim.rotation.x = Math.PI / 2;
     rim.position.copy(hubAt);
     rim.userData.studioWheel = true;
     const hub = new THREE.Mesh(wheelHubGeo, wheelTireMat);
-    hub.rotation.z = Math.PI / 2;
+    hub.rotation.x = Math.PI / 2;
     hub.position.copy(hubAt);
     hub.userData.studioWheel = true;
     root.add(tire, rim, hub);
   }
-}
-
-function paintBounds(root: THREE.Object3D): THREE.Box3 {
-  const box = new THREE.Box3();
-  let found = false;
-  root.traverse((o) => {
-    const mesh = o as THREE.Mesh;
-    if (!mesh.isMesh || !mesh.visible) return;
-    const n = labelKey(mesh);
-    if (!n.includes("paint") && !n.includes("primary") && !n.includes("wire_027")) return;
-    const b = new THREE.Box3().setFromObject(mesh);
-    if (!found) {
-      box.copy(b);
-      found = true;
-    } else box.union(b);
-  });
-  if (!found) box.setFromObject(root);
-  return box;
 }
 
 function dressAuthored(root: THREE.Object3D): void {
@@ -298,7 +266,7 @@ function isPaintName(mn: string): boolean {
 }
 
 function isGlassName(mn: string): boolean {
-  return (mn.includes("glass") && !mn.includes("red")) || mn.includes("019") || mn.includes("003") || mn.includes("winds");
+  return (mn.includes("glass") && !mn.includes("red") && !mn.includes("mat")) || mn.includes("winds");
 }
 
 function isTailName(mn: string): boolean {
@@ -387,21 +355,18 @@ function hideCabinAndCards(root: THREE.Object3D): void {
   root.updateMatrixWorld(true);
   root.traverse((o) => {
     const mesh = o as THREE.Mesh;
-    if (!mesh.isMesh) return;
+    if (!mesh.isMesh || mesh.userData.studioWheel) return;
     const n = labelKey(mesh);
-    if (isInteriorLabel(n) || isJunkHelper(n)) {
+    if (isInteriorLabel(n) || isWheelLabel(n) || !isExteriorKeep(n)) {
       mesh.visible = false;
       return;
     }
     const b = new THREE.Box3().setFromObject(mesh);
     const bh = b.max.y - b.min.y;
     const bw = Math.max(b.max.x - b.min.x, b.max.z - b.min.z);
-    const bd = Math.min(b.max.x - b.min.x, b.max.z - b.min.z, bh);
     if (bh < 0.07 && bw > 1.1 && b.min.y < 0.18) mesh.visible = false;
-    if (bd < 0.03 && bw > 1.4) mesh.visible = false;
   });
   hideDuplicateMeshes(root);
-  hideStockWheels(root);
 }
 
 function lightAxis(root: THREE.Object3D): number {
@@ -481,14 +446,9 @@ function makeCrossover(sedan: THREE.Group): THREE.Group {
 }
 
 function addEvCues(root: THREE.Group): { x: number; y: number; z: number } {
-  const box = paintBounds(root);
-  const inlet = {
-    x: THREE.MathUtils.lerp(box.min.x, box.max.x, 0.62),
-    y: THREE.MathUtils.lerp(box.min.y, box.max.y, 0.42),
-    z: box.max.z + 0.01,
-  };
+  const inlet = { x: 0.92, y: 0.72, z: 0.9 };
   const port = new THREE.Mesh(
-    new THREE.CircleGeometry(0.07, 22),
+    new THREE.CircleGeometry(0.055, 16),
     new THREE.MeshStandardMaterial({
       name: "ChargePort",
       color: 0x00d4f5,
@@ -497,15 +457,9 @@ function addEvCues(root: THREE.Group): { x: number; y: number; z: number } {
       toneMapped: false,
     }),
   );
-  port.position.set(inlet.x, inlet.y, inlet.z + 0.012);
+  port.position.set(inlet.x, inlet.y, inlet.z);
+  port.rotation.y = Math.PI / 2;
   root.add(port);
-  const ring = new THREE.Mesh(
-    new THREE.RingGeometry(0.075, 0.1, 18),
-    new THREE.MeshBasicMaterial({ color: 0x7ef6ff, toneMapped: false, side: THREE.DoubleSide }),
-  );
-  ring.position.set(inlet.x, inlet.y, inlet.z + 0.014);
-  ring.rotation.y = Math.PI / 2;
-  root.add(ring);
   return inlet;
 }
 
@@ -552,9 +506,17 @@ async function loadHull(kind: HullKind, file: string, fallback: () => BuiltPart[
     if (meshCount.n > 20) {
       const fitted = fitSedan(gltf.scene, kind);
       dressSedan(fitted);
+      pruneHidden(fitted);
       inletByKind[kind] = addEvCues(fitted);
       prototypes[kind] = fitted;
-      fitted.userData.meshCount = meshCount.n;
+      const keptNames: string[] = [];
+      fitted.traverse((o) => {
+        const mesh = o as THREE.Mesh;
+        if (!mesh.isMesh || !mesh.visible) return;
+        keptNames.push(labelKey(mesh).slice(0, 48));
+      });
+      fitted.userData.meshCount = keptNames.length;
+      fitted.userData.kept = keptNames;
       fitted.userData.source = file;
     } else {
       dressAuthored(gltf.scene);
@@ -640,13 +602,18 @@ function lodPaint(color: number): THREE.MeshPhysicalMaterial {
 function lodBucket(mesh: THREE.Mesh): LodBucket | "skip" {
   if (!mesh.visible) return "skip";
   const n = `${mesh.name} ${labelOf(mesh)}`.toLowerCase();
+  if (mesh.userData.studioWheel) return "dark";
   if (
     n.includes("seat") ||
     n.includes("carpet") ||
     n.includes("steer") ||
     n.includes("leather") ||
     n.includes("alcantara") ||
-    n.includes("burmester")
+    n.includes("burmester") ||
+    n.includes("wire_") && !n.includes("wire_027") ||
+    n.includes("plastic") ||
+    n.includes("carbon") ||
+    n.includes("int")
   ) {
     return "skip";
   }
@@ -820,6 +787,7 @@ export function trimLodFillers(drop = 1): number {
 export function hullDebug(): {
   source?: string;
   meshCount?: number;
+  kept?: string[];
   lodMeshes?: number;
   lodFillers?: number;
   fullPbr?: string[];
@@ -828,6 +796,7 @@ export function hullDebug(): {
   return {
     source: u.source,
     meshCount: u.meshCount,
+    kept: u.kept,
     lodMeshes: lodTemplate?.children.length,
     lodFillers: lodFillerRoots.length,
     fullPbr: [...FULL_PBR_IDS],
