@@ -11,7 +11,7 @@ This is a clean restart. It does not clone or depend on `zaps-io/electromat-nigh
 Default `startNight()` lot view (no local build required):
 
 - [`docs/shots/startnight-lot.png`](docs/shots/startnight-lot.png) — HUD `ZOEY · STATION MASTER`, twin canopies, charging EVs
-- [`docs/shots/lot-rear34.png`](docs/shots/lot-rear34.png) — rear 3/4 of closed lofted guest hulls (opaque paint)
+- [`docs/shots/lot-rear34.png`](docs/shots/lot-rear34.png) — rear 3/4 of the Sketchfab 2018 Tesla Model 3 guest hull
 - [`docs/shots/lot-wide.png`](docs/shots/lot-wide.png) — elevated dual-canopy Electromat site
 - [`docs/shots/canopy-fascia.png`](docs/shots/canopy-fascia.png) — official red Zaps on the cream canopy fascia
 - [`docs/shots/slim-zeus.png`](docs/shots/slim-zeus.png) — Slim Zeus product face (brushed metal, charcoal recess, front holsters)
@@ -42,11 +42,11 @@ Site line: **DRIVE IN. CHARGE UP. ZIP OUT.**
 
 ## Visual bar
 
-Cinematic WebGL lot: ACES Filmic (exposure ~0.86) + one warm dusk `DirectionalLight`, golden-hour `scene.environment` via `PMREMGenerator`, `postprocessing` bloom / vignette / SMAA. Twin cream canopies with a thin red fascia and official red Zaps wordmarks, 24 Slim Zeus (brushed metal, charcoal recess, cyan base, amber PLUG IN), glass lounge, grit asphalt + curb maps, mural / commercial street backdrop. Guest cars are **closed lofted EV sedans** (watertight paint volume, `MeshLambertMaterial`, opaque dark window panels, seated wheels). No Taycan/GLB hulls on the lot, no open shells, no transmission. Sketchfab Taycan remains in `public/models/` for attribution only.
+Cinematic WebGL lot: ACES Filmic (exposure ~0.86) + one warm dusk `DirectionalLight`, golden-hour `scene.environment` via `PMREMGenerator`, `postprocessing` bloom / vignette / SMAA. Twin cream canopies with a thin red fascia and official red Zaps wordmarks, 24 Slim Zeus (brushed metal, charcoal recess, cyan base, amber PLUG IN), glass lounge, grit asphalt + curb maps, mural / commercial street backdrop. Guest cars are the Sketchfab **2018 Tesla Model 3** (Ameer Studio, CC BY 4.0) with paint forced opaque (`MeshPhysicalMaterial` clearcoat, `transmission: 0`) and dark opaque greenhouse glass. No lofted placeholders, no Taycan helper cages, no see-through paint.
 
 Official cream/red Zaps wordmarks only. Palette: `#E63225` `#1E1E24` `#E89A2E` `#00D4F5` `#F5F0E8`.
 
-Lot PBR/env pass: merge `4c80ec6`. Hull ghost fix: `f34a753`. #33 (`fe9f818`) still ghosted. Closed lofted lot cars + recaptured stills: `f95cb80` (`f95cb8059ba61a476cc81d4482e406dbf788eb41`).
+Lot PBR/env pass: merge `4c80ec6`. Live hull: Tesla Model 3, opaque paint (this branch).
 
 ## Dev
 

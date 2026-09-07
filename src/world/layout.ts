@@ -21,13 +21,13 @@ const RIGHT_ZS = [-5.4, -2.7, 0.0, 2.7, 5.4, 8.1, 10.8] as const;
 export const LEFT_CANOPY_X = -8.3;
 export const RIGHT_CANOPY_X = 11.5;
 
-export const LEFT_EAST_CAR_X = -5.8;
-export const LEFT_WEST_CAR_X = -10.8;
+export const LEFT_EAST_CAR_X = -6.5;
+export const LEFT_WEST_CAR_X = -10.1;
 export const LEFT_EAST_ZEUS_X = -8.0;
 export const LEFT_WEST_ZEUS_X = -8.6;
 
-export const RIGHT_WEST_CAR_X = 8.9;
-export const RIGHT_EAST_CAR_X = 14.1;
+export const RIGHT_WEST_CAR_X = 9.55;
+export const RIGHT_EAST_CAR_X = 13.45;
 export const RIGHT_WEST_ZEUS_X = 11.4;
 export const RIGHT_EAST_ZEUS_X = 11.7;
 
@@ -81,12 +81,15 @@ export const STALLS: Stall[] = [
 /** Six playable Night Shift bays (opening lot + Peck). */
 export const BAYS = STALLS.filter((s) => s.playable != null).sort((a, b) => a.playable! - b.playable!) as Stall[];
 
+/** Nose-to-tail aisle queue. Cars face +Z (into the lot). Spacing > sedan length. */
+export const CAR_LENGTH = 4.72;
+export const QUEUE_GAP = 1.7;
 export const WAIT_SLOTS = [
-  { x: 1.15, z: -4.2, yaw: 4.68 },
-  { x: 1.2, z: -7.0, yaw: 4.71 },
-  { x: 1.25, z: -9.6, yaw: 4.71 },
-  { x: 1.3, z: -12.0, yaw: 4.71 },
-  { x: 1.35, z: -14.4, yaw: 4.71 },
+  { x: 1.25, z: -2.05, yaw: Math.PI },
+  { x: 1.25, z: -8.47, yaw: Math.PI },
+  { x: 1.25, z: -14.89, yaw: Math.PI },
+  { x: 1.25, z: -21.31, yaw: Math.PI },
+  { x: 1.25, z: -27.73, yaw: Math.PI },
 ] as const;
 
 export const WAIT_ORDER = ["peck", "ng", "kim", "das", "ortiz"] as const;
