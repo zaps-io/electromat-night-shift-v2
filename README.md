@@ -46,7 +46,7 @@ Cinematic WebGL lot: ACES Filmic (exposure ~0.86) + one warm dusk `DirectionalLi
 
 Official cream/red Zaps wordmarks only. Palette: `#E63225` `#1E1E24` `#E89A2E` `#00D4F5` `#F5F0E8`.
 
-Lot PBR/env pass: merge `4c80ec6`. Guest hulls keep one exterior shell + studio wheels (no Sketchfab helper/wire/tire ghosts).
+Lot PBR/env pass: merge `4c80ec6`. Guest hulls keep one paint shell + GlassWinds + four torus studio wheels (SHA on `cursor/car-hull-ghosts-a5cf`).
 
 ## Dev
 

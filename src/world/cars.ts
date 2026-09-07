@@ -103,7 +103,6 @@ function isExteriorKeep(n: string): boolean {
     n.includes("primary") ||
     n.includes("glasswinds") ||
     n.includes("blueglass") ||
-    (n.includes("glass") && !n.includes("int")) ||
     n.includes("extaluminium")
   );
 }
@@ -184,16 +183,15 @@ const wheelRimMat = new THREE.MeshPhysicalMaterial({
   roughness: 0.18,
   envMapIntensity: 1.05,
 });
-const wheelTireGeo = new THREE.CylinderGeometry(0.33, 0.33, 0.22, 18);
-const wheelRimGeo = new THREE.CylinderGeometry(0.22, 0.22, 0.16, 16);
-const wheelHubGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.17, 12);
+const wheelTireGeo = new THREE.TorusGeometry(0.3, 0.075, 8, 18);
+const wheelRimGeo = new THREE.CylinderGeometry(0.23, 0.23, 0.14, 16);
+const wheelHubGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.15, 12);
 
 function addStudioWheels(root: THREE.Group): void {
   hideStockWheels(root);
-  const box = paintBounds(root);
-  const x0 = box.min.x + 0.82;
-  const x1 = box.max.x - 0.82;
-  const z = Math.max(0.74, (box.max.z - box.min.z) * 0.41);
+  const x0 = -1.52;
+  const x1 = 1.52;
+  const z = 0.82;
   const y = 0.33;
   for (const hubAt of [
     new THREE.Vector3(x0, y, z),
@@ -202,38 +200,19 @@ function addStudioWheels(root: THREE.Group): void {
     new THREE.Vector3(x1, y, -z),
   ]) {
     const tire = new THREE.Mesh(wheelTireGeo, wheelTireMat);
-    tire.rotation.z = Math.PI / 2;
     tire.position.copy(hubAt);
     tire.castShadow = true;
     tire.userData.studioWheel = true;
     const rim = new THREE.Mesh(wheelRimGeo, wheelRimMat);
-    rim.rotation.z = Math.PI / 2;
+    rim.rotation.x = Math.PI / 2;
     rim.position.copy(hubAt);
     rim.userData.studioWheel = true;
     const hub = new THREE.Mesh(wheelHubGeo, wheelTireMat);
-    hub.rotation.z = Math.PI / 2;
+    hub.rotation.x = Math.PI / 2;
     hub.position.copy(hubAt);
     hub.userData.studioWheel = true;
     root.add(tire, rim, hub);
   }
-}
-
-function paintBounds(root: THREE.Object3D): THREE.Box3 {
-  const box = new THREE.Box3();
-  let found = false;
-  root.traverse((o) => {
-    const mesh = o as THREE.Mesh;
-    if (!mesh.isMesh || !mesh.visible) return;
-    const n = labelKey(mesh);
-    if (!n.includes("paint") && !n.includes("primary") && !n.includes("wire_027")) return;
-    const b = new THREE.Box3().setFromObject(mesh);
-    if (!found) {
-      box.copy(b);
-      found = true;
-    } else box.union(b);
-  });
-  if (!found) box.setFromObject(root);
-  return box;
 }
 
 function dressAuthored(root: THREE.Object3D): void {
@@ -530,11 +509,14 @@ async function loadHull(kind: HullKind, file: string, fallback: () => BuiltPart[
       pruneHidden(fitted);
       inletByKind[kind] = addEvCues(fitted);
       prototypes[kind] = fitted;
-      let kept = 0;
+      const keptNames: string[] = [];
       fitted.traverse((o) => {
-        if ((o as THREE.Mesh).isMesh && o.visible) kept += 1;
+        const mesh = o as THREE.Mesh;
+        if (!mesh.isMesh || !mesh.visible) return;
+        keptNames.push(labelKey(mesh).slice(0, 48));
       });
-      fitted.userData.meshCount = kept;
+      fitted.userData.meshCount = keptNames.length;
+      fitted.userData.kept = keptNames;
       fitted.userData.source = file;
     } else {
       dressAuthored(gltf.scene);
@@ -805,6 +787,7 @@ export function trimLodFillers(drop = 1): number {
 export function hullDebug(): {
   source?: string;
   meshCount?: number;
+  kept?: string[];
   lodMeshes?: number;
   lodFillers?: number;
   fullPbr?: string[];
@@ -813,6 +796,7 @@ export function hullDebug(): {
   return {
     source: u.source,
     meshCount: u.meshCount,
+    kept: u.kept,
     lodMeshes: lodTemplate?.children.length,
     lodFillers: lodFillerRoots.length,
     fullPbr: [...FULL_PBR_IDS],
