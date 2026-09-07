@@ -14,6 +14,7 @@ Default `startNight()` lot view (no local build required):
 - [`docs/shots/lot-rear34.png`](docs/shots/lot-rear34.png) — rear 3/4 of the Sketchfab 2020 Porsche Taycan guest hull
 - [`docs/shots/lot-wide.png`](docs/shots/lot-wide.png) — elevated dual-canopy Electromat site
 - [`docs/shots/canopy-fascia.png`](docs/shots/canopy-fascia.png) — official red Zaps on the cream canopy fascia
+- [`docs/shots/slim-zeus.png`](docs/shots/slim-zeus.png) — Slim Zeus product face (brushed metal, charcoal recess, front holsters)
 - [`docs/shots/v2b-lot.png`](docs/shots/v2b-lot.png) — wider canopy / pavilion / occupancy
 
 ## GitHub Pages
@@ -41,7 +42,7 @@ Site line: **DRIVE IN. CHARGE UP. ZIP OUT.**
 
 ## Visual bar
 
-Cinematic WebGL lot: ACES Filmic + PCF-soft shadows, dusk PMREM probe, `postprocessing` bloom / vignette / SMAA. Twin cream canopies with official red Zaps fascias, Slim Zeus rows, modular glass lounge, desert gravel planters. Guest cars are **2020 Porsche Taycan** by martin002 on Sketchfab (CC BY 4.0). See `public/models/porsche-taycan-2020.ATTRIBUTION.txt`.
+Cinematic WebGL lot: ACES Filmic + PCF-soft shadows, dusk PMREM probe, `postprocessing` bloom / vignette / SMAA. Twin cream canopies with a thin red fascia and official red Zaps wordmarks, 24 Slim Zeus (6 playable + lite impostors), glass lounge, desert gravel planters, mural / commercial street backdrop. Guest cars are **2020 Porsche Taycan** by martin002 on Sketchfab (CC BY 4.0). See `public/models/porsche-taycan-2020.ATTRIBUTION.txt`.
 
 Official cream/red Zaps wordmarks only. Palette: `#E63225` `#1E1E24` `#E89A2E` `#00D4F5` `#F5F0E8`.
 

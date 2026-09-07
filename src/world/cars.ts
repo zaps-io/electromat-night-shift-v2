@@ -6,7 +6,15 @@ import { SUV_INLET, buildSuvParts } from "../cars/suv";
 import type { BuiltPart } from "../cars/types";
 import type { GameState, Guest, HullKind } from "../game/state";
 import { arrivedGuests } from "../game/shift";
-import { BAYS, WAIT_ORDER, WAIT_SLOTS } from "./layout";
+import {
+  BAYS,
+  LEFT_EAST_CAR_X,
+  LEFT_WEST_CAR_X,
+  RIGHT_EAST_CAR_X,
+  RIGHT_WEST_CAR_X,
+  WAIT_ORDER,
+  WAIT_SLOTS,
+} from "./layout";
 import { makeAttentionIcon, makeBatteryIcon } from "./icons";
 import { rubber } from "./tex";
 
@@ -41,11 +49,11 @@ function paintMaterial(color: THREE.Color): THREE.MeshPhysicalMaterial {
   return new THREE.MeshPhysicalMaterial({
     name: "Paint",
     color,
-    metalness: 0.22,
-    roughness: 0.14,
-    clearcoat: 0.72,
-    clearcoatRoughness: 0.1,
-    envMapIntensity: 0.95,
+    metalness: 0.2,
+    roughness: 0.12,
+    clearcoat: 0.88,
+    clearcoatRoughness: 0.08,
+    envMapIntensity: 1.08,
   });
 }
 
@@ -482,9 +490,9 @@ function lodPaint(color: number): THREE.MeshStandardMaterial {
     mat = new THREE.MeshStandardMaterial({
       name: "LodPaint",
       color,
-      roughness: 0.2,
-      metalness: 0.38,
-      envMapIntensity: 1.35,
+      roughness: 0.16,
+      metalness: 0.42,
+      envMapIntensity: 1.5,
     });
     lodPaintMats.set(color, mat);
   }
@@ -619,11 +627,11 @@ function makeLodHull(color: number, hull: HullKind): THREE.Group {
 
 /** Distant / queue fillers. Last entry is dropped first if WebGL context is lost. */
 export const LOD_FILLERS = [
-  { x: 16.05, z: -5.4, yaw: Math.PI / 2, paint: 0xe8e2d4, waiting: false },
-  { x: -9.45, z: 6.9, yaw: Math.PI / 2, paint: 0xc8ccd0, waiting: false },
-  { x: 10.75, z: 5.4, yaw: -Math.PI / 2, paint: 0x1c2434, waiting: false },
-  { x: 12.8, z: 12.4, yaw: Math.PI, paint: 0x6b5344, waiting: false },
-  { x: 0.2, z: -16.2, yaw: Math.PI, paint: 0x2a3848, waiting: true },
+  { x: RIGHT_EAST_CAR_X, z: -5.4, yaw: Math.PI / 2, paint: 0xe8e2d4, waiting: false },
+  { x: LEFT_WEST_CAR_X, z: 4.2, yaw: -Math.PI / 2, paint: 0xc8ccd0, waiting: false },
+  { x: RIGHT_WEST_CAR_X, z: 5.4, yaw: -Math.PI / 2, paint: 0x1c2434, waiting: false },
+  { x: LEFT_EAST_CAR_X, z: 4.2, yaw: Math.PI / 2, paint: 0x6b5344, waiting: false },
+  { x: 1.2, z: -16.2, yaw: Math.PI, paint: 0x2a3848, waiting: true },
 ] as const;
 
 export let lodFillerBudget = 4;

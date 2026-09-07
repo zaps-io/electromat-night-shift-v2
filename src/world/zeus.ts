@@ -7,64 +7,67 @@ const brush = brushMetal();
 
 const alum = new THREE.MeshPhysicalMaterial({
   name: "ZeusAlum",
-  color: C.chrome,
+  color: 0xc4c8cc,
   map: brush.map,
   roughnessMap: brush.rough,
-  metalness: 0.72,
-  roughness: 0.26,
-  clearcoat: 0.22,
-  clearcoatRoughness: 0.32,
-  anisotropy: 0.86,
+  metalness: 0.82,
+  roughness: 0.28,
+  clearcoat: 0.18,
+  clearcoatRoughness: 0.42,
+  anisotropy: 0.92,
   anisotropyRotation: Math.PI / 2,
-  envMapIntensity: 1.05,
-  emissive: 0x1c1e22,
-  emissiveIntensity: 0.04,
+  envMapIntensity: 1.18,
 });
 
 const charcoal = new THREE.MeshStandardMaterial({
   color: C.charcoal,
-  metalness: 0.04,
-  roughness: 0.88,
-  envMapIntensity: 0.1,
+  metalness: 0.03,
+  roughness: 0.9,
+  envMapIntensity: 0.08,
 });
 
 const black = new THREE.MeshStandardMaterial({
   color: 0x111214,
-  roughness: 0.88,
-  metalness: 0.06,
+  roughness: 0.9,
+  metalness: 0.05,
 });
 
 const grip = new THREE.MeshStandardMaterial({
-  color: 0x141518,
-  roughness: 0.7,
-  metalness: 0.1,
+  color: 0x121316,
+  roughness: 0.72,
+  metalness: 0.08,
 });
 
 const handleSilver = new THREE.MeshPhysicalMaterial({
   color: C.chrome,
-  metalness: 0.88,
-  roughness: 0.22,
-  clearcoat: 0.28,
-  envMapIntensity: 0.7,
+  metalness: 0.9,
+  roughness: 0.2,
+  clearcoat: 0.24,
+  envMapIntensity: 0.75,
 });
 
 const cableMat = new THREE.MeshStandardMaterial({
-  color: 0x0c0d10,
-  roughness: 0.86,
+  color: 0x0b0c0e,
+  roughness: 0.88,
   metalness: 0.02,
 });
 
-const cyanSeam = new THREE.MeshBasicMaterial({
-  color: C.cyan,
-  toneMapped: true,
-});
-
-const led = new THREE.MeshStandardMaterial({
+const cyanSeam = new THREE.MeshStandardMaterial({
   color: C.cyan,
   emissive: C.cyan,
-  emissiveIntensity: 1.2,
+  emissiveIntensity: 1.35,
+  roughness: 0.22,
   metalness: 0.08,
-  roughness: 0.28,
+  toneMapped: false,
+});
+
+const glass = new THREE.MeshPhysicalMaterial({
+  color: 0x0a0c10,
+  metalness: 0.18,
+  roughness: 0.08,
+  transparent: true,
+  opacity: 0.82,
+  envMapIntensity: 0.7,
 });
 
 const GLYPHS: Record<string, string[]> = {
@@ -79,26 +82,26 @@ const GLYPHS: Record<string, string[]> = {
 
 function plugInMatrix(): THREE.CanvasTexture {
   const c = document.createElement("canvas");
-  c.width = 320;
-  c.height = 88;
+  c.width = 384;
+  c.height = 96;
   const ctx = c.getContext("2d")!;
-  ctx.fillStyle = "#0C0E12";
-  ctx.fillRect(0, 0, 320, 88);
-  ctx.fillStyle = "#1A1C22";
-  for (let y = 4; y < 84; y += 4) {
-    for (let x = 4; x < 316; x += 4) ctx.fillRect(x, y, 1, 1);
+  ctx.fillStyle = "#0A0C10";
+  ctx.fillRect(0, 0, 384, 96);
+  ctx.fillStyle = "#16181E";
+  for (let y = 6; y < 90; y += 4) {
+    for (let x = 6; x < 378; x += 4) ctx.fillRect(x, y, 1, 1);
   }
   ctx.fillStyle = "#E89A2E";
-  let x = 22;
+  let x = 28;
   for (const ch of "PLUG IN") {
     const g = GLYPHS[ch] ?? GLYPHS[" "];
     for (let row = 0; row < 5; row++) {
       for (let col = 0; col < 5; col++) {
-        ctx.globalAlpha = g[row][col] === "1" ? 1 : 0.08;
-        ctx.fillRect(x + col * 6, 22 + row * 9, 5, 7);
+        ctx.globalAlpha = g[row][col] === "1" ? 1 : 0.07;
+        ctx.fillRect(x + col * 7, 24 + row * 10, 6, 8);
       }
     }
-    x += 38;
+    x += 48;
   }
   ctx.globalAlpha = 1;
   const tex = new THREE.CanvasTexture(c);
@@ -114,33 +117,59 @@ const screenMat = new THREE.MeshBasicMaterial({
   toneMapped: false,
 });
 
-function addSideHolster(g: THREE.Group, side: -1 | 1, cables = true): void {
-  const x = 0.205 * side;
-  const pocket = new THREE.Mesh(new RoundedBoxGeometry(0.05, 0.22, 0.1, 2, 0.01), alum);
-  pocket.position.set(x, 1.02, 0.01);
-  const lip = new THREE.Mesh(new THREE.BoxGeometry(0.056, 0.016, 0.108), black);
-  lip.position.set(x, 1.12, 0.01);
-  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.022, 0.15, 10), handleSilver);
-  barrel.rotation.z = Math.PI / 2;
-  barrel.position.set(x + side * 0.01, 1.04, 0.02);
-  const gripMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.02, 0.09, 10), grip);
-  gripMesh.rotation.z = Math.PI / 2;
-  gripMesh.position.set(x + side * 0.07, 1.04, 0.02);
-  const nose = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.018, 0.036, 10), black);
-  nose.rotation.z = Math.PI / 2;
-  nose.position.set(x + side * -0.08, 1.04, 0.02);
+const geo = {
+  base: new RoundedBoxGeometry(0.56, 0.13, 0.5, 3, 0.02),
+  foot: new THREE.CylinderGeometry(0.018, 0.02, 0.02, 8),
+  body: new RoundedBoxGeometry(0.48, 2.08, 0.42, 4, 0.032),
+  cap: new RoundedBoxGeometry(0.488, 0.046, 0.428, 3, 0.014),
+  seam: new THREE.BoxGeometry(0.5, 0.008, 0.44),
+  recess: new THREE.BoxGeometry(0.34, 1.62, 0.05),
+  well: new THREE.BoxGeometry(0.32, 1.52, 0.02),
+  screen: new THREE.BoxGeometry(0.168, 0.168, 0.012),
+  bezel: new THREE.BoxGeometry(0.27, 0.068, 0.01),
+  display: new THREE.PlaneGeometry(0.256, 0.058),
+  pocket: new RoundedBoxGeometry(0.07, 0.28, 0.055, 2, 0.012),
+  lip: new THREE.BoxGeometry(0.074, 0.018, 0.06),
+  barrel: new THREE.CylinderGeometry(0.016, 0.018, 0.12, 10),
+  grip: new THREE.CylinderGeometry(0.015, 0.017, 0.08, 10),
+  nose: new THREE.CylinderGeometry(0.012, 0.015, 0.03, 8),
+};
+
+function frontCable(side: -1 | 1): THREE.TubeGeometry {
+  const x = 0.078 * side;
   const curve = new THREE.QuadraticBezierCurve3(
-    new THREE.Vector3(x + side * 0.02, 0.94, 0.02),
-    new THREE.Vector3(x + side * 0.12, 0.42, 0.04),
-    new THREE.Vector3(x + side * 0.02, 0.28, 0.0),
+    new THREE.Vector3(x, 0.78, -0.2),
+    new THREE.Vector3(x + side * 0.04, 0.42, -0.12),
+    new THREE.Vector3(x * 0.4, 0.16, -0.02),
   );
-  g.add(pocket, lip, barrel, gripMesh, nose);
-  if (!cables) return;
-  const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, 12, 0.012, 6, false), cableMat);
-  g.add(tube);
+  return new THREE.TubeGeometry(curve, 10, 0.011, 6, false);
 }
 
-/** Slim Zeus: brushed pedestal, charcoal face, PLUG IN, waist side holsters. */
+const cableGeoL = frontCable(-1);
+const cableGeoR = frontCable(1);
+
+function addFrontHolster(g: THREE.Group, side: -1 | 1, cables: boolean): void {
+  const x = 0.078 * side;
+  const z = -0.208;
+  const pocket = new THREE.Mesh(geo.pocket, charcoal);
+  pocket.position.set(x, 0.96, z);
+  const lip = new THREE.Mesh(geo.lip, black);
+  lip.position.set(x, 1.09, z - 0.004);
+  const barrel = new THREE.Mesh(geo.barrel, handleSilver);
+  barrel.rotation.x = Math.PI / 2;
+  barrel.position.set(x, 0.97, z - 0.012);
+  const gripMesh = new THREE.Mesh(geo.grip, grip);
+  gripMesh.rotation.x = Math.PI / 2;
+  gripMesh.position.set(x, 0.86, z - 0.01);
+  const nose = new THREE.Mesh(geo.nose, black);
+  nose.rotation.x = Math.PI / 2;
+  nose.position.set(x, 1.05, z - 0.016);
+  g.add(pocket, lip, barrel, gripMesh, nose);
+  if (!cables) return;
+  g.add(new THREE.Mesh(side < 0 ? cableGeoL : cableGeoR, cableMat));
+}
+
+/** Slim Zeus: brushed frame, charcoal recess, front twin holsters, cyan base, PLUG IN. */
 export function addZeusCharger(
   root: THREE.Group,
   x: number,
@@ -153,58 +182,51 @@ export function addZeusCharger(
   g.rotation.y = yaw;
   g.userData.kind = "zeus";
 
-  const base = new THREE.Mesh(new RoundedBoxGeometry(0.48, 0.11, 0.4, 3, 0.018), black);
-  base.position.y = 0.055;
-  const body = new THREE.Mesh(new RoundedBoxGeometry(0.34, 2.08, 0.26, 4, 0.028), alum);
-  body.position.y = 1.2;
+  const base = new THREE.Mesh(geo.base, black);
+  base.position.y = 0.075;
+  for (const [fx, fz] of [
+    [-0.2, -0.18],
+    [0.2, -0.18],
+    [-0.2, 0.18],
+    [0.2, 0.18],
+  ] as const) {
+    const foot = new THREE.Mesh(geo.foot, black);
+    foot.position.set(fx, 0.01, fz);
+    g.add(foot);
+  }
+
+  const body = new THREE.Mesh(geo.body, alum);
+  body.position.y = 1.22;
   body.castShadow = true;
-  const cap = new THREE.Mesh(new RoundedBoxGeometry(0.348, 0.05, 0.268, 3, 0.016), alum);
-  cap.position.y = 2.255;
 
-  const seam = new THREE.Mesh(new THREE.BoxGeometry(0.352, 0.006, 0.272), cyanSeam);
-  seam.position.y = 0.118;
+  const cap = new THREE.Mesh(geo.cap, alum);
+  cap.position.y = 2.272;
 
-  const recess = new THREE.Mesh(new THREE.BoxGeometry(0.22, 1.46, 0.036), charcoal);
-  recess.position.set(0, 1.22, -0.148);
+  const seam = new THREE.Mesh(geo.seam, cyanSeam);
+  seam.position.y = 0.148;
 
-  const plate = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.036, 0.008), charcoal);
-  plate.position.set(0, 1.78, -0.17);
+  const recess = new THREE.Mesh(geo.recess, charcoal);
+  recess.position.set(0, 1.24, -0.2);
 
-  const logo = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.15, 0.042),
-    new THREE.MeshBasicMaterial({
-      color: 0xffffff,
-      transparent: true,
-      toneMapped: false,
-      depthWrite: false,
-    }),
-  );
-  logo.position.set(0, 1.78, -0.176);
-  logo.rotation.y = Math.PI;
-  logo.userData.zeusLogo = true;
+  const well = new THREE.Mesh(geo.well, black);
+  well.position.set(0, 1.24, -0.218);
 
-  const bezel = new THREE.Mesh(new THREE.BoxGeometry(0.176, 0.05, 0.008), black);
-  bezel.position.set(0, 1.58, -0.168);
-  const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.168, 0.046), screenMat);
-  screen.position.set(0, 1.58, -0.174);
-  screen.rotation.y = Math.PI;
+  const screen = new THREE.Mesh(geo.screen, glass);
+  screen.position.set(0, 1.82, -0.232);
 
-  const status = new THREE.Mesh(new THREE.BoxGeometry(0.016, 0.016, 0.006), led);
-  status.position.set(0, 2.12, -0.134);
+  const bezel = new THREE.Mesh(geo.bezel, black);
+  bezel.position.set(0, 1.58, -0.23);
+  const display = new THREE.Mesh(geo.display, screenMat);
+  display.position.set(0, 1.58, -0.237);
+  display.rotation.y = Math.PI;
 
-  addSideHolster(g, -1, detail === "full");
-  addSideHolster(g, 1, detail === "full");
+  addFrontHolster(g, -1, detail === "full");
+  addFrontHolster(g, 1, detail === "full");
 
-  g.add(base, body, cap, seam, recess, plate, logo, bezel, screen, status);
+  g.add(base, body, cap, seam, recess, well, screen, bezel, display);
   root.add(g);
 }
 
-export function applyZeusLogos(root: THREE.Object3D, tex: THREE.Texture): void {
-  root.traverse((o) => {
-    const mesh = o as THREE.Mesh;
-    if (!mesh.isMesh || !mesh.userData.zeusLogo) return;
-    const mat = mesh.material as THREE.MeshBasicMaterial;
-    mat.map = tex;
-    mat.needsUpdate = true;
-  });
+export function applyZeusLogos(_root: THREE.Object3D, _tex: THREE.Texture): void {
+  /* Product face is PLUG IN + glass, not a wordmark plate. */
 }
