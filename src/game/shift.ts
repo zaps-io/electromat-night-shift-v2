@@ -239,10 +239,14 @@ export function seedOpeningLot(s: GameState): void {
   chen.greeted = true;
   chen.delivered = 2;
   s.bays[4].guestId = "chen";
-  peck.greeted = false;
-  s.plugs = 4;
+  peck.greeted = true;
+  peck.assignedBay = 4;
+  peck.plugged = true;
+  peck.authorized = false;
+  s.bays[3].guestId = "peck";
+  s.plugs = 5;
   s.autochargeSignups = 0;
-  speak(s, "Four on charge. Queue is building.", 10);
+  speak(s, "Peck is plugged — E PAY at the car. Queue is building.", 10);
 }
 
 export function resetNight(): GameState {

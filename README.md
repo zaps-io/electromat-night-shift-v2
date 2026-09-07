@@ -36,7 +36,7 @@ Private-repo Pages also needs a GitHub plan that includes Pages (org GitHub Team
 3. **E TALK** to a driver (amber `!` in the aisle queue).
 4. **E PARK** — pulls them into an open stall (or look at an empty painted bay and press E).
 5. **E PLUG** the inlet. AutoCharge cars take power immediately.
-6. **How to pay (first-visit / kiosk cars):** after plug the `!` stays up and the prompt reads **E PAY · NAME**. Press **E** at the car (attendant handheld). Or walk west to the lounge kiosk and press **E PAY** there. Payment is not gated on a full battery — plug first, then pay. After pay, **E AUTOCHARGE** files the vehicle.
+6. **How to pay (first-visit / kiosk cars):** Opening night already has **Peck plugged and waiting to pay** (amber `!` on the right-island stall). Walk up and press **E PAY · PECK** at the car. Or walk west to the lounge kiosk and **E PAY**. Payment is not gated on a full battery — plug first, then pay. After pay, **E AUTOCHARGE** files the vehicle. Later first-visits: talk → park → plug → the same E PAY prompt.
 7. When the battery finishes, `!` returns — **E UNPLUG** to zip them out.
 8. Cyan battery icons mark occupancy. Three walkaways end the night. 04:00 grades the shift.
 

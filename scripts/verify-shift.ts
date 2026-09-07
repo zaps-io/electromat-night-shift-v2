@@ -56,14 +56,8 @@ const s = resetNight();
 seedOpeningLot(s);
 if (s.phase !== "shift") throw new Error("seed must enter shift");
 if (!s.guests.find((g) => g.id === "hale")?.plugged) throw new Error("Hale should be charging");
-if (!greetDriver(s, "peck")) throw new Error("talk Peck failed");
-if (guestAction(s.guests.find((g) => g.id === "peck")) !== "park") throw new Error("Peck should need park");
-if (!waitingParker(s) || waitingParker(s)?.id !== "peck") throw new Error("Peck should be waiting to park");
-if (!parkInBay(s, "peck")) throw new Error("park Peck failed");
-if (!plugInlet(s, "peck")) throw new Error("plug Peck failed");
 const peck = s.guests.find((g) => g.id === "peck")!;
-if (peck.assignedBay == null || !peck.plugged) throw new Error("Peck should be in a bay");
-if (guestAction(peck) !== "pay") throw new Error("Peck should need pay after plug");
+if (guestAction(peck) !== "pay") throw new Error("opening Peck should be ready to pay");
 if (pendingPayGuest(s)?.id !== "peck") throw new Error("kiosk ticket should be Peck");
 if (!payKiosk(s, "peck")) throw new Error("kiosk pay failed");
 if (!peck.authorized) throw new Error("Peck should be authorized");
@@ -76,6 +70,14 @@ if (guestAction(peck) !== "unplug") throw new Error("full Peck should need unplu
 if (!unplugInlet(s, "peck")) throw new Error("unplug Peck failed");
 if (!peck.served) throw new Error("Peck should zip out after unplug");
 if (s.sessionsDone < 1) throw new Error("session should count after unplug");
+
+if (!greetDriver(s, "ng")) throw new Error("talk Ng failed");
+if (guestAction(s.guests.find((g) => g.id === "ng")) !== "park") throw new Error("Ng should need park");
+if (!waitingParker(s) || waitingParker(s)?.id !== "ng") throw new Error("Ng should be waiting to park");
+if (!parkInBay(s, "ng")) throw new Error("park Ng failed");
+if (!plugInlet(s, "ng")) throw new Error("plug Ng failed");
+if (guestAction(s.guests.find((g) => g.id === "ng")) !== "pay") throw new Error("Ng should need pay after plug");
+if (!payKiosk(s, "ng")) throw new Error("Ng pay failed");
 
 const paint = paintMaterial(0x1c2434);
 if (paint.transparent || paint.opacity < 1) throw new Error("paint must be fully opaque");
