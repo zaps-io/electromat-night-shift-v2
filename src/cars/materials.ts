@@ -45,14 +45,25 @@ export function isExteriorKeep(_n: string): boolean {
   return false;
 }
 
+function liftPaintColor(color: THREE.Color): THREE.Color {
+  const lifted = color.clone();
+  lifted.r = THREE.MathUtils.clamp(lifted.r * 1.2 + 0.1, 0.22, 1);
+  lifted.g = THREE.MathUtils.clamp(lifted.g * 1.2 + 0.09, 0.22, 1);
+  lifted.b = THREE.MathUtils.clamp(lifted.b * 1.2 + 0.08, 0.22, 1);
+  return lifted;
+}
+
 /** Opaque body paint. Standard — Physical/clearcoat/transmission read as ghost hulls. */
 export function opaquePaintMaterial(color: THREE.Color): THREE.MeshStandardMaterial {
+  const lifted = liftPaintColor(color);
   return new THREE.MeshStandardMaterial({
     name: "Paint",
-    color,
-    metalness: 0.18,
-    roughness: 0.32,
-    envMapIntensity: 0.7,
+    color: lifted,
+    metalness: 0.08,
+    roughness: 0.48,
+    envMapIntensity: 0.45,
+    emissive: lifted.clone().multiplyScalar(0.16),
+    emissiveIntensity: 0.4,
     transparent: false,
     opacity: 1,
     depthWrite: true,
@@ -70,7 +81,7 @@ export function windowGlassMaterial(): THREE.MeshStandardMaterial {
     metalness: 0.04,
     roughness: 0.12,
     transparent: true,
-    opacity: 0.55,
+    opacity: 0.72,
     depthWrite: true,
     depthTest: true,
     envMapIntensity: 0.45,

@@ -11,6 +11,7 @@ import {
   windowGlassMaterial,
 } from "../src/cars/materials.ts";
 import { BAYS, STALLS } from "../src/world/layout.ts";
+import { buildSedanParts } from "../src/cars/sedan.ts";
 
 for (const name of [
   "zaps-wordmark-only-cream.svg",
@@ -61,6 +62,12 @@ if (paint.depthWrite !== true) throw new Error("paint must depthWrite");
 const glass = windowGlassMaterial();
 if (((glass as THREE.MeshPhysicalMaterial).transmission ?? 0) !== 0) throw new Error("window glass must not use transmission");
 if (!glass.transparent) throw new Error("window glass may stay slightly tinted");
-if ((glass.opacity ?? 0) < 0.4) throw new Error("window glass tint is too thin");
+if ((glass.opacity ?? 0) < 0.5) throw new Error("window glass tint is too thin");
+
+const authored = buildSedanParts();
+const paintPart = authored.find((p) => p.name === "paint");
+if (!paintPart || paintPart.indices.length < 3000) throw new Error("authored paint hull is missing or too thin");
+const glassPart = authored.find((p) => p.name === "glass");
+if (!glassPart || glassPart.indices.length < 100) throw new Error("authored glass missing");
 
 console.log("verify-shift ok");
