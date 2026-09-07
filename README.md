@@ -42,11 +42,11 @@ Site line: **DRIVE IN. CHARGE UP. ZIP OUT.**
 
 ## Visual bar
 
-Cinematic WebGL lot: ACES Filmic (exposure ~0.86) + one warm dusk `DirectionalLight`, golden-hour `scene.environment` via `PMREMGenerator`, `postprocessing` bloom / vignette / SMAA. Twin cream canopies with a thin red fascia and official red Zaps wordmarks, 24 Slim Zeus (brushed metal, charcoal recess, cyan base, amber PLUG IN), glass lounge, grit asphalt + curb maps, mural / commercial street backdrop. Guest cars use `MeshPhysicalMaterial` clearcoat (no lot-scale transmission). Hull cleanup strips Sketchfab wire-helper duplicates, thin red rays, and extra tire meshes. **2020 Porsche Taycan** by martin002 on Sketchfab (CC BY 4.0). See `public/models/porsche-taycan-2020.ATTRIBUTION.txt`.
+Cinematic WebGL lot: ACES Filmic (exposure ~0.86) + one warm dusk `DirectionalLight`, golden-hour `scene.environment` via `PMREMGenerator`, `postprocessing` bloom / vignette / SMAA. Twin cream canopies with a thin red fascia and official red Zaps wordmarks, 24 Slim Zeus (brushed metal, charcoal recess, cyan base, amber PLUG IN), glass lounge, grit asphalt + curb maps, mural / commercial street backdrop. Guest cars use an authored opaque notchback hull (`MeshStandardMaterial` paint, tinted glass, no transmission). The Sketchfab Taycan GLB keeps studio wheels only — its Glass/wire helpers were x-ray cages, not solid paint. **2020 Porsche Taycan** by martin002 on Sketchfab (CC BY 4.0). See `public/models/porsche-taycan-2020.ATTRIBUTION.txt`.
 
 Official cream/red Zaps wordmarks only. Palette: `#E63225` `#1E1E24` `#E89A2E` `#00D4F5` `#F5F0E8`.
 
-Lot PBR/env pass: merge `4c80ec6`. Hull ghost fix: `f34a753` (one paint shell + GlassWinds + four torus studio wheels).
+Lot PBR/env pass: merge `4c80ec6`. Hull ghost fix: `f34a753`. Opaque body fix: `565864e` (authored notchback hull + closed paint core, Standard materials, no transmission).
 
 ## Dev
 

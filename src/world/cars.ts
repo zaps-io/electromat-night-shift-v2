@@ -15,6 +15,16 @@ import {
   WAIT_ORDER,
   WAIT_SLOTS,
 } from "./layout";
+import {
+  hardenPaint,
+  hardenWindowGlass,
+  isExteriorKeep,
+  isHullGlassShell,
+  isPaintName,
+  isWindowGlassName,
+  opaquePaintMaterial,
+  windowGlassMaterial,
+} from "../cars/materials";
 import { makeAttentionIcon, makeBatteryIcon } from "./icons";
 import { rubber } from "./tex";
 
@@ -45,28 +55,12 @@ function eachMat(mesh: THREE.Mesh, fn: (m: THREE.MeshPhysicalMaterial) => void):
   for (const mat of list) fn(mat as THREE.MeshPhysicalMaterial);
 }
 
-function paintMaterial(color: THREE.Color): THREE.MeshPhysicalMaterial {
-  return new THREE.MeshPhysicalMaterial({
-    name: "Paint",
-    color,
-    metalness: 0.18,
-    roughness: 0.22,
-    clearcoat: 1,
-    clearcoatRoughness: 0.06,
-    envMapIntensity: 1.15,
-  });
+function paintMaterial(color: THREE.Color): THREE.MeshStandardMaterial {
+  return opaquePaintMaterial(color);
 }
 
-function glassMaterial(): THREE.MeshPhysicalMaterial {
-  return new THREE.MeshPhysicalMaterial({
-    name: "Glass",
-    color: 0x14181c,
-    metalness: 0.04,
-    roughness: 0.05,
-    transparent: true,
-    opacity: 0.36,
-    envMapIntensity: 0.95,
-  });
+function glassMaterial(): THREE.MeshStandardMaterial {
+  return windowGlassMaterial();
 }
 
 function labelKey(mesh: THREE.Mesh): string {
@@ -92,18 +86,6 @@ function isInteriorLabel(n: string): boolean {
     n.includes("intgrid") ||
     n.startsWith("int") ||
     n.includes(" int")
-  );
-}
-
-function isExteriorKeep(n: string): boolean {
-  if (n.includes("redlight") || n.includes("glassred") || n.includes("glassmat")) return false;
-  return (
-    n.includes("wire_027177027") ||
-    n.includes("paint") ||
-    n.includes("primary") ||
-    n.includes("glasswinds") ||
-    n.includes("blueglass") ||
-    n.includes("extaluminium")
   );
 }
 
@@ -141,10 +123,11 @@ function hideDuplicateMeshes(root: THREE.Object3D): void {
       const an = labelKey(a);
       const bn = labelKey(b);
       const score = (n: string) =>
-        (n.includes("paint") || n.includes("primary") || n.includes("wire_027") ? 8 : 0) +
+        (isPaintName(n) || n.includes("wire_027") ? 8 : 0) +
         (n.includes("wheel") || n.includes("tire") ? 6 : 0) +
-        (n.includes("glass") ? 5 : 0) +
-        (n.includes("wire_") ? -4 : 0);
+        (isWindowGlassName(n) ? 5 : 0) +
+        (isHullGlassShell(n) ? 7 : 0) +
+        (n.includes("wire_") && !n.includes("wire_027") ? -4 : 0);
       return score(bn) - score(an);
     });
     for (const extra of list.slice(1)) extra.visible = false;
@@ -215,6 +198,83 @@ function addStudioWheels(root: THREE.Group): void {
   }
 }
 
+function addAuthoredOpaqueBody(root: THREE.Group): void {
+  const parts = buildSedanParts().filter((p) => p.name !== "rubber");
+  const body = partsToGroup(parts);
+  dressAuthored(body);
+  hardenCarMaterials(body);
+  body.name = "AuthoredHull";
+  body.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    const mn = ((mesh.material as THREE.Material)?.name ?? mesh.name).toLowerCase();
+    if (mn.includes("paint")) mesh.userData.lodPaint = true;
+  });
+  // Closed volume so open loft ends / cabin glass cannot read as a missing hull.
+  const core = new THREE.Mesh(new THREE.BoxGeometry(4.15, 0.92, 1.62), paintMaterial(new THREE.Color(0xf4f1ea)));
+  core.name = "Paint";
+  core.position.set(0.02, 0.7, 0);
+  core.castShadow = true;
+  core.receiveShadow = true;
+  core.userData.lodPaint = true;
+  body.add(core);
+  root.add(body);
+}
+
+function collapsePaintHulls(root: THREE.Object3D): void {
+  root.updateMatrixWorld(true);
+  const paints: THREE.Mesh[] = [];
+  root.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh || !mesh.visible) return;
+    const n = labelKey(mesh);
+    const mn = ((mesh.material as THREE.Material)?.name ?? "").toLowerCase();
+    if (isPaintName(n) || isPaintName(mn) || isHullGlassShell(n)) paints.push(mesh);
+  });
+  if (paints.length < 2) return;
+  const geos = paints.map(geoForMerge).filter((g): g is THREE.BufferGeometry => !!g);
+  if (geos.length < 2) return;
+  const merged = mergeGeometries(geos, false);
+  if (!merged) return;
+  merged.computeVertexNormals();
+  const color = (paints[0].material as THREE.MeshPhysicalMaterial).color?.clone?.() ?? new THREE.Color(0x1e1e24);
+  const hull = new THREE.Mesh(merged, paintMaterial(color));
+  hull.name = "Paint";
+  hull.castShadow = true;
+  hull.receiveShadow = true;
+  hull.userData.lodPaint = true;
+  root.add(hull);
+  for (const mesh of paints) {
+    mesh.visible = false;
+    mesh.parent?.remove(mesh);
+  }
+  for (const geo of geos) geo.dispose();
+}
+
+function hardenCarMaterials(root: THREE.Object3D): void {
+  root.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    const list = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+    for (const raw of list) {
+      const mat = raw as THREE.MeshStandardMaterial;
+      const n = `${labelKey(mesh)} ${mat?.name ?? ""}`.toLowerCase();
+      if (isWindowGlassName(n) || mat.name === "Glass" || mat.name === "LodGlass") {
+        hardenWindowGlass(mat);
+        continue;
+      }
+      if (isPaintName(n) || mat.name === "Paint" || mat.name === "LodPaint" || isHullGlassShell(n)) {
+        hardenPaint(mat);
+        continue;
+      }
+      const transmission = (mat as THREE.MeshPhysicalMaterial).transmission ?? 0;
+      if (transmission > 0 || (mat.transparent && (mat.opacity ?? 1) < 0.95 && !n.includes("glow") && !n.includes("icon"))) {
+        if (!n.includes("light") && !n.includes("port") && !n.includes("charge")) hardenPaint(mat);
+      }
+    }
+  });
+}
+
 function dressAuthored(root: THREE.Object3D): void {
   root.traverse((o) => {
     const mesh = o as THREE.Mesh;
@@ -255,18 +315,8 @@ function dressAuthored(root: THREE.Object3D): void {
   });
 }
 
-function isPaintName(mn: string): boolean {
-  return (
-    mn === "primary" ||
-    mn.startsWith("primary") ||
-    mn.includes("018") ||
-    mn === "paint" ||
-    mn === "wire_027177027"
-  );
-}
-
 function isGlassName(mn: string): boolean {
-  return (mn.includes("glass") && !mn.includes("red") && !mn.includes("mat")) || mn.includes("winds");
+  return isWindowGlassName(mn);
 }
 
 function isTailName(mn: string): boolean {
@@ -335,7 +385,14 @@ function dressSedan(root: THREE.Object3D): void {
         m.toneMapped = false;
         return;
       }
-      if (isGlassName(mn) || (metal < 0.08 && rough < 0.08 && hex < 0x111111)) {
+      if (isHullGlassShell(mn)) {
+        const paint = paintMaterial(m.color?.clone?.() ?? new THREE.Color(0x1e1e24));
+        mesh.material = Array.isArray(mesh.material)
+          ? mesh.material.map((old) => (old === m ? paint : old))
+          : paint;
+        return;
+      }
+      if (isGlassName(mn)) {
         mesh.material = Array.isArray(mesh.material)
           ? mesh.material.map((old) => (old === m ? glassMaterial() : old))
           : glassMaterial();
@@ -506,6 +563,10 @@ async function loadHull(kind: HullKind, file: string, fallback: () => BuiltPart[
     if (meshCount.n > 20) {
       const fitted = fitSedan(gltf.scene, kind);
       dressSedan(fitted);
+      collapsePaintHulls(fitted);
+      hardenCarMaterials(fitted);
+      pruneHidden(fitted);
+      addAuthoredOpaqueBody(fitted);
       pruneHidden(fitted);
       inletByKind[kind] = addEvCues(fitted);
       prototypes[kind] = fitted;
@@ -520,6 +581,7 @@ async function loadHull(kind: HullKind, file: string, fallback: () => BuiltPart[
       fitted.userData.source = file;
     } else {
       dressAuthored(gltf.scene);
+      hardenCarMaterials(gltf.scene);
       prototypes[kind] = gltf.scene;
       inletByKind[kind] = kind === "suv" ? SUV_INLET : SEDAN_INLET;
       gltf.scene.userData.meshCount = meshCount.n;
@@ -529,6 +591,7 @@ async function loadHull(kind: HullKind, file: string, fallback: () => BuiltPart[
     console.warn("hull load failed, authored fallback", file, err);
     const group = partsToGroup(fallback());
     dressAuthored(group);
+    hardenCarMaterials(group);
     prototypes[kind] = group;
     inletByKind[kind] = kind === "suv" ? SUV_INLET : SEDAN_INLET;
     group.userData.source = "fallback";
@@ -550,15 +613,9 @@ export async function loadCarPrototypes(): Promise<void> {
 
 type LodBucket = "paint" | "glass" | "dark" | "lamp" | "tail";
 
-const lodPaintMats = new Map<number, THREE.MeshPhysicalMaterial>();
-const lodGlass = new THREE.MeshStandardMaterial({
-  name: "LodGlass",
-  color: 0x14181c,
-  roughness: 0.1,
-  metalness: 0.08,
-  transparent: true,
-  opacity: 0.36,
-});
+const lodPaintMats = new Map<number, THREE.MeshStandardMaterial>();
+const lodGlass = windowGlassMaterial();
+lodGlass.name = "LodGlass";
 const lodDark = new THREE.MeshStandardMaterial({
   name: "LodDark",
   color: 0x161618,
@@ -582,18 +639,11 @@ const lodTail = new THREE.MeshBasicMaterial({
 let lodTemplate: THREE.Group | null = null;
 const lodFillerRoots: THREE.Group[] = [];
 
-function lodPaint(color: number): THREE.MeshPhysicalMaterial {
+function lodPaint(color: number): THREE.MeshStandardMaterial {
   let mat = lodPaintMats.get(color);
   if (!mat) {
-    mat = new THREE.MeshPhysicalMaterial({
-      name: "LodPaint",
-      color,
-      roughness: 0.24,
-      metalness: 0.16,
-      clearcoat: 0.92,
-      clearcoatRoughness: 0.08,
-      envMapIntensity: 1.2,
-    });
+    mat = opaquePaintMaterial(new THREE.Color(color));
+    mat.name = "LodPaint";
     lodPaintMats.set(color, mat);
   }
   return mat;
@@ -618,8 +668,9 @@ function lodBucket(mesh: THREE.Mesh): LodBucket | "skip" {
     return "skip";
   }
   if (n.includes("lightbar") || isTailName(n)) return "tail";
-  if (n.includes("chargeport") || n.includes("ring") || isHeadName(n)) return "lamp";
-  if (isGlassName(n) || n.includes("window") || n.includes("glass")) return "glass";
+  if (n.includes("chargeport") || n.includes("ring") || isHeadName(n) || n.includes("blueglass")) return "lamp";
+  if (isPaintName(n) || n.includes("paint") || isHullGlassShell(n)) return "paint";
+  if (isWindowGlassName(n) || n.includes("window")) return "glass";
   if (
     n.includes("wheel") ||
     n.includes("tire") ||
@@ -791,8 +842,28 @@ export function hullDebug(): {
   lodMeshes?: number;
   lodFillers?: number;
   fullPbr?: string[];
+  paintOpaque?: number;
+  glassMeshes?: number;
+  transmission?: number;
 } {
   const u = prototypes.sedan?.userData ?? {};
+  let paintOpaque = 0;
+  let glassMeshes = 0;
+  let transmission = 0;
+  prototypes.sedan?.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh || !mesh.visible) return;
+    const list = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+    for (const raw of list) {
+      const mat = raw as THREE.MeshPhysicalMaterial;
+      const n = materialKeyOf(mat);
+      if ((mat.transmission ?? 0) > 0.001) transmission += 1;
+      if (n.includes("glass") && !isPaintName(n)) glassMeshes += 1;
+      if (isPaintName(n) || n === "paint" || n === "lodpaint") {
+        if (!mat.transparent && (mat.opacity ?? 1) >= 0.98 && (mat.transmission ?? 0) <= 0.001) paintOpaque += 1;
+      }
+    }
+  });
   return {
     source: u.source,
     meshCount: u.meshCount,
@@ -800,18 +871,24 @@ export function hullDebug(): {
     lodMeshes: lodTemplate?.children.length,
     lodFillers: lodFillerRoots.length,
     fullPbr: [...FULL_PBR_IDS],
+    paintOpaque,
+    glassMeshes,
+    transmission,
   };
 }
 
+function materialKeyOf(mat: THREE.Material): string {
+  return (mat.name ?? "").toLowerCase();
+}
+
 function tintPaint(root: THREE.Object3D, color: number): void {
+  const paint = paintMaterial(new THREE.Color(color));
   root.traverse((o) => {
     const mesh = o as THREE.Mesh;
     if (!mesh.isMesh) return;
     const name = ((mesh.material as THREE.Material)?.name ?? mesh.name).toLowerCase();
-    if (name.includes("paint") || name === "primary" || name.startsWith("primary")) {
-      const mat = (mesh.material as THREE.MeshPhysicalMaterial).clone();
-      mat.color.setHex(color);
-      mesh.material = mat;
+    if (isPaintName(name) || name.includes("paint") || name === "primary" || name.startsWith("primary")) {
+      mesh.material = paint;
     }
   });
 }
