@@ -11,7 +11,7 @@ This is a clean restart. It does not clone or depend on `zaps-io/electromat-nigh
 Default `startNight()` lot view (no local build required):
 
 - [`docs/shots/startnight-lot.png`](docs/shots/startnight-lot.png) — HUD `ZOEY · STATION MASTER`, twin canopies, charging EVs
-- [`docs/shots/lot-rear34.png`](docs/shots/lot-rear34.png) — rear 3/4 of the Sketchfab 2020 Porsche Taycan guest hull
+- [`docs/shots/lot-rear34.png`](docs/shots/lot-rear34.png) — rear 3/4 of closed box guest hulls (opaque paint)
 - [`docs/shots/lot-wide.png`](docs/shots/lot-wide.png) — elevated dual-canopy Electromat site
 - [`docs/shots/canopy-fascia.png`](docs/shots/canopy-fascia.png) — official red Zaps on the cream canopy fascia
 - [`docs/shots/slim-zeus.png`](docs/shots/slim-zeus.png) — Slim Zeus product face (brushed metal, charcoal recess, front holsters)
@@ -42,11 +42,11 @@ Site line: **DRIVE IN. CHARGE UP. ZIP OUT.**
 
 ## Visual bar
 
-Cinematic WebGL lot: ACES Filmic (exposure ~0.86) + one warm dusk `DirectionalLight`, golden-hour `scene.environment` via `PMREMGenerator`, `postprocessing` bloom / vignette / SMAA. Twin cream canopies with a thin red fascia and official red Zaps wordmarks, 24 Slim Zeus (brushed metal, charcoal recess, cyan base, amber PLUG IN), glass lounge, grit asphalt + curb maps, mural / commercial street backdrop. Guest cars are **closed box sedans** (`MeshLambertMaterial` paint, opaque dark window panels). No Taycan/GLB hulls, no lofted shells, no transmission. Ugly-but-solid at play distance. Sketchfab Taycan remains in `public/models/` for attribution only.
+Cinematic WebGL lot: ACES Filmic (exposure ~0.86) + one warm dusk `DirectionalLight`, golden-hour `scene.environment` via `PMREMGenerator`, `postprocessing` bloom / vignette / SMAA. Twin cream canopies with a thin red fascia and official red Zaps wordmarks, 24 Slim Zeus (brushed metal, charcoal recess, cyan base, amber PLUG IN), glass lounge, grit asphalt + curb maps, mural / commercial street backdrop. Guest cars are **closed box sedans** (`MeshBasicMaterial` paint, opaque dark window panels). No Taycan/GLB hulls, no lofted shells, no transmission. Ugly-but-solid at play distance. Sketchfab Taycan remains in `public/models/` for attribution only.
 
 Official cream/red Zaps wordmarks only. Palette: `#E63225` `#1E1E24` `#E89A2E` `#00D4F5` `#F5F0E8`.
 
-Lot PBR/env pass: merge `4c80ec6`. Hull ghost fix: `f34a753`. #33 lofted hull still ghosted — replaced by closed box sedans (this PR).
+Lot PBR/env pass: merge `4c80ec6`. Hull ghost fix: `f34a753`. #33 (`fe9f818`) lofted hull still ghosted — lot cars replaced by closed unlit box sedans in this PR.
 
 ## Dev
 
