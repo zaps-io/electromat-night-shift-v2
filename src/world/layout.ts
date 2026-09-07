@@ -142,11 +142,11 @@ export const CANOPY_SHOT = {
 } as const;
 
 export const ZEUS_SHOT = {
-  x: -4.05,
-  z: -1.2,
-  eyeY: 1.42,
+  x: -3.55,
+  z: 1.5,
+  eyeY: 1.2,
   yaw: Math.PI / 2,
-  pitch: 0.06,
-  lookAt: { x: LEFT_EAST_ZEUS_X, y: 1.28, z: -1.2 },
-  fov: 32,
+  pitch: 0.04,
+  lookAt: { x: LEFT_EAST_ZEUS_X, y: 1.05, z: 1.5 },
+  fov: 40,
 } as const;

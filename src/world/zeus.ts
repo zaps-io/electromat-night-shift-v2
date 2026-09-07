@@ -7,16 +7,18 @@ const brush = brushMetal();
 
 const alum = new THREE.MeshPhysicalMaterial({
   name: "ZeusAlum",
-  color: 0xc4c8cc,
+  color: 0xd6d8dc,
   map: brush.map,
   roughnessMap: brush.rough,
-  metalness: 0.82,
-  roughness: 0.28,
-  clearcoat: 0.18,
-  clearcoatRoughness: 0.42,
-  anisotropy: 0.92,
+  metalness: 0.78,
+  roughness: 0.24,
+  clearcoat: 0.2,
+  clearcoatRoughness: 0.38,
+  anisotropy: 0.94,
   anisotropyRotation: Math.PI / 2,
-  envMapIntensity: 1.18,
+  envMapIntensity: 1.35,
+  emissive: 0x2a2c30,
+  emissiveIntensity: 0.08,
 });
 
 const charcoal = new THREE.MeshStandardMaterial({
@@ -52,12 +54,8 @@ const cableMat = new THREE.MeshStandardMaterial({
   metalness: 0.02,
 });
 
-const cyanSeam = new THREE.MeshStandardMaterial({
+const cyanSeam = new THREE.MeshBasicMaterial({
   color: C.cyan,
-  emissive: C.cyan,
-  emissiveIntensity: 1.35,
-  roughness: 0.22,
-  metalness: 0.08,
   toneMapped: false,
 });
 
@@ -120,27 +118,27 @@ const screenMat = new THREE.MeshBasicMaterial({
 const geo = {
   base: new RoundedBoxGeometry(0.56, 0.13, 0.5, 3, 0.02),
   foot: new THREE.CylinderGeometry(0.018, 0.02, 0.02, 8),
-  body: new RoundedBoxGeometry(0.48, 2.08, 0.42, 4, 0.032),
-  cap: new RoundedBoxGeometry(0.488, 0.046, 0.428, 3, 0.014),
-  seam: new THREE.BoxGeometry(0.5, 0.008, 0.44),
-  recess: new THREE.BoxGeometry(0.34, 1.62, 0.05),
-  well: new THREE.BoxGeometry(0.32, 1.52, 0.02),
-  screen: new THREE.BoxGeometry(0.168, 0.168, 0.012),
-  bezel: new THREE.BoxGeometry(0.27, 0.068, 0.01),
-  display: new THREE.PlaneGeometry(0.256, 0.058),
-  pocket: new RoundedBoxGeometry(0.07, 0.28, 0.055, 2, 0.012),
-  lip: new THREE.BoxGeometry(0.074, 0.018, 0.06),
-  barrel: new THREE.CylinderGeometry(0.016, 0.018, 0.12, 10),
-  grip: new THREE.CylinderGeometry(0.015, 0.017, 0.08, 10),
-  nose: new THREE.CylinderGeometry(0.012, 0.015, 0.03, 8),
+  body: new RoundedBoxGeometry(0.5, 2.08, 0.44, 4, 0.034),
+  cap: new RoundedBoxGeometry(0.51, 0.05, 0.45, 3, 0.016),
+  seam: new THREE.BoxGeometry(0.52, 0.016, 0.46),
+  recess: new THREE.BoxGeometry(0.3, 1.42, 0.048),
+  well: new THREE.BoxGeometry(0.27, 1.32, 0.02),
+  screen: new THREE.BoxGeometry(0.15, 0.15, 0.012),
+  bezel: new THREE.BoxGeometry(0.24, 0.07, 0.01),
+  display: new THREE.PlaneGeometry(0.228, 0.06),
+  pocket: new RoundedBoxGeometry(0.088, 0.34, 0.07, 2, 0.014),
+  lip: new THREE.BoxGeometry(0.092, 0.02, 0.074),
+  barrel: new THREE.CylinderGeometry(0.02, 0.022, 0.15, 10),
+  grip: new THREE.CylinderGeometry(0.018, 0.02, 0.1, 10),
+  nose: new THREE.CylinderGeometry(0.014, 0.018, 0.036, 8),
 };
 
 function frontCable(side: -1 | 1): THREE.TubeGeometry {
   const x = 0.078 * side;
   const curve = new THREE.QuadraticBezierCurve3(
-    new THREE.Vector3(x, 0.78, -0.2),
-    new THREE.Vector3(x + side * 0.04, 0.42, -0.12),
-    new THREE.Vector3(x * 0.4, 0.16, -0.02),
+    new THREE.Vector3(x, 0.68, -0.21),
+    new THREE.Vector3(x + side * 0.05, 0.36, -0.1),
+    new THREE.Vector3(x * 0.35, 0.15, 0.0),
   );
   return new THREE.TubeGeometry(curve, 10, 0.011, 6, false);
 }
@@ -149,21 +147,21 @@ const cableGeoL = frontCable(-1);
 const cableGeoR = frontCable(1);
 
 function addFrontHolster(g: THREE.Group, side: -1 | 1, cables: boolean): void {
-  const x = 0.078 * side;
-  const z = -0.208;
+  const x = 0.07 * side;
+  const z = -0.22;
   const pocket = new THREE.Mesh(geo.pocket, charcoal);
-  pocket.position.set(x, 0.96, z);
+  pocket.position.set(x, 0.88, z);
   const lip = new THREE.Mesh(geo.lip, black);
-  lip.position.set(x, 1.09, z - 0.004);
+  lip.position.set(x, 1.04, z - 0.004);
   const barrel = new THREE.Mesh(geo.barrel, handleSilver);
   barrel.rotation.x = Math.PI / 2;
-  barrel.position.set(x, 0.97, z - 0.012);
+  barrel.position.set(x, 0.9, z - 0.02);
   const gripMesh = new THREE.Mesh(geo.grip, grip);
   gripMesh.rotation.x = Math.PI / 2;
-  gripMesh.position.set(x, 0.86, z - 0.01);
+  gripMesh.position.set(x, 0.76, z - 0.016);
   const nose = new THREE.Mesh(geo.nose, black);
   nose.rotation.x = Math.PI / 2;
-  nose.position.set(x, 1.05, z - 0.016);
+  nose.position.set(x, 1.0, z - 0.024);
   g.add(pocket, lip, barrel, gripMesh, nose);
   if (!cables) return;
   g.add(new THREE.Mesh(side < 0 ? cableGeoL : cableGeoR, cableMat));
@@ -206,18 +204,18 @@ export function addZeusCharger(
   seam.position.y = 0.148;
 
   const recess = new THREE.Mesh(geo.recess, charcoal);
-  recess.position.set(0, 1.24, -0.2);
+  recess.position.set(0, 1.28, -0.212);
 
   const well = new THREE.Mesh(geo.well, black);
-  well.position.set(0, 1.24, -0.218);
+  well.position.set(0, 1.3, -0.228);
 
   const screen = new THREE.Mesh(geo.screen, glass);
-  screen.position.set(0, 1.82, -0.232);
+  screen.position.set(0, 1.78, -0.24);
 
   const bezel = new THREE.Mesh(geo.bezel, black);
-  bezel.position.set(0, 1.58, -0.23);
+  bezel.position.set(0, 1.54, -0.238);
   const display = new THREE.Mesh(geo.display, screenMat);
-  display.position.set(0, 1.58, -0.237);
+  display.position.set(0, 1.54, -0.246);
   display.rotation.y = Math.PI;
 
   addFrontHolster(g, -1, detail === "full");
