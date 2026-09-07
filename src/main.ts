@@ -411,6 +411,30 @@ window.__electromat = {
   },
   capture,
   hullDebug,
+  carProbe(w = 1280, h = 800) {
+    const prev = scene.background;
+    const hidden: THREE.Object3D[] = [];
+    scene.background = new THREE.Color(0x00cc55);
+    scene.fog = null;
+    scene.traverse((o) => {
+      if (o.userData.kind === "car" || o.userData.kind === "lod-filler" || o === walker.camera) return;
+      if (o.parent === scene && o !== walker.camera) {
+        if (o.visible) hidden.push(o);
+        o.visible = false;
+      }
+    });
+    for (const view of cars.values()) {
+      view.attention.visible = false;
+      view.battery.visible = false;
+      view.cable.visible = false;
+      view.portGlow.visible = false;
+    }
+    const data = capture(w, h);
+    for (const o of hidden) o.visible = true;
+    scene.background = prev;
+    scene.fog = new THREE.Fog(0x4a3828, 88, 198);
+    return data;
+  },
 };
 
 void Promise.all([loadCarPrototypes(), brandingReady]).then(() => {

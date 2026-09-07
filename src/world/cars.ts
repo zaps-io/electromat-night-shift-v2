@@ -362,6 +362,7 @@ function mergeHull(src: THREE.Group): THREE.Group {
       transparent: false,
       opacity: 1,
       depthWrite: true,
+      side: THREE.DoubleSide,
     }),
     lamp: new THREE.MeshStandardMaterial({
       name: "Lamp",
@@ -373,6 +374,7 @@ function mergeHull(src: THREE.Group): THREE.Group {
       transparent: false,
       opacity: 1,
       depthWrite: true,
+      side: THREE.DoubleSide,
       toneMapped: false,
     }),
     tail: new THREE.MeshStandardMaterial({
@@ -385,6 +387,7 @@ function mergeHull(src: THREE.Group): THREE.Group {
       transparent: false,
       opacity: 1,
       depthWrite: true,
+      side: THREE.DoubleSide,
       toneMapped: false,
     }),
     chrome: new THREE.MeshStandardMaterial({
@@ -396,6 +399,7 @@ function mergeHull(src: THREE.Group): THREE.Group {
       transparent: false,
       opacity: 1,
       depthWrite: true,
+      side: THREE.DoubleSide,
     }),
   };
 
@@ -421,6 +425,19 @@ function mergeHull(src: THREE.Group): THREE.Group {
     return src;
   }
   return merged;
+}
+
+function addCabinCore(root: THREE.Group): void {
+  const core = new THREE.Mesh(
+    new THREE.BoxGeometry(1.78, 0.78, 3.9),
+    paintFor(0xf4f1ea),
+  );
+  core.name = "Paint";
+  core.userData.paint = true;
+  core.position.set(0, 0.55, 0.02);
+  core.castShadow = false;
+  core.receiveShadow = false;
+  root.add(core);
 }
 
 function addChargePort(root: THREE.Group, inlet: { x: number; y: number; z: number }): void {
@@ -472,6 +489,7 @@ async function loadTesla(): Promise<THREE.Group> {
   });
   hull.userData.meshCount = meshes;
   hull.userData.paintVerts = paint;
+  addCabinCore(hull);
   addChargePort(hull, OPAQUE_SEDAN_INLET);
   assertOpaqueCarMaterials(hull);
   if (paint < 2000) throw new Error(`Tesla paint hull too thin (${paint} verts)`);
@@ -552,6 +570,7 @@ export function hullDebug(): {
   lodFillers?: number;
   transmission?: number;
   transparentBody?: number;
+  size?: number[];
 } {
   const src = prototypes.sedan;
   let meshCount = 0;
@@ -571,6 +590,9 @@ export function hullDebug(): {
       }
     }
   });
+  src?.updateMatrixWorld(true);
+  const box = src ? new THREE.Box3().setFromObject(src) : null;
+  const size = box ? box.getSize(new THREE.Vector3()) : null;
   return {
     source: src?.userData.source,
     meshCount,
@@ -578,6 +600,7 @@ export function hullDebug(): {
     lodFillers: lodFillerRoots.length,
     transmission,
     transparentBody,
+    size: size ? [Number(size.x.toFixed(2)), Number(size.y.toFixed(2)), Number(size.z.toFixed(2))] : undefined,
   };
 }
 

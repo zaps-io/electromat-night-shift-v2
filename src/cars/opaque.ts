@@ -18,7 +18,7 @@ export function paintMaterial(color: THREE.Color | number): THREE.MeshPhysicalMa
     opacity: 1,
     depthWrite: true,
     depthTest: true,
-    side: THREE.FrontSide,
+    side: THREE.DoubleSide,
     transmission: 0,
     thickness: 0,
     ior: 1.5,
@@ -37,7 +37,7 @@ export function glassMaterial(): THREE.MeshStandardMaterial {
     opacity: 1,
     depthWrite: true,
     depthTest: true,
-    side: THREE.FrontSide,
+    side: THREE.DoubleSide,
   });
 }
 
@@ -47,6 +47,7 @@ export function forceOpaque(mat: THREE.Material): void {
   mat.depthWrite = true;
   mat.depthTest = true;
   mat.alphaTest = 0;
+  mat.side = THREE.DoubleSide;
   const phys = mat as THREE.MeshPhysicalMaterial;
   if ("transmission" in phys) phys.transmission = 0;
   if ("thickness" in phys) phys.thickness = 0;
