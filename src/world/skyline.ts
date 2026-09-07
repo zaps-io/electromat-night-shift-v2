@@ -69,21 +69,30 @@ function addRoofGear(root: THREE.Group, x: number, y: number, z: number): void {
   root.add(unit, vent);
 }
 
+const band = new THREE.MeshStandardMaterial({ color: 0x2a2620, roughness: 0.7, metalness: 0.08 });
+
 function addTower(
   root: THREE.Group,
   spec: { x: number; z: number; w: number; h: number; d: number; mat: THREE.Material; balconies?: boolean },
 ): void {
   const tower = new THREE.Mesh(new THREE.BoxGeometry(spec.w, spec.h, spec.d), spec.mat);
   tower.position.set(spec.x, spec.h * 0.5 - 0.15, spec.z);
-  const cap = new THREE.Mesh(new THREE.BoxGeometry(spec.w + 0.35, 0.28, spec.d + 0.35), roof);
-  cap.position.set(spec.x, spec.h - 0.08, spec.z);
+  const cap = new THREE.Mesh(new THREE.BoxGeometry(spec.w + 0.45, 0.32, spec.d + 0.45), roof);
+  cap.position.set(spec.x, spec.h - 0.04, spec.z);
   root.add(tower, cap);
-  addRoofGear(root, spec.x - spec.w * 0.18, spec.h + 0.22, spec.z);
+  addRoofGear(root, spec.x - spec.w * 0.18, spec.h + 0.28, spec.z);
+  for (let i = 1; i < 3; i++) {
+    const belt = new THREE.Mesh(new THREE.BoxGeometry(spec.w + 0.12, 0.14, spec.d + 0.12), band);
+    belt.position.set(spec.x, spec.h * (0.28 * i), spec.z);
+    root.add(belt);
+  }
   if (!spec.balconies) return;
   for (let i = 1; i < 4; i++) {
     const slab = new THREE.Mesh(new THREE.BoxGeometry(spec.w * 0.42, 0.08, 0.7), concrete);
     slab.position.set(spec.x + spec.w * 0.28, 1.4 + i * (spec.h * 0.22), spec.z - spec.d * 0.5 - 0.28);
-    root.add(slab);
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(spec.w * 0.42, 0.22, 0.04), steel);
+    rail.position.set(spec.x + spec.w * 0.28, 1.55 + i * (spec.h * 0.22), spec.z - spec.d * 0.5 - 0.58);
+    root.add(slab, rail);
   }
 }
 

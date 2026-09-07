@@ -46,6 +46,8 @@ Cinematic WebGL lot: ACES Filmic (exposure ~0.86) + one warm dusk `DirectionalLi
 
 Official cream/red Zaps wordmarks only. Palette: `#E63225` `#1E1E24` `#E89A2E` `#00D4F5` `#F5F0E8`.
 
+Lot PBR/env pass SHA is recorded on the merge commit of this branch (`cursor/lot-pbr-env-a5cf`); stills below were recaptured from that revision.
+
 ## Dev
 
 ```bash

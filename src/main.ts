@@ -351,25 +351,29 @@ async function saveShots(): Promise<void> {
   walker.place(START_SHOT.x, START_SHOT.z, START_SHOT.yaw, START_SHOT.pitch, START_SHOT.eyeY);
   walker.lookAt(START_SHOT.lookAt.x, START_SHOT.lookAt.y, START_SHOT.lookAt.z);
   await post("/workspace/docs/shots/startnight-lot.png", capture(1280, 800));
+  await new Promise((r) => setTimeout(r, 400));
   walker.setFov(REAR_SHOT.fov);
   walker.place(REAR_SHOT.x, REAR_SHOT.z);
   walker.lookAt(REAR_SHOT.lookAt.x, REAR_SHOT.lookAt.y, REAR_SHOT.lookAt.z);
-  await new Promise((r) => setTimeout(r, 200));
+  await new Promise((r) => setTimeout(r, 500));
   await post("/workspace/docs/shots/lot-rear34.png", capture(1280, 800));
+  await new Promise((r) => setTimeout(r, 400));
   walker.setFov(WIDE_SHOT.fov);
   walker.place(WIDE_SHOT.x, WIDE_SHOT.z, WIDE_SHOT.yaw, WIDE_SHOT.pitch, WIDE_SHOT.eyeY);
   walker.lookAt(WIDE_SHOT.lookAt.x, WIDE_SHOT.lookAt.y, WIDE_SHOT.lookAt.z);
-  await new Promise((r) => setTimeout(r, 200));
+  await new Promise((r) => setTimeout(r, 500));
   await post("/workspace/docs/shots/lot-wide.png", capture(1280, 800));
+  await new Promise((r) => setTimeout(r, 400));
   walker.setFov(CANOPY_SHOT.fov);
   walker.place(CANOPY_SHOT.x, CANOPY_SHOT.z, CANOPY_SHOT.yaw, CANOPY_SHOT.pitch, CANOPY_SHOT.eyeY);
   walker.lookAt(CANOPY_SHOT.lookAt.x, CANOPY_SHOT.lookAt.y, CANOPY_SHOT.lookAt.z);
-  await new Promise((r) => setTimeout(r, 200));
+  await new Promise((r) => setTimeout(r, 500));
   await post("/workspace/docs/shots/canopy-fascia.png", capture(1280, 800));
+  await new Promise((r) => setTimeout(r, 400));
   walker.setFov(ZEUS_SHOT.fov);
   walker.place(ZEUS_SHOT.x, ZEUS_SHOT.z, ZEUS_SHOT.yaw, ZEUS_SHOT.pitch, ZEUS_SHOT.eyeY);
   walker.lookAt(ZEUS_SHOT.lookAt.x, ZEUS_SHOT.lookAt.y, ZEUS_SHOT.lookAt.z);
-  await new Promise((r) => setTimeout(r, 200));
+  await new Promise((r) => setTimeout(r, 500));
   await post("/workspace/docs/shots/slim-zeus.png", capture(1280, 800));
 }
 
