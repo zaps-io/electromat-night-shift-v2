@@ -2,16 +2,19 @@ import * as THREE from "three";
 import type { HullKind } from "../game/state";
 import { MeshBuilder, clamp, lerp, smoothstep, type Vec3 } from "./loft";
 
-export const SOLID_SEDAN_INLET = { x: 0.52, y: 0.74, z: 0.96 };
-export const SOLID_SUV_INLET = { x: 0.52, y: 0.88, z: 1.04 };
+/** Lot yaw assumes the model faces -Z. Inlets are in that space. */
+export const SOLID_SEDAN_INLET = { x: 0.96, y: 0.74, z: -0.52 };
+export const SOLID_SUV_INLET = { x: 1.04, y: 0.88, z: -0.52 };
 
 interface Profile {
-  x0: number;
-  x1: number;
+  s0: number;
+  s1: number;
   front: number;
   rear: number;
   belt: number;
   roof: number;
+  aPillar: number;
+  cPillar: number;
   wheelY: number;
   tireR: number;
   tireHw: number;
@@ -22,113 +25,132 @@ interface Profile {
 
 function sedanProfile(): Profile {
   return {
-    x0: -2.36,
-    x1: 2.4,
-    front: 1.46,
-    rear: -1.46,
+    s0: -2.28,
+    s1: 2.32,
+    front: 1.42,
+    rear: -1.42,
     belt: 0.9,
-    roof: 1.44,
-    wheelY: 0.34,
-    tireR: 0.34,
+    roof: 1.42,
+    aPillar: 0.82,
+    cPillar: -1.08,
+    wheelY: 0.33,
+    tireR: 0.33,
     tireHw: 0.13,
-    archR: 0.42,
-    track: 0.86,
+    archR: 0.4,
+    track: 0.84,
     suv: false,
   };
 }
 
 function suvProfile(): Profile {
   return {
-    x0: -2.32,
-    x1: 2.34,
-    front: 1.4,
-    rear: -1.42,
+    s0: -2.22,
+    s1: 2.26,
+    front: 1.36,
+    rear: -1.38,
     belt: 1.02,
-    roof: 1.64,
-    wheelY: 0.38,
-    tireR: 0.38,
+    roof: 1.62,
+    aPillar: 0.86,
+    cPillar: -1.24,
+    wheelY: 0.37,
+    tireR: 0.37,
     tireHw: 0.14,
-    archR: 0.46,
-    track: 0.9,
+    archR: 0.44,
+    track: 0.88,
     suv: true,
   };
 }
 
-function rockerY(p: Profile, x: number): number {
+/** +S is toward the nose. Game space: model faces -Z. */
+function game(s: number, y: number, w: number): Vec3 {
+  return { x: w, y, z: -s };
+}
+
+function rockerY(p: Profile, s: number): number {
   let y = 0.12;
   for (const axle of [p.front, p.rear]) {
-    const dx = x - axle;
-    if (Math.abs(dx) <= p.archR) {
-      y = Math.max(y, p.wheelY + Math.sqrt(Math.max(0, p.archR * p.archR - dx * dx)));
-    }
+    const t = Math.abs(s - axle) / (p.archR * 1.2);
+    if (t < 1) y = Math.max(y, lerp(0.12, p.wheelY + 0.06, Math.cos((t * Math.PI) / 2)));
   }
   return y;
 }
 
-function topY(p: Profile, x: number): number {
-  const aPillar = p.suv ? 0.92 : 0.86;
-  const cPillar = p.suv ? -1.28 : -1.12;
-  const deck = p.suv ? 1.16 : 0.98;
-  if (x >= aPillar) {
-    const t = clamp((x - aPillar) / (p.x1 - aPillar), 0, 1);
-    return lerp(p.roof, 0.54, smoothstep(0, 1, t));
+function hoodDeckY(p: Profile, s: number): number {
+  if (s >= p.aPillar) {
+    const t = clamp((s - p.aPillar) / (p.s1 - p.aPillar), 0, 1);
+    return lerp(p.belt, 0.58, smoothstep(0, 1, t));
   }
-  if (x <= cPillar) {
-    const t = clamp((cPillar - x) / (cPillar - p.x0), 0, 1);
-    return lerp(p.roof, lerp(deck, 0.8, t), smoothstep(0, 0.55, t));
+  if (s <= p.cPillar) {
+    const t = clamp((p.cPillar - s) / (p.cPillar - p.s0), 0, 1);
+    return lerp(p.belt, p.suv ? 0.92 : 0.84, smoothstep(0, 1, t));
   }
-  const mid = (aPillar + cPillar) * 0.5;
-  const span = Math.max(0.4, aPillar - cPillar) * 0.5;
-  const u = 1 - clamp(Math.abs(x - mid) / span, 0, 1);
-  return p.roof + u * 0.025;
+  return p.belt;
 }
 
-function halfW(p: Profile, x: number, y: number): number {
-  const body = p.suv ? 0.98 : 0.92;
-  const nose = clamp((p.x1 - x) / 0.62, 0, 1);
-  const tail = clamp((x - p.x0) / 0.5, 0, 1);
-  const end = Math.min(smoothstep(0, 1, nose), smoothstep(0, 1, tail));
+function halfW(p: Profile, s: number, y: number): number {
+  const body = p.suv ? 0.98 : 0.91;
+  const nose = smoothstep(0, 1, clamp((p.s1 - s) / 0.7, 0, 1));
+  const tail = smoothstep(0, 1, clamp((s - p.s0) / 0.55, 0, 1));
+  const end = Math.min(nose, tail);
   let w: number;
-  if (y <= 0.22) w = body * 0.84;
-  else if (y <= 0.56) w = lerp(body * 0.84, body * 0.98, (y - 0.22) / 0.34);
-  else if (y <= p.belt) w = lerp(body * 0.98, body, (y - 0.56) / Math.max(0.08, p.belt - 0.56));
+  if (y <= 0.24) w = body * 0.86;
+  else if (y <= p.belt) w = lerp(body * 0.86, body, (y - 0.24) / Math.max(0.08, p.belt - 0.24));
   else {
-    const roofW = p.suv ? 0.6 : 0.5;
-    w = lerp(body * 0.96, roofW, clamp((y - p.belt) / Math.max(0.08, p.roof - p.belt), 0, 1));
+    const roofW = p.suv ? 0.58 : 0.5;
+    w = lerp(body * 0.95, roofW, clamp((y - p.belt) / Math.max(0.08, p.roof - p.belt), 0, 1));
   }
-  w *= lerp(0.28, 1, end);
-  if (x > 1.72) w *= lerp(1, 0.48, clamp((x - 1.72) / (p.x1 - 1.72), 0, 1));
-  if (x < -1.88) w *= lerp(1, 0.58, clamp((-1.88 - x) / (-p.x0 - 1.88), 0, 1));
-  return w;
+  w *= lerp(0.42, 1, end);
+  return Math.max(0.18, w);
 }
 
-/** Closed YZ ring at x. Same point count at every station so loft stays watertight. */
-function ringAt(p: Profile, x: number): Vec3[] {
+function bodyRing(p: Profile, s: number): Vec3[] {
   const yBot = 0.1;
-  const yRocker = rockerY(p, x);
-  const yTop = topY(p, x);
-  const yBelt = Math.min(p.belt, yTop);
-  const yMid = lerp(yRocker, yBelt, 0.45);
-  const yGlass = lerp(yBelt, yTop, 0.55);
-  const w = (y: number) => halfW(p, x, y);
-  const pt = (y: number, z: number): Vec3 => ({ x, y, z });
-  // Clockwise when looking +X on the +Z side-down path so loft(+X) faces outward.
+  const yTop = hoodDeckY(p, s);
+  const yRocker = Math.min(rockerY(p, s), yTop - 0.16);
+  const yMid = lerp(yRocker, yTop, 0.45);
+  const wBot = halfW(p, s, yBot);
+  const wRocker = halfW(p, s, yRocker);
+  const wMid = halfW(p, s, yMid);
+  const wTop = halfW(p, s, yTop);
   return [
-    pt(yBot, 0),
-    pt(yBot, -w(yBot) * 0.55),
-    pt(yRocker, -w(yRocker)),
-    pt(yMid, -w(yMid)),
-    pt(yBelt, -w(yBelt)),
-    pt(yGlass, -w(yGlass)),
-    pt(yTop, -w(yTop)),
-    pt(yTop, 0),
-    pt(yTop, w(yTop)),
-    pt(yGlass, w(yGlass)),
-    pt(yBelt, w(yBelt)),
-    pt(yMid, w(yMid)),
-    pt(yRocker, w(yRocker)),
-    pt(yBot, w(yBot) * 0.55),
+    game(s, yBot, 0),
+    game(s, yBot, -wBot * 0.7),
+    game(s, yRocker, -wRocker),
+    game(s, yMid, -wMid),
+    game(s, yTop, -wTop),
+    game(s, yTop, 0),
+    game(s, yTop, wTop),
+    game(s, yMid, wMid),
+    game(s, yRocker, wRocker),
+    game(s, yBot, wBot * 0.7),
   ];
+}
+
+function cabinRing(p: Profile, s: number): Vec3[] {
+  const y0 = p.belt + 0.006;
+  const y1 = p.roof;
+  const yG = lerp(y0, y1, 0.55);
+  const w0 = halfW(p, s, y0);
+  const wG = halfW(p, s, yG);
+  const w1 = halfW(p, s, y1);
+  return [
+    game(s, y0, 0),
+    game(s, y0, -w0),
+    game(s, yG, -wG),
+    game(s, y1, -w1),
+    game(s, y1, 0),
+    game(s, y1, w1),
+    game(s, yG, wG),
+    game(s, y0, w0),
+  ];
+}
+
+function loftClosed(mesh: MeshBuilder, rings: Vec3[][]): void {
+  for (let i = 0; i < rings.length - 1; i++) mesh.loft(rings[i], rings[i + 1], true);
+}
+
+function capRing(mesh: MeshBuilder, ring: Vec3[], center: Vec3, flip: boolean): void {
+  mesh.capFan(ring, center, flip);
 }
 
 function toGeo(mesh: MeshBuilder): THREE.BufferGeometry {
@@ -149,7 +171,6 @@ function lift(color: number): THREE.Color {
   return c;
 }
 
-/** Opaque painted metal. Lambert — no transmission, no IBL clearcoat. */
 export function solidPaintMaterial(color: number): THREE.MeshLambertMaterial {
   const c = lift(color);
   return new THREE.MeshLambertMaterial({
@@ -164,7 +185,6 @@ export function solidPaintMaterial(color: number): THREE.MeshLambertMaterial {
   });
 }
 
-/** Dark window *panels* — opaque, not glass. */
 export function solidWindowMaterial(): THREE.MeshLambertMaterial {
   return new THREE.MeshLambertMaterial({
     name: "Window",
@@ -193,44 +213,41 @@ function opaqueMat(name: string, color: number, emissive = 0): THREE.MeshLambert
 
 function buildClosedHull(p: Profile): MeshBuilder {
   const paint = new MeshBuilder();
-  const stations = 56;
-  const rings: Vec3[][] = [];
-  for (let i = 0; i <= stations; i++) {
-    rings.push(ringAt(p, lerp(p.x0, p.x1, i / stations)));
-  }
-  for (let i = 0; i < stations; i++) {
-    paint.loft(rings[i], rings[i + 1], true);
-  }
-  const rear = rings[0];
-  const nose = rings[stations];
-  const rearC: Vec3 = { x: p.x0, y: 0.55, z: 0 };
-  const noseC: Vec3 = { x: p.x1, y: 0.48, z: 0 };
-  paint.capFan(rear, rearC, true);
-  paint.capFan(nose, noseC, false);
+  const bodyN = 48;
+  const body: Vec3[][] = [];
+  for (let i = 0; i <= bodyN; i++) body.push(bodyRing(p, lerp(p.s0, p.s1, i / bodyN)));
+  loftClosed(paint, body);
+  capRing(paint, body[0], game(p.s0, 0.52, 0), true);
+  capRing(paint, body[bodyN], game(p.s1, 0.5, 0), false);
+
+  const cabinN = 20;
+  const cabin: Vec3[][] = [];
+  for (let i = 0; i <= cabinN; i++) cabin.push(cabinRing(p, lerp(p.cPillar, p.aPillar, i / cabinN)));
+  loftClosed(paint, cabin);
+  capRing(paint, cabin[0], game(p.cPillar, lerp(p.belt, p.roof, 0.45), 0), true);
+  capRing(paint, cabin[cabinN], game(p.aPillar, lerp(p.belt, p.roof, 0.45), 0), false);
   return paint;
 }
 
 function buildWindows(p: Profile): MeshBuilder {
   const g = new MeshBuilder();
-  const aPillar = p.suv ? 0.88 : 0.82;
-  const cPillar = p.suv ? -1.22 : -1.06;
-  const belt = p.belt + 0.02;
-  const roof = p.roof - 0.04;
-  const out = 0.018;
+  const belt = p.belt + 0.03;
+  const roof = p.roof - 0.05;
+  const out = 0.02;
   for (let i = 0; i < 8; i++) {
     const t0 = i / 8;
     const t1 = (i + 1) / 8;
     g.addQuad(
-      { x: aPillar + 0.04, y: belt, z: lerp(-0.82, 0.82, t0) },
-      { x: aPillar + 0.04, y: belt, z: lerp(-0.82, 0.82, t1) },
-      { x: aPillar - 0.28, y: roof, z: lerp(-0.48, 0.48, t1) },
-      { x: aPillar - 0.28, y: roof, z: lerp(-0.48, 0.48, t0) },
+      game(p.aPillar + 0.02, belt, lerp(-0.78, 0.78, t0)),
+      game(p.aPillar + 0.02, belt, lerp(-0.78, 0.78, t1)),
+      game(p.aPillar - 0.26, roof, lerp(-0.46, 0.46, t1)),
+      game(p.aPillar - 0.26, roof, lerp(-0.46, 0.46, t0)),
     );
     g.addQuad(
-      { x: cPillar - 0.02, y: belt, z: lerp(0.78, -0.78, t0) },
-      { x: cPillar - 0.02, y: belt, z: lerp(0.78, -0.78, t1) },
-      { x: cPillar + 0.12, y: roof, z: lerp(0.46, -0.46, t1) },
-      { x: cPillar + 0.12, y: roof, z: lerp(0.46, -0.46, t0) },
+      game(p.cPillar - 0.02, belt, lerp(0.74, -0.74, t0)),
+      game(p.cPillar - 0.02, belt, lerp(0.74, -0.74, t1)),
+      game(p.cPillar + 0.14, roof, lerp(0.44, -0.44, t1)),
+      game(p.cPillar + 0.14, roof, lerp(0.44, -0.44, t0)),
     );
   }
   for (const side of [1, -1]) {
@@ -240,16 +257,16 @@ function buildWindows(p: Profile): MeshBuilder {
       const t0 = i / 6;
       const t1 = (i + 1) / 6;
       g.addQuad(
-        { x: lerp(cPillar + 0.16, -0.08, t0), y: belt, z: zBelt },
-        { x: lerp(cPillar + 0.16, -0.08, t1), y: belt, z: zBelt },
-        { x: lerp(cPillar + 0.16, -0.08, t1), y: roof, z: zRoof },
-        { x: lerp(cPillar + 0.16, -0.08, t0), y: roof, z: zRoof },
+        game(lerp(p.cPillar + 0.16, -0.06, t0), belt, zBelt),
+        game(lerp(p.cPillar + 0.16, -0.06, t1), belt, zBelt),
+        game(lerp(p.cPillar + 0.16, -0.06, t1), roof, zRoof),
+        game(lerp(p.cPillar + 0.16, -0.06, t0), roof, zRoof),
       );
       g.addQuad(
-        { x: lerp(0.06, aPillar - 0.08, t0), y: belt, z: zBelt },
-        { x: lerp(0.06, aPillar - 0.08, t1), y: belt, z: zBelt },
-        { x: lerp(0.06, aPillar - 0.16, t1), y: roof, z: zRoof },
-        { x: lerp(0.06, aPillar - 0.16, t0), y: roof, z: zRoof },
+        game(lerp(0.08, p.aPillar - 0.08, t0), belt, zBelt),
+        game(lerp(0.08, p.aPillar - 0.08, t1), belt, zBelt),
+        game(lerp(0.08, p.aPillar - 0.14, t1), roof, zRoof),
+        game(lerp(0.08, p.aPillar - 0.14, t0), roof, zRoof),
       );
     }
   }
@@ -258,13 +275,12 @@ function buildWindows(p: Profile): MeshBuilder {
 
 function buildLightBar(p: Profile): MeshBuilder {
   const g = new MeshBuilder();
-  for (let i = 0; i < 24; i++) {
-    const t0 = i / 24;
-    const t1 = (i + 1) / 24;
+  for (let i = 0; i < 20; i++) {
+    const t0 = i / 20;
+    const t1 = (i + 1) / 20;
     const wrap = (t: number): Vec3 => {
       const u = t * 2 - 1;
-      const corner = clamp((Math.abs(u) - 0.65) / 0.35, 0, 1);
-      return { x: p.x0 - 0.012, y: 0.78, z: u * lerp(0.86, 0.55, corner) };
+      return game(p.s0 - 0.012, 0.76, u * 0.78);
     };
     const a = wrap(t0);
     const b = wrap(t1);
@@ -281,28 +297,28 @@ function buildLightBar(p: Profile): MeshBuilder {
 function buildWheels(p: Profile): { rubber: MeshBuilder; rim: MeshBuilder } {
   const rubber = new MeshBuilder();
   const rim = new MeshBuilder();
-  const segs = 28;
+  const segs = 24;
   for (const axle of [p.front, p.rear]) {
     for (const side of [1, -1]) {
-      const z = p.track * side;
-      const inner = z - side * p.tireHw;
-      const outer = z + side * p.tireHw;
+      const x = p.track * side;
+      const inner = x - side * p.tireHw;
+      const outer = x + side * p.tireHw;
       const dish = outer - side * 0.05;
-      const ring = (r: number, zz: number): Vec3[] => {
+      const ring = (r: number, xx: number): Vec3[] => {
         const pts: Vec3[] = [];
         for (let i = 0; i <= segs; i++) {
           const a = (i / segs) * Math.PI * 2;
-          pts.push({ x: axle + Math.cos(a) * r, y: p.wheelY + Math.sin(a) * r, z: zz });
+          pts.push(game(axle + Math.cos(a) * r, p.wheelY + Math.sin(a) * r, xx));
         }
         return pts;
       };
       rubber.loft(ring(p.tireR, inner), ring(p.tireR, outer));
       rubber.loft(ring(p.tireR, inner), ring(p.tireR * 0.66, inner));
       rubber.loft(ring(p.tireR * 0.66, outer), ring(p.tireR, outer));
-      const rr = p.tireR * 0.72;
+      const rr = p.tireR * 0.7;
       rim.loft(ring(rr, outer), ring(rr, dish));
-      rim.loft(ring(rr * 0.88, dish), ring(0.08, dish));
-      rim.capFan(ring(0.08, dish), { x: axle, y: p.wheelY, z: dish + side * 0.01 }, side < 0);
+      rim.loft(ring(rr * 0.86, dish), ring(0.07, dish));
+      rim.capFan(ring(0.07, dish), game(axle, p.wheelY, dish + side * 0.01), side < 0);
     }
   }
   return { rubber, rim };
@@ -317,7 +333,7 @@ function meshOf(name: string, builder: MeshBuilder, mat: THREE.Material): THREE.
   return mesh;
 }
 
-/** Closed lofted EV sedan/SUV. Watertight paint volume, opaque window panels. */
+/** Closed lofted EV sedan. Faces -Z to match lot yaw. Watertight paint, opaque windows. */
 export function makeSolidCar(color: number, kind: HullKind = "sedan"): THREE.Group {
   const p = kind === "suv" ? suvProfile() : sedanProfile();
   const root = new THREE.Group();
