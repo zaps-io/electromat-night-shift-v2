@@ -9,6 +9,7 @@ interface ElectromatApi {
   hullDebug: () => {
     source?: string;
     meshCount?: number;
+    paintVerts?: number;
     lodFillers?: number;
     transmission?: number;
     transparentBody?: number;

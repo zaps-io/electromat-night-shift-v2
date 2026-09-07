@@ -81,12 +81,15 @@ export const STALLS: Stall[] = [
 /** Six playable Night Shift bays (opening lot + Peck). */
 export const BAYS = STALLS.filter((s) => s.playable != null).sort((a, b) => a.playable! - b.playable!) as Stall[];
 
+/** Nose-to-tail aisle queue. Cars face +Z (into the lot). Spacing > sedan length. */
+export const CAR_LENGTH = 4.72;
+export const QUEUE_GAP = 1.45;
 export const WAIT_SLOTS = [
-  { x: 1.15, z: -4.2, yaw: 4.68 },
-  { x: 1.2, z: -7.0, yaw: 4.71 },
-  { x: 1.25, z: -9.6, yaw: 4.71 },
-  { x: 1.3, z: -12.0, yaw: 4.71 },
-  { x: 1.35, z: -14.4, yaw: 4.71 },
+  { x: 1.25, z: -2.05, yaw: Math.PI },
+  { x: 1.25, z: -8.22, yaw: Math.PI },
+  { x: 1.25, z: -14.39, yaw: Math.PI },
+  { x: 1.25, z: -20.56, yaw: Math.PI },
+  { x: 1.25, z: -26.73, yaw: Math.PI },
 ] as const;
 
 export const WAIT_ORDER = ["peck", "ng", "kim", "das", "ortiz"] as const;

@@ -1,7 +1,8 @@
 import { readFileSync } from "node:fs";
 import { greetDriver, payKiosk, plugInlet, resetNight, seedOpeningLot } from "../src/game/shift.ts";
-import { assertOpaqueCarMaterials, makeSolidCar, solidPaintMaterial, solidWindowMaterial } from "../src/cars/solid.ts";
-import { BAYS, STALLS } from "../src/world/layout.ts";
+import { assertOpaqueCarMaterials, glassMaterial, paintMaterial } from "../src/cars/opaque.ts";
+import { CAR_LENGTH, BAYS, QUEUE_GAP, STALLS, WAIT_SLOTS } from "../src/world/layout.ts";
+import * as THREE from "three";
 
 for (const name of [
   "zaps-wordmark-only-cream.svg",
@@ -33,29 +34,31 @@ if (peck.assignedBay == null || !peck.plugged) throw new Error("Peck should be i
 if (!payKiosk(s, "peck")) throw new Error("kiosk pay failed");
 if (!peck.authorized) throw new Error("Peck should be authorized");
 
-const paint = solidPaintMaterial(0x1c2434);
+const paint = paintMaterial(0x1c2434);
 if (paint.transparent || paint.opacity < 1) throw new Error("paint must be fully opaque");
 if (paint.depthWrite !== true) throw new Error("paint must depthWrite");
-if ("transmission" in paint && (paint as { transmission?: number }).transmission) {
-  throw new Error("paint must not use transmission");
-}
+if ((paint.transmission ?? 0) > 0) throw new Error("paint must not use transmission");
 
-const window = solidWindowMaterial();
+const window = glassMaterial();
 if (window.transparent || window.opacity < 1) throw new Error("window panels must be opaque dark, not glass");
+if (window.depthWrite !== true) throw new Error("glass must depthWrite");
 
-const sedan = makeSolidCar(0xf4f1ea, "sedan");
-const suv = makeSolidCar(0x4a5560, "suv");
-assertOpaqueCarMaterials(sedan);
-assertOpaqueCarMaterials(suv);
-let paintVerts = 0;
-let windows = 0;
-sedan.traverse((o) => {
-  const mesh = o as { isMesh?: boolean; name?: string; geometry?: { getAttribute: (k: string) => { count: number } } };
-  if (!mesh.isMesh) return;
-  if (mesh.name === "Paint") paintVerts += mesh.geometry?.getAttribute("position")?.count ?? 0;
-  if (mesh.name === "Window") windows += 1;
-});
-if (paintVerts < 800) throw new Error("closed loft sedan needs a dense paint hull");
-if (!windows) throw new Error("sedan needs opaque window panels");
+const probe = new THREE.Group();
+const body = new THREE.Mesh(new THREE.BoxGeometry(4.6, 1.1, 1.8), paint);
+body.name = "Paint";
+probe.add(body);
+probe.add(new THREE.Mesh(new THREE.PlaneGeometry(1.2, 0.6), window));
+assertOpaqueCarMaterials(probe);
+
+const minGap = CAR_LENGTH + QUEUE_GAP;
+for (let i = 1; i < WAIT_SLOTS.length; i++) {
+  const dz = Math.abs(WAIT_SLOTS[i].z - WAIT_SLOTS[i - 1].z);
+  if (dz + 1e-6 < minGap) {
+    throw new Error(`queue slot ${i} gap ${dz.toFixed(2)} < sedan+gap ${minGap.toFixed(2)}`);
+  }
+}
+for (const slot of WAIT_SLOTS) {
+  if (Math.abs(slot.yaw - Math.PI) > 0.05) throw new Error("queue cars must face +Z (yaw PI)");
+}
 
 console.log("verify-shift ok");
