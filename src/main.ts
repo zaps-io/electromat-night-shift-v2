@@ -14,7 +14,7 @@ import {
 import { Walker } from "./input/walker";
 import { configureKeyLight, createNightProbe, createPipeline, createRenderer } from "./render/pipeline";
 import { addLodFillers, hullDebug, loadCarPrototypes, syncCars, trimLodFillers, type CarView } from "./world/cars";
-import { CANOPY_SHOT, KIOSK, REAR_SHOT, START_SHOT, WIDE_SHOT } from "./world/layout";
+import { CANOPY_SHOT, KIOSK, REAR_SHOT, START_SHOT, WIDE_SHOT, ZEUS_SHOT } from "./world/layout";
 import { addBrandSignage } from "./world/branding";
 import { makeAttendantHand, tickHand } from "./world/hand";
 import { buildSkyline } from "./world/skyline";
@@ -39,16 +39,16 @@ const renderer = createRenderer(canvas);
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x2a2430);
-scene.fog = new THREE.Fog(0x2c2834, 78, 180);
-scene.add(new THREE.AmbientLight(0xc8c0b8, 0.18));
-const fill = new THREE.DirectionalLight(0xffc070, 0.95);
+scene.fog = new THREE.Fog(0x3a3028, 82, 186);
+scene.add(new THREE.AmbientLight(0xc8b8a8, 0.16));
+const fill = new THREE.DirectionalLight(0xffc070, 1.02);
 fill.position.set(-28, 11, -12);
 configureKeyLight(fill);
 scene.add(fill);
-const rim = new THREE.DirectionalLight(0x88a0bc, 0.42);
+const rim = new THREE.DirectionalLight(0x88a0bc, 0.38);
 rim.position.set(18, 10, 20);
 scene.add(rim);
-const skyFill = new THREE.DirectionalLight(0x6a8098, 0.16);
+const skyFill = new THREE.DirectionalLight(0x6a8098, 0.14);
 skyFill.position.set(4, 18, -8);
 scene.add(skyFill);
 
@@ -372,6 +372,11 @@ async function saveShots(): Promise<void> {
   walker.lookAt(CANOPY_SHOT.lookAt.x, CANOPY_SHOT.lookAt.y, CANOPY_SHOT.lookAt.z);
   await new Promise((r) => setTimeout(r, 200));
   await post("/workspace/docs/shots/canopy-fascia.png", capture(1280, 800));
+  walker.setFov(ZEUS_SHOT.fov);
+  walker.place(ZEUS_SHOT.x, ZEUS_SHOT.z, ZEUS_SHOT.yaw, ZEUS_SHOT.pitch, ZEUS_SHOT.eyeY);
+  walker.lookAt(ZEUS_SHOT.lookAt.x, ZEUS_SHOT.lookAt.y, ZEUS_SHOT.lookAt.z);
+  await new Promise((r) => setTimeout(r, 200));
+  await post("/workspace/docs/shots/slim-zeus.png", capture(1280, 800));
 }
 
 if (params.has("saveshots")) void saveShots();

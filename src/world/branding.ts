@@ -79,7 +79,7 @@ export async function addBrandSignage(root: THREE.Group): Promise<void> {
 
   for (const canopy of CANOPIES) {
     const fasciaZ = canopy.z - canopy.d * 0.5 - 0.22;
-    const mark = signPlate(7.1, 1.58, red);
+    const mark = signPlate(5.4, 1.2, red);
     mark.position.set(canopy.x, canopy.y + 0.1, fasciaZ);
     mark.rotation.y = Math.PI;
     root.add(mark);
@@ -98,6 +98,11 @@ export async function addBrandSignage(root: THREE.Group): Promise<void> {
   const kioskMark = signPlate(0.5, 0.12, red);
   kioskMark.position.set(KIOSK.x, 1.92, KIOSK.z - 0.2);
   root.add(kioskMark);
+
+  const monument = signPlate(0.82, 0.3, red);
+  monument.position.set(-11.95, 1.18, -15.4);
+  monument.rotation.y = Math.PI / 2;
+  root.add(monument);
 
   applyZeusLogos(root, red);
 }

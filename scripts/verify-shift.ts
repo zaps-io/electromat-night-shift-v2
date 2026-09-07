@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { greetDriver, payKiosk, plugInlet, resetNight, seedOpeningLot } from "../src/game/shift.ts";
+import { BAYS, STALLS } from "../src/world/layout.ts";
 
 for (const name of [
   "zaps-wordmark-only-cream.svg",
@@ -15,6 +16,10 @@ for (const name of [
   const fill = name.includes("red") ? "#E63225" : "#F5F0E8";
   if ((text.match(new RegExp(fill, "g")) ?? []).length !== 4) throw new Error(`${name} missing ${fill}`);
 }
+
+if (STALLS.length !== 24) throw new Error(`expected 24 chargers, got ${STALLS.length}`);
+if (BAYS.length !== 6) throw new Error(`expected 6 playable bays, got ${BAYS.length}`);
+if (BAYS.some((b, i) => b.playable !== i + 1)) throw new Error("playable bay ids must be 1..6");
 
 const s = resetNight();
 seedOpeningLot(s);
