@@ -440,8 +440,22 @@ async function saveShots(): Promise<void> {
 }
 
 if (params.has("saveshots")) void saveShots();
-
-void shot;
+if (shot === "zeus") {
+  void (async () => {
+    while (!ready) await new Promise((r) => setTimeout(r, 40));
+    if (state.phase === "title") dropIn();
+    await new Promise((r) => setTimeout(r, 900));
+    walker.setFov(ZEUS_SHOT.fov);
+    walker.place(ZEUS_SHOT.x, ZEUS_SHOT.z, ZEUS_SHOT.yaw, ZEUS_SHOT.pitch, ZEUS_SHOT.eyeY);
+    walker.lookAt(ZEUS_SHOT.lookAt.x, ZEUS_SHOT.lookAt.y, ZEUS_SHOT.lookAt.z);
+    await new Promise((r) => setTimeout(r, 400));
+    await fetch("http://127.0.0.1:8765", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path: "/workspace/docs/shots/slim-zeus.png", data: capture(1280, 800) }),
+    });
+  })();
+}
 
 function capture(w = 1280, h = 800): string {
   capturing = true;
