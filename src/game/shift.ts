@@ -35,6 +35,8 @@ function speak(s: GameState, line: string, hold = 8): void {
   s.toastUntil = s.timeMin + hold;
 }
 
+export type GuestAction = "talk" | "park" | "plug" | "pay" | "auto" | "unplug" | "";
+
 export function liveGuest(s: GameState, id: string): Guest | undefined {
   const g = guestById(s, id);
   if (!g || s.timeMin < g.arriveMin) return undefined;
@@ -46,6 +48,25 @@ export function arrivedGuests(s: GameState): Guest[] {
   return s.guests.filter((g) => s.timeMin >= g.arriveMin && !g.served && !g.walked);
 }
 
+export function guestAction(g: Guest | undefined): GuestAction {
+  if (!g || g.served || g.walked) return "";
+  if (!g.greeted) return "talk";
+  if (g.assignedBay == null) return "park";
+  if (!g.plugged) return "plug";
+  if (!g.authorized) return "pay";
+  if (!g.enrolled) return "auto";
+  if (g.delivered >= g.targetKwh) return "unplug";
+  return "";
+}
+
+export function pendingPayGuest(s: GameState): Guest | undefined {
+  return arrivedGuests(s).find((g) => g.plugged && !g.authorized);
+}
+
+export function waitingParker(s: GameState): Guest | undefined {
+  return arrivedGuests(s).find((g) => g.greeted && g.assignedBay == null);
+}
+
 function openBay(s: GameState): Bay | undefined {
   return s.bays.find((b) => !b.guestId);
 }
@@ -53,7 +74,7 @@ function openBay(s: GameState): Bay | undefined {
 export function startNight(s: GameState): void {
   if (s.phase === "shift" || s.phase === "grade" || s.phase === "lose") return;
   s.phase = "shift";
-  speak(s, "Walk the lot. Talk, then plug.", 10);
+  speak(s, "Talk, park, plug, pay, unplug.", 10);
 }
 
 export function greetDriver(s: GameState, guestId: string): boolean {
@@ -65,25 +86,57 @@ export function greetDriver(s: GameState, guestId: string): boolean {
   return true;
 }
 
+export function parkInBay(s: GameState, guestId: string, bayId?: number): boolean {
+  if (s.phase !== "shift") return false;
+  const g = liveGuest(s, guestId);
+  if (!g || !g.greeted) return false;
+  if (g.assignedBay != null) return false;
+  const bay = bayId != null ? s.bays.find((b) => b.id === bayId && !b.guestId) : openBay(s);
+  if (!bay) {
+    speak(s, "No open bay.");
+    return false;
+  }
+  bay.guestId = g.id;
+  g.assignedBay = bay.id;
+  speak(s, `${g.name} — bay ${bay.id}. Plug in.`);
+  return true;
+}
+
 export function plugInlet(s: GameState, guestId: string): boolean {
   if (s.phase !== "shift") return false;
   const g = liveGuest(s, guestId);
   if (!g) return false;
-  if (g.assignedBay == null) {
-    const bay = openBay(s);
-    if (!bay) {
-      speak(s, "No open bay.");
-      return false;
-    }
-    bay.guestId = g.id;
-    g.assignedBay = bay.id;
-  }
+  if (g.assignedBay == null && !parkInBay(s, guestId)) return false;
   if (!g.plugged) {
     g.plugged = true;
     s.plugs += 1;
   }
   if (g.authorized) speak(s, "DRIVE IN. CHARGE UP. ZIP OUT.");
-  else speak(s, "Pay at the kiosk.");
+  else speak(s, `${g.name} — E PAY at the car, or the PAY kiosk west of the left canopy.`);
+  return true;
+}
+
+export function unplugInlet(s: GameState, guestId: string): boolean {
+  if (s.phase !== "shift") return false;
+  const g = liveGuest(s, guestId);
+  if (!g || !g.plugged) return false;
+  if (g.authorized && g.delivered < g.targetKwh) {
+    speak(s, "Still charging.");
+    return false;
+  }
+  g.plugged = false;
+  if (g.authorized && g.delivered >= g.targetKwh) {
+    g.served = true;
+    s.sessionsDone += 1;
+    if (g.assignedBay != null) {
+      const bay = s.bays.find((b) => b.id === g.assignedBay);
+      if (bay) bay.guestId = null;
+    }
+    g.assignedBay = null;
+    speak(s, `${g.name} zipped out.`);
+  } else {
+    speak(s, "Unplugged.");
+  }
   return true;
 }
 
@@ -91,10 +144,19 @@ export function payKiosk(s: GameState, guestId: string): boolean {
   if (s.phase !== "shift") return false;
   const g = liveGuest(s, guestId);
   if (!g || g.auth !== "kiosk") return false;
-  if (g.assignedBay == null || !g.plugged) return false;
+  if (g.assignedBay == null || !g.plugged) {
+    speak(s, "Plug them in first, then pay.");
+    return false;
+  }
+  if (g.authorized) return false;
   g.authorized = true;
-  speak(s, "For next time — AutoCharge. Vehicle on file.");
+  speak(s, `Paid — ${g.name}. E AUTOCHARGE for next time.`);
   return true;
+}
+
+export function nudgePay(s: GameState): void {
+  if (!pendingPayGuest(s)) return;
+  speak(s, "Walk west to the PAY kiosk (left of the left canopy), or E at the car.", 9);
 }
 
 export function enrollAuto(s: GameState, guestId: string): boolean {
@@ -135,15 +197,10 @@ export function tick(s: GameState, dtMin: number): void {
   for (const bay of s.bays) {
     if (!bay.guestId) continue;
     const g = guestById(s, bay.guestId);
-    if (!g || !g.plugged || !g.authorized) continue;
-    g.delivered = Math.min(g.targetKwh, g.delivered + 3.6 * dtMin);
-    if (g.delivered >= g.targetKwh && !g.served) {
-      g.served = true;
-      s.sessionsDone += 1;
-      bay.guestId = null;
-      g.assignedBay = null;
-      speak(s, `${g.name} zipped out.`);
-    }
+    if (!g || !g.plugged || !g.authorized || g.served) continue;
+    if (g.delivered >= g.targetKwh) continue;
+    g.delivered = Math.min(g.targetKwh, g.delivered + 4.8 * dtMin);
+    if (g.delivered >= g.targetKwh) speak(s, `${g.name} is full — E UNPLUG.`, 10);
   }
 
   if (s.toastUntil <= s.timeMin && Math.floor(s.timeMin) % 28 === 0) {
@@ -187,10 +244,14 @@ export function seedOpeningLot(s: GameState): void {
   chen.greeted = true;
   chen.delivered = 2;
   s.bays[4].guestId = "chen";
-  peck.greeted = false;
-  s.plugs = 4;
+  peck.greeted = true;
+  peck.assignedBay = 4;
+  peck.plugged = true;
+  peck.authorized = false;
+  s.bays[3].guestId = "peck";
+  s.plugs = 5;
   s.autochargeSignups = 0;
-  speak(s, "Four on charge. Queue is building.", 10);
+  speak(s, "Peck is plugged — E PAY at the car or the west PAY kiosk.", 10);
 }
 
 export function resetNight(): GameState {

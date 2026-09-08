@@ -21,15 +21,26 @@ const RIGHT_ZS = [-5.4, -2.7, 0.0, 2.7, 5.4, 8.1, 10.8] as const;
 export const LEFT_CANOPY_X = -8.3;
 export const RIGHT_CANOPY_X = 11.5;
 
-export const LEFT_EAST_CAR_X = -6.5;
-export const LEFT_WEST_CAR_X = -10.1;
 export const LEFT_EAST_ZEUS_X = -8.0;
 export const LEFT_WEST_ZEUS_X = -8.6;
-
-export const RIGHT_WEST_CAR_X = 9.55;
-export const RIGHT_EAST_CAR_X = 13.45;
 export const RIGHT_WEST_ZEUS_X = 11.4;
 export const RIGHT_EAST_ZEUS_X = 11.7;
+
+/** Tesla Model 3 fit length. Stall X is Zeus + half hull + pedestal + bumper gap. */
+export const CAR_LENGTH = 4.72;
+export const QUEUE_GAP = 1.7;
+export const ZEUS_HALF_DEPTH = 0.28;
+/** Bumper-to-Zeus face. Live playtest stills showed ~0 gap at 1.5m centers. */
+export const STALL_CLEARANCE = 0.9;
+
+function stallCarX(zeusX: number, aisleSign: 1 | -1): number {
+  return zeusX + aisleSign * (CAR_LENGTH * 0.5 + ZEUS_HALF_DEPTH + STALL_CLEARANCE);
+}
+
+export const LEFT_EAST_CAR_X = stallCarX(LEFT_EAST_ZEUS_X, 1);
+export const LEFT_WEST_CAR_X = stallCarX(LEFT_WEST_ZEUS_X, -1);
+export const RIGHT_WEST_CAR_X = stallCarX(RIGHT_WEST_ZEUS_X, -1);
+export const RIGHT_EAST_CAR_X = stallCarX(RIGHT_EAST_ZEUS_X, 1);
 
 /**
  * 24 chargers matching the Electromat site plan:
@@ -82,8 +93,6 @@ export const STALLS: Stall[] = [
 export const BAYS = STALLS.filter((s) => s.playable != null).sort((a, b) => a.playable! - b.playable!) as Stall[];
 
 /** Nose-to-tail aisle queue. Cars face +Z (into the lot). Spacing > sedan length. */
-export const CAR_LENGTH = 4.72;
-export const QUEUE_GAP = 1.7;
 export const WAIT_SLOTS = [
   { x: 1.25, z: -2.05, yaw: Math.PI },
   { x: 1.25, z: -8.47, yaw: Math.PI },
@@ -94,9 +103,18 @@ export const WAIT_SLOTS = [
 
 export const WAIT_ORDER = ["peck", "ng", "kim", "das", "ortiz"] as const;
 
-export const BAY_SIZE = { w: 2.55, d: 5.4 };
+export const BAY_SIZE = { w: 2.6, d: CAR_LENGTH + STALL_CLEARANCE + 0.35 };
 
-export const KIOSK = { x: -23.2, z: -3.55 };
+/** Lot PAY terminal (west of left canopy) + lounge door. Either completes kiosk pay. */
+export const PAY_POINTS = [
+  { x: -15.2, z: -10.4 },
+  { x: -22.6, z: -3.7 },
+] as const;
+export const KIOSK = PAY_POINTS[0];
+export const KIOSK_REACH = 7.2;
+
+/** Keep Zoey on the asphalt / lounge apron — no unrendered void. */
+export const WALK_BOUNDS = { xmin: -26.2, xmax: 23.2, zmin: -21.6, zmax: 17.4 };
 
 export const PAVILION = { x: -23.4, z: 3.4, yaw: 0, w: 11.6, d: 13.4, h: 3.35 };
 
@@ -130,7 +148,7 @@ export const WIDE_SHOT = {
 export const REAR_SHOT = {
   x: 1.4,
   z: -5.8,
-  lookAt: { x: -6.2, y: 1.15, z: -4.4 },
+  lookAt: { x: LEFT_EAST_CAR_X + 0.4, y: 1.15, z: -4.4 },
   fov: 52,
 } as const;
 
@@ -145,11 +163,11 @@ export const CANOPY_SHOT = {
 } as const;
 
 export const ZEUS_SHOT = {
-  x: -3.55,
-  z: 1.5,
-  eyeY: 1.2,
+  x: -1.15,
+  z: 0.35,
+  eyeY: 1.28,
   yaw: Math.PI / 2,
-  pitch: 0.04,
-  lookAt: { x: LEFT_EAST_ZEUS_X, y: 1.05, z: 1.5 },
-  fov: 40,
+  pitch: 0.02,
+  lookAt: { x: LEFT_EAST_ZEUS_X, y: 1.0, z: -1.2 },
+  fov: 42,
 } as const;

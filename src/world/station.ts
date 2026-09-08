@@ -1,14 +1,17 @@
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { C } from "../brand";
-import { BAY_SIZE, CANOPIES, KIOSK, PAVILION, STALLS, YARD } from "./layout";
+import { BAY_SIZE, CANOPIES, PAY_POINTS, PAVILION, STALLS, WALK_BOUNDS, YARD } from "./layout";
 import { asphaltColor, asphaltNormal, asphaltRough, creamPanels, curbColor, curbRough, gravel, soffitPanels, stucco } from "./tex";
+import { makePayIcon } from "./icons";
 import { addZeusCharger } from "./zeus";
 
 export interface Station {
   root: THREE.Group;
   ground: THREE.Mesh;
   kiosk: THREE.Object3D;
+  kiosks: THREE.Object3D[];
+  kioskAlerts: THREE.Sprite[];
   bayAnchors: THREE.Object3D[];
   colliders: THREE.Box3[];
 }
@@ -99,10 +102,14 @@ function addLaneMarks(root: THREE.Group): void {
   root.add(arrow);
 }
 
-function addBayOutline(root: THREE.Group, x: number, z: number, yaw: number, ada = false): THREE.Object3D {
+function addBayOutline(root: THREE.Group, x: number, z: number, yaw: number, ada = false, bayId?: number): THREE.Object3D {
   const g = new THREE.Group();
   g.position.set(x, 0.018, z);
   g.rotation.y = yaw + Math.PI / 2;
+  if (bayId != null) {
+    g.userData.kind = "bay";
+    g.userData.bayId = bayId;
+  }
   const paint = new THREE.MeshBasicMaterial({ color: ada ? 0x4a8ae8 : 0xffffff, toneMapped: false });
   const t = 0.07;
   const { w, d } = BAY_SIZE;
@@ -110,9 +117,18 @@ function addBayOutline(root: THREE.Group, x: number, z: number, yaw: number, ada
   g.add(box(w, 0.012, t, paint, 0, 0, -d / 2));
   g.add(box(t, 0.012, d, paint, w / 2, 0, 0));
   g.add(box(t, 0.012, d, paint, -w / 2, 0, 0));
+  const ghost = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
+  const hit = new THREE.Mesh(new THREE.BoxGeometry(w * 0.72, 0.32, d * 0.55), ghost);
+  hit.position.y = -0.18;
   const anchor = new THREE.Object3D();
   anchor.position.set(0, 0.4, 0);
-  anchor.userData.kind = "bay";
+  if (bayId != null) {
+    hit.userData.kind = "bay";
+    hit.userData.bayId = bayId;
+    anchor.userData.kind = "bay";
+    anchor.userData.bayId = bayId;
+    anchor.add(hit);
+  }
   g.add(anchor);
   root.add(g);
   return anchor;
@@ -193,11 +209,13 @@ function addCanopyAt(root: THREE.Group, cx: number, cz: number, w: number, d: nu
   root.add(lip);
 
   const col = mat(0xf2eee6, { metalness: 0.18, roughness: 0.4, envMapIntensity: 0.38 });
-  const zPosts = d > 20 ? [-0.36, 0, 0.36] : [-0.34, 0.34];
+  const insetZ = d * 0.5 - 0.55;
   for (const sx of [-1, 1]) {
-    for (const sz of zPosts) {
+    const aisle = (cx < 0 && sx > 0) || (cx > 0 && sx < 0);
+    const insetX = w * 0.5 + (aisle ? 0.22 : -0.4);
+    for (const sz of [-1, 1]) {
       const post = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.13, y - 0.12, 14), col);
-      post.position.set(cx + sx * (w * 0.36), (y - 0.12) * 0.5, cz + sz * d);
+      post.position.set(cx + sx * insetX, (y - 0.12) * 0.5, cz + sz * insetZ);
       post.castShadow = true;
       root.add(post);
     }
@@ -351,18 +369,73 @@ function addPavilion(root: THREE.Group): THREE.Box3 {
   );
 }
 
-function addKiosk(root: THREE.Group): THREE.Object3D {
+function payPlate(): THREE.CanvasTexture {
+  const c = document.createElement("canvas");
+  c.width = 256;
+  c.height = 96;
+  const ctx = c.getContext("2d")!;
+  ctx.fillStyle = "#1E1E24";
+  ctx.fillRect(0, 0, 256, 96);
+  ctx.fillStyle = "#E89A2E";
+  ctx.font = "900 54px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("PAY", 128, 52);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.needsUpdate = true;
+  return tex;
+}
+
+const payTex = payPlate();
+
+function addOneKiosk(root: THREE.Group, x: number, z: number): { kiosk: THREE.Group; alert: THREE.Sprite } {
+  const kiosk = new THREE.Group();
+  kiosk.userData.kind = "kiosk";
   const cream = mat(0xf3eee4);
-  const stand = box(0.7, 1.35, 0.42, cream, KIOSK.x, 0.68, KIOSK.z);
-  const head = box(0.6, 0.46, 0.1, mat(C.charcoal), KIOSK.x, 1.48, KIOSK.z - 0.16);
+  const stand = box(0.78, 1.42, 0.48, cream, x, 0.72, z);
+  const head = box(0.7, 0.52, 0.12, mat(C.charcoal), x, 1.58, z - 0.18);
   const glow = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.5, 0.34),
-    new THREE.MeshStandardMaterial({ color: C.amber, emissive: C.amber, emissiveIntensity: 1.3, toneMapped: false }),
+    new THREE.PlaneGeometry(0.62, 0.4),
+    new THREE.MeshBasicMaterial({ map: payTex, toneMapped: false }),
   );
-  glow.position.set(KIOSK.x, 1.48, KIOSK.z - 0.22);
-  stand.userData.kind = "kiosk";
-  root.add(stand, head, glow);
-  return stand;
+  glow.position.set(x, 1.58, z - 0.25);
+  const ghost = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
+  const hit = new THREE.Mesh(new THREE.BoxGeometry(2.6, 2.4, 2.2), ghost);
+  hit.position.set(x, 1.15, z);
+  hit.userData.kind = "kiosk";
+  const alert = makePayIcon();
+  alert.position.set(x, 2.35, z);
+  alert.visible = false;
+  kiosk.add(stand, head, glow, hit, alert);
+  root.add(kiosk);
+  return { kiosk, alert };
+}
+
+function addKiosks(root: THREE.Group): { kiosks: THREE.Group[]; alerts: THREE.Sprite[] } {
+  const kiosks: THREE.Group[] = [];
+  const alerts: THREE.Sprite[] = [];
+  for (const p of PAY_POINTS) {
+    const built = addOneKiosk(root, p.x, p.z);
+    kiosks.push(built.kiosk);
+    alerts.push(built.alert);
+  }
+  return { kiosks, alerts };
+}
+
+function addLotRails(root: THREE.Group): void {
+  const rail = mat(0xe8e2d4, { roughness: 0.62, metalness: 0.04 });
+  const { xmin, xmax, zmin, zmax } = WALK_BOUNDS;
+  const y = 0.16;
+  const t = 0.18;
+  const hx = (xmax - xmin) * 0.5;
+  const hz = (zmax - zmin) * 0.5;
+  const cx = (xmin + xmax) * 0.5;
+  const cz = (zmin + zmax) * 0.5;
+  root.add(box(hx * 2 + t, 0.28, t, rail, cx, y, zmin));
+  root.add(box(hx * 2 + t, 0.28, t, rail, cx, y, zmax));
+  root.add(box(t, 0.28, hz * 2, rail, xmin, y, cz));
+  root.add(box(t, 0.28, hz * 2, rail, xmax, y, cz));
 }
 
 function addPalm(root: THREE.Group, x: number, z: number, h = 5.2): void {
@@ -598,7 +671,8 @@ export function buildStation(): Station {
   addLaneMarks(root);
   addCanopies(root);
   const pavilionBox = addPavilion(root);
-  const kiosk = addKiosk(root);
+  const { kiosks, alerts } = addKiosks(root);
+  addLotRails(root);
   addPlanters(root);
   addStreetlights(root);
   addHatch(root);
@@ -608,7 +682,7 @@ export function buildStation(): Station {
 
   const bayAnchors: THREE.Object3D[] = [];
   for (const stall of STALLS) {
-    const anchor = addBayOutline(root, stall.x, stall.z, stall.carYaw, !!stall.ada);
+    const anchor = addBayOutline(root, stall.x, stall.z, stall.carYaw, !!stall.ada, stall.playable);
     if (stall.playable != null) {
       anchor.userData.bayId = stall.playable;
       bayAnchors.push(anchor);
@@ -620,7 +694,9 @@ export function buildStation(): Station {
   return {
     root,
     ground,
-    kiosk,
+    kiosk: kiosks[0],
+    kiosks,
+    kioskAlerts: alerts,
     bayAnchors,
     colliders: [pavilionBox],
   };

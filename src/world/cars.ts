@@ -10,7 +10,7 @@ import {
   paintMaterial,
 } from "../cars/opaque";
 import type { GameState, Guest, HullKind } from "../game/state";
-import { arrivedGuests } from "../game/shift";
+import { arrivedGuests, guestAction } from "../game/shift";
 import {
   BAYS,
   LEFT_EAST_CAR_X,
@@ -682,8 +682,7 @@ export function spawnCar(guest: Guest): CarView {
 }
 
 export function placeGuest(view: CarView, guest: Guest, now: number): void {
-  const charging = guest.assignedBay != null && guest.plugged;
-  if (charging && guest.assignedBay != null) {
+  if (guest.assignedBay != null) {
     const bay = BAYS[guest.assignedBay - 1];
     view.root.position.set(bay.x, 0, bay.z);
     view.root.rotation.y = bay.carYaw;
@@ -694,9 +693,9 @@ export function placeGuest(view: CarView, guest: Guest, now: number): void {
     view.root.position.set(wait.x, 0, wait.z);
     view.root.rotation.y = wait.yaw;
   }
-  const needs = !guest.plugged && !guest.served && !guest.walked;
-  const onCharge = guest.plugged && guest.authorized && !guest.served;
-  view.attention.visible = needs;
+  const need = guestAction(guest);
+  const onCharge = guest.plugged && guest.authorized && guest.delivered < guest.targetKwh && !guest.served;
+  view.attention.visible = need === "talk" || need === "park" || need === "plug" || need === "pay" || need === "unplug";
   view.battery.visible = onCharge;
   view.cable.visible = guest.plugged && !guest.served;
   view.portGlow.visible = guest.plugged && !guest.served;

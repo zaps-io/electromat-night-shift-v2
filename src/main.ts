@@ -5,16 +5,22 @@ import { clockLabel, MS_PER_GAME_MIN } from "./game/state";
 import {
   enrollAuto,
   greetDriver,
+  guestAction,
+  nudgePay,
+  parkInBay,
   payKiosk,
+  pendingPayGuest,
   plugInlet,
   resetNight,
   seedOpeningLot,
   tick,
+  unplugInlet,
+  waitingParker,
 } from "./game/shift";
 import { Walker } from "./input/walker";
 import { configureKeyLight, createDuskEnvironment, createPipeline, createRenderer } from "./render/pipeline";
 import { addLodFillers, hullDebug, loadCarPrototypes, syncCars, trimLodFillers, type CarView } from "./world/cars";
-import { CANOPY_SHOT, KIOSK, REAR_SHOT, START_SHOT, WIDE_SHOT, ZEUS_SHOT } from "./world/layout";
+import { CANOPY_SHOT, KIOSK_REACH, PAY_POINTS, REAR_SHOT, START_SHOT, WIDE_SHOT, ZEUS_SHOT } from "./world/layout";
 import { addBrandSignage } from "./world/branding";
 import { makeAttendantHand, tickHand } from "./world/hand";
 import { buildSkyline } from "./world/skyline";
@@ -119,9 +125,13 @@ function restart(): void {
 }
 
 function pickables(): THREE.Object3D[] {
-  const list: THREE.Object3D[] = [station.kiosk, ...station.bayAnchors];
+  const list: THREE.Object3D[] = [...station.kiosks, ...station.bayAnchors];
   for (const view of cars.values()) list.push(view.root, view.inlet, view.driver);
   return list;
+}
+
+function nearKiosk(max = KIOSK_REACH): boolean {
+  return PAY_POINTS.some((p) => walker.position.distanceTo(new THREE.Vector3(p.x, walker.position.y, p.z)) < max);
 }
 
 function aim(): THREE.Intersection | null {
@@ -148,22 +158,21 @@ function kindOf(obj: THREE.Object3D | undefined): string {
   return "";
 }
 
-function guestNeed(id: string | null): "talk" | "plug" | "auto" | "pay" | "" {
+function guestNeed(id: string | null): ReturnType<typeof guestAction> {
   if (!id) return "";
-  const g = state.guests.find((x) => x.id === id);
-  if (!g || g.served || g.walked) return "";
-  if (!g.greeted) return "talk";
-  if (!g.plugged) return "plug";
-  if (g.plugged && !g.authorized) return "pay";
-  if (g.authorized && !g.enrolled) return "auto";
-  return "";
+  return guestAction(state.guests.find((x) => x.id === id));
 }
 
-function nearbyGuestId(max = 3.6): string | null {
+function nearbyGuestId(max = 4.8): string | null {
   let best: string | null = null;
   let bestD = max;
   let bestRank = 99;
-  const rank = (need: ReturnType<typeof guestNeed>) => (need === "talk" || need === "plug" ? 0 : need === "pay" ? 1 : need === "auto" ? 2 : 9);
+  const rank = (need: ReturnType<typeof guestNeed>) => {
+    if (need === "talk" || need === "park" || need === "plug" || need === "unplug") return 0;
+    if (need === "pay") return 1;
+    if (need === "auto") return 2;
+    return 9;
+  };
   for (const [id, view] of cars) {
     const need = guestNeed(id);
     if (!need) continue;
@@ -179,27 +188,67 @@ function nearbyGuestId(max = 3.6): string | null {
   return best;
 }
 
-function promptFor(need: ReturnType<typeof guestNeed>): string {
-  if (need === "talk") return "E  TALK";
-  if (need === "plug") return "E  PLUG";
-  if (need === "auto") return "E  AUTOCHARGE";
-  if (need === "pay") return "E  PAY";
+function promptFor(need: ReturnType<typeof guestNeed>, name = ""): string {
+  const who = name ? `  ·  ${name.toUpperCase()}` : "";
+  if (need === "talk") return `E  TALK${who}`;
+  if (need === "park") return `E  PARK${who}`;
+  if (need === "plug") return `E  PLUG${who}`;
+  if (need === "auto") return `E  AUTOCHARGE${who}`;
+  if (need === "pay") return `E  PAY${who}`;
+  if (need === "unplug") return `E  UNPLUG${who}`;
   return "";
+}
+
+function guestName(id: string | null): string {
+  if (!id) return "";
+  return state.guests.find((g) => g.id === id)?.name ?? "";
+}
+
+function tryPay(id?: string): boolean {
+  const g = id ? state.guests.find((x) => x.id === id) : pendingPayGuest(state);
+  if (!g) return false;
+  if (payKiosk(state, g.id)) {
+    playPay();
+    return true;
+  }
+  return false;
 }
 
 function useGuest(id: string): boolean {
   const g = state.guests.find((x) => x.id === id);
   if (!g) return false;
-  if (g.authorized && !g.enrolled && enrollAuto(state, id)) {
+  const need = guestAction(g);
+  if (need === "unplug" && unplugInlet(state, id)) {
+    playPlug();
+    return true;
+  }
+  if (need === "auto" && enrollAuto(state, id)) {
     playPay();
     return true;
   }
-  if (!g.greeted && greetDriver(state, id)) {
+  if (need === "pay" && tryPay(id)) return true;
+  if (need === "talk" && greetDriver(state, id)) {
     playTalk();
     return true;
   }
-  if (!g.plugged && plugInlet(state, id)) {
+  if (need === "park" && parkInBay(state, id)) {
+    playTalk();
+    return true;
+  }
+  if (need === "plug" && plugInlet(state, id)) {
     playPlug();
+    return true;
+  }
+  return false;
+}
+
+function parkIntoBay(bayId: number): boolean {
+  const waiter = waitingParker(state);
+  if (!waiter) {
+    return false;
+  }
+  if (parkInBay(state, waiter.id, bayId)) {
+    playTalk();
     return true;
   }
   return false;
@@ -217,19 +266,26 @@ function act(): void {
   const hit = aim();
   const id = guestIdOf(hit?.object);
   const kind = kindOf(hit?.object);
+  const bayId = typeof hit?.object.userData.bayId === "number" ? hit.object.userData.bayId : bayIdOf(hit?.object);
   if (kind === "kiosk") {
-    const pending = state.guests.find((g) => g.plugged && !g.authorized && !g.served && !g.walked);
-    if (pending && payKiosk(state, pending.id)) playPay();
+    if (!tryPay()) nudgePay(state);
     return;
   }
+  if (kind === "bay" && bayId && parkIntoBay(bayId)) return;
   if (id && useGuest(id)) return;
   const near = nearbyGuestId();
   if (near && useGuest(near)) return;
-  const kioskDist = walker.position.distanceTo(new THREE.Vector3(KIOSK.x, walker.position.y, KIOSK.z));
-  if (kioskDist < 3.4) {
-    const pending = state.guests.find((g) => g.plugged && !g.authorized && !g.served && !g.walked);
-    if (pending && payKiosk(state, pending.id)) playPay();
+  if (nearKiosk() && tryPay()) return;
+  if (pendingPayGuest(state)) nudgePay(state);
+}
+
+function bayIdOf(obj: THREE.Object3D | undefined): number | undefined {
+  let o: THREE.Object3D | undefined = obj;
+  while (o) {
+    if (typeof o.userData.bayId === "number") return o.userData.bayId;
+    o = o.parent ?? undefined;
   }
+  return undefined;
 }
 
 function paintHud(): void {
@@ -246,11 +302,17 @@ function paintHud(): void {
   const hit = live ? aim() : null;
   const kind = kindOf(hit?.object);
   const id = guestIdOf(hit?.object);
+  const bayId = bayIdOf(hit?.object);
+  const pending = pendingPayGuest(state);
+  const bayOpen = bayId != null && !state.bays.find((b) => b.id === bayId)?.guestId;
   let prompt = "";
-  if (kind === "kiosk") prompt = "E  PAY";
-  else if (kind === "inlet" && guestNeed(id) === "plug") prompt = "E  PLUG";
-  else if (id) prompt = promptFor(guestNeed(id));
-  if (!prompt) prompt = promptFor(guestNeed(nearbyGuestId()));
+  for (const spr of station.kioskAlerts) spr.visible = !!pending;
+  if (kind === "kiosk") prompt = pending ? promptFor("pay", pending.name) : "";
+  else if (kind === "bay" && bayOpen && waitingParker(state)) prompt = promptFor("park", waitingParker(state)?.name);
+  else if (kind === "inlet" && guestNeed(id) === "plug") prompt = promptFor("plug", guestName(id));
+  else if (id) prompt = promptFor(guestNeed(id), guestName(id));
+  if (!prompt) prompt = promptFor(guestNeed(nearbyGuestId()), guestName(nearbyGuestId()));
+  if (!prompt && pending && nearKiosk()) prompt = promptFor("pay", pending.name);
   promptEl.textContent = prompt;
   toastEl.textContent = live && state.toastUntil > state.timeMin ? state.toast : "";
   crossEl.classList.toggle("ready", !!prompt);
@@ -378,8 +440,22 @@ async function saveShots(): Promise<void> {
 }
 
 if (params.has("saveshots")) void saveShots();
-
-void shot;
+if (shot === "zeus") {
+  void (async () => {
+    while (!ready) await new Promise((r) => setTimeout(r, 40));
+    if (state.phase === "title") dropIn();
+    await new Promise((r) => setTimeout(r, 900));
+    walker.setFov(ZEUS_SHOT.fov);
+    walker.place(ZEUS_SHOT.x, ZEUS_SHOT.z, ZEUS_SHOT.yaw, ZEUS_SHOT.pitch, ZEUS_SHOT.eyeY);
+    walker.lookAt(ZEUS_SHOT.lookAt.x, ZEUS_SHOT.lookAt.y, ZEUS_SHOT.lookAt.z);
+    await new Promise((r) => setTimeout(r, 400));
+    await fetch("http://127.0.0.1:8765", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path: "/workspace/docs/shots/slim-zeus.png", data: capture(1280, 800) }),
+    });
+  })();
+}
 
 function capture(w = 1280, h = 800): string {
   capturing = true;

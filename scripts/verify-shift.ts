@@ -1,7 +1,32 @@
 import { readFileSync } from "node:fs";
-import { greetDriver, payKiosk, plugInlet, resetNight, seedOpeningLot } from "../src/game/shift.ts";
+import {
+  enrollAuto,
+  greetDriver,
+  guestAction,
+  parkInBay,
+  payKiosk,
+  pendingPayGuest,
+  plugInlet,
+  resetNight,
+  seedOpeningLot,
+  tick,
+  unplugInlet,
+  waitingParker,
+} from "../src/game/shift.ts";
 import { assertOpaqueCarMaterials, glassMaterial, paintMaterial } from "../src/cars/opaque.ts";
-import { CAR_LENGTH, BAYS, QUEUE_GAP, STALLS, WAIT_SLOTS } from "../src/world/layout.ts";
+import {
+  BAYS,
+  CAR_LENGTH,
+  KIOSK_REACH,
+  PAY_POINTS,
+  QUEUE_GAP,
+  START_SHOT,
+  STALL_CLEARANCE,
+  STALLS,
+  WAIT_SLOTS,
+  WALK_BOUNDS,
+  ZEUS_HALF_DEPTH,
+} from "../src/world/layout.ts";
 import * as THREE from "three";
 
 for (const name of [
@@ -23,16 +48,51 @@ if (STALLS.length !== 24) throw new Error(`expected 24 chargers, got ${STALLS.le
 if (BAYS.length !== 6) throw new Error(`expected 6 playable bays, got ${BAYS.length}`);
 if (BAYS.some((b, i) => b.playable !== i + 1)) throw new Error("playable bay ids must be 1..6");
 
+if (STALL_CLEARANCE < 0.85) throw new Error("stall clearance must keep Tesla off Zeus");
+if (KIOSK_REACH < 6) throw new Error("kiosk reach must not require pixel-perfect aim");
+if (PAY_POINTS.length < 2) throw new Error("need lot PAY kiosk and lounge door");
+if (START_SHOT.x < WALK_BOUNDS.xmin || START_SHOT.x > WALK_BOUNDS.xmax) throw new Error("start X outside walk");
+if (START_SHOT.z < WALK_BOUNDS.zmin || START_SHOT.z > WALK_BOUNDS.zmax) throw new Error("start Z outside walk");
+for (const p of PAY_POINTS) {
+  if (p.x < WALK_BOUNDS.xmin || p.x > WALK_BOUNDS.xmax || p.z < WALK_BOUNDS.zmin || p.z > WALK_BOUNDS.zmax) {
+    throw new Error("PAY point outside walk bounds");
+  }
+}
+
+const minStall = CAR_LENGTH * 0.5 + ZEUS_HALF_DEPTH + STALL_CLEARANCE;
+for (const stall of STALLS) {
+  const gap = Math.abs(stall.x - stall.zeusX);
+  if (gap + 1e-6 < minStall) {
+    throw new Error(`stall ${stall.id} car/zeus gap ${gap.toFixed(2)} < ${minStall.toFixed(2)}`);
+  }
+}
+
 const s = resetNight();
 seedOpeningLot(s);
 if (s.phase !== "shift") throw new Error("seed must enter shift");
 if (!s.guests.find((g) => g.id === "hale")?.plugged) throw new Error("Hale should be charging");
-if (!greetDriver(s, "peck")) throw new Error("talk Peck failed");
-if (!plugInlet(s, "peck")) throw new Error("plug Peck failed");
 const peck = s.guests.find((g) => g.id === "peck")!;
-if (peck.assignedBay == null || !peck.plugged) throw new Error("Peck should be in a bay");
+if (guestAction(peck) !== "pay") throw new Error("opening Peck should be ready to pay");
+if (pendingPayGuest(s)?.id !== "peck") throw new Error("kiosk ticket should be Peck");
 if (!payKiosk(s, "peck")) throw new Error("kiosk pay failed");
 if (!peck.authorized) throw new Error("Peck should be authorized");
+if (guestAction(peck) !== "auto") throw new Error("Peck should offer AutoCharge after pay");
+if (!enrollAuto(s, "peck")) throw new Error("AutoCharge enroll failed");
+if (unplugInlet(s, "peck")) throw new Error("unplug should wait until full");
+tick(s, 20);
+if (peck.delivered < peck.targetKwh) throw new Error("Peck should finish charging in 20 game minutes");
+if (guestAction(peck) !== "unplug") throw new Error("full Peck should need unplug");
+if (!unplugInlet(s, "peck")) throw new Error("unplug Peck failed");
+if (!peck.served) throw new Error("Peck should zip out after unplug");
+if (s.sessionsDone < 1) throw new Error("session should count after unplug");
+
+if (!greetDriver(s, "ng")) throw new Error("talk Ng failed");
+if (guestAction(s.guests.find((g) => g.id === "ng")) !== "park") throw new Error("Ng should need park");
+if (!waitingParker(s) || waitingParker(s)?.id !== "ng") throw new Error("Ng should be waiting to park");
+if (!parkInBay(s, "ng")) throw new Error("park Ng failed");
+if (!plugInlet(s, "ng")) throw new Error("plug Ng failed");
+if (guestAction(s.guests.find((g) => g.id === "ng")) !== "pay") throw new Error("Ng should need pay after plug");
+if (!payKiosk(s, "ng")) throw new Error("Ng pay failed");
 
 const paint = paintMaterial(0x1c2434);
 if (paint.transparent || paint.opacity < 1) throw new Error("paint must be fully opaque");

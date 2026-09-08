@@ -33,20 +33,26 @@ Private-repo Pages also needs a GitHub plan that includes Pages (org GitHub Team
 
 1. Click **START NIGHT SHIFT** (or call `window.__electromat.startNight()`).
 2. Walk the wet lot — WASD, pointer-lock look, right-click to walk-to.
-3. **E** talk to a driver (amber `!`).
-4. **E** plug the inlet. AutoCharge cars take power immediately.
-5. First-visit cars: pay at the kiosk, then enroll AutoCharge.
-6. Cyan battery icons mark occupancy. Three walkaways end the night. 04:00 grades the shift.
+3. **E TALK** to a driver (amber `!` in the aisle queue).
+4. **E PARK** — pulls them into an open stall (or look at an empty painted bay and press E).
+5. **E PLUG** the inlet. AutoCharge cars take power immediately.
+6. **How to pay (QA repro — this PR, not live Pages on `main`):**
+   1. Start night. Toast: `Peck is plugged — E PAY at the car or the west PAY kiosk.`
+   2. **At the car:** walk to the dark Tesla on the **right island** (amber `!`). Prompt `E PAY · PECK`. Press **E**. Toast `Paid — Peck.`
+   3. **At the kiosk (operator path):** after any first-visit **E PLUG**, walk **west** (left of the left canopy). Look for the cream stand with amber **PAY** and a floating PAY badge. Within ~7m the prompt is `E PAY · NAME` without aiming the mesh. Press **E**. The lounge door has a second PAY stand if you go to the building.
+   4. Payment is not gated on a full battery. Then **E AUTOCHARGE**. Later queue cars: talk → park → plug → same pay.
+7. When the battery finishes, `!` returns — **E UNPLUG** to zip them out.
+8. Cyan battery icons mark occupancy. Three walkaways end the night. 04:00 grades the shift.
 
 Site line: **DRIVE IN. CHARGE UP. ZIP OUT.**
 
 ## Visual bar
 
-Cinematic WebGL lot: ACES Filmic (exposure ~0.86) + one warm dusk `DirectionalLight`, golden-hour `scene.environment` via `PMREMGenerator`, `postprocessing` bloom / vignette / SMAA. Twin cream canopies with a thin red fascia and official red Zaps wordmarks, 24 Slim Zeus (brushed metal, charcoal recess, cyan base, amber PLUG IN), glass lounge, grit asphalt + curb maps, mural / commercial street backdrop. Guest cars are the Sketchfab **2018 Tesla Model 3** (Ameer Studio, CC BY 4.0) with paint forced opaque (`MeshPhysicalMaterial` clearcoat, `transmission: 0`) and dark opaque greenhouse glass. No lofted placeholders, no Taycan helper cages, no see-through paint.
+Cinematic WebGL lot: ACES Filmic (exposure ~0.86) + one warm dusk `DirectionalLight`, golden-hour `scene.environment` via `PMREMGenerator`, `postprocessing` bloom / vignette / SMAA. Twin cream canopies with a thin red fascia and official red Zaps wordmarks, 24 Slim Zeus (brushed metal, charcoal recess, cyan base, amber PLUG IN), glass lounge, grit asphalt + curb maps, mural / commercial street backdrop. Guest cars are the Sketchfab **2018 Tesla Model 3** (Ameer Studio, CC BY 4.0) with paint forced opaque (`MeshPhysicalMaterial` clearcoat, `transmission: 0`) and dark opaque greenhouse glass. Stall X is `Zeus + half hull + 0.28m pedestal + 0.9m bumper gap` so cars do not interpenetrate Slim Zeus. Walker stays inside lot rails (no void). No lofted placeholders, no Taycan helper cages, no see-through paint.
 
 Official cream/red Zaps wordmarks only. Palette: `#E63225` `#1E1E24` `#E89A2E` `#00D4F5` `#F5F0E8`.
 
-Lot PBR/env pass: merge `4c80ec6`. Live hull: Tesla Model 3, opaque paint (this branch).
+Lot PBR/env pass: merge `4c80ec6`. Live hull: Tesla Model 3, opaque paint (`c9a88ca`). Gameplay/collision stills recaptured on this branch.
 
 ## Dev
 
