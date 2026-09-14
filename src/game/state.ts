@@ -42,6 +42,7 @@ export interface GameState {
   bays: Bay[];
   plugs: number;
   autochargeSignups: number;
+  queueWaves: number;
   walkaways: number;
   sessionsDone: number;
   toast: string;

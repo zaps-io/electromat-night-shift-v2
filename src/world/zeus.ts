@@ -7,16 +7,16 @@ const brush = brushMetal();
 
 const alum = new THREE.MeshPhysicalMaterial({
   name: "ZeusAlum",
-  color: 0xc6cad0,
+  color: 0xd2d6dc,
   map: brush.map,
   roughnessMap: brush.rough,
   normalMap: brush.normal,
-  normalScale: new THREE.Vector2(0.7, 1.8),
+  normalScale: new THREE.Vector2(0.85, 2.1),
   metalness: 0.98,
-  roughness: 0.32,
+  roughness: 0.28,
   anisotropy: 1,
   anisotropyRotation: Math.PI / 2,
-  envMapIntensity: 1.2,
+  envMapIntensity: 1.35,
 });
 
 const charcoal = new THREE.MeshStandardMaterial({

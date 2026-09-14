@@ -64,6 +64,42 @@ export function makePayIcon(): THREE.Sprite {
   return sprite(new THREE.CanvasTexture(c), 1.15, 0.58, "kiosk");
 }
 
+const WAVE_GLYPHS: Record<string, string[]> = {
+  W: ["10001", "10001", "10101", "10101", "01010"],
+  A: ["01110", "10001", "11111", "10001", "10001"],
+  V: ["10001", "10001", "10001", "01010", "00100"],
+  E: ["11111", "10000", "11110", "10000", "11111"],
+};
+
+export function makeWaveIcon(): THREE.Sprite {
+  const c = document.createElement("canvas");
+  c.width = 320;
+  c.height = 120;
+  const ctx = c.getContext("2d")!;
+  ctx.clearRect(0, 0, 320, 120);
+  const g = ctx.createRadialGradient(160, 60, 8, 160, 60, 80);
+  g.addColorStop(0, "rgba(232,154,46,0.45)");
+  g.addColorStop(1, "rgba(232,154,46,0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 320, 120);
+  ctx.fillStyle = "#E89A2E";
+  round(ctx, 24, 22, 272, 76, 12);
+  ctx.fill();
+  ctx.fillStyle = "#1E1E24";
+  let x = 48;
+  for (const ch of "WAVE") {
+    const glyph = WAVE_GLYPHS[ch];
+    for (let row = 0; row < 5; row++) {
+      for (let col = 0; col < 5; col++) {
+        if (glyph[row][col] !== "1") continue;
+        ctx.fillRect(x + col * 6, 38 + row * 9, 5, 8);
+      }
+    }
+    x += 56;
+  }
+  return sprite(new THREE.CanvasTexture(c), 1.05, 0.4, "wave");
+}
+
 export function makeBatteryIcon(): THREE.Sprite {
   const c = document.createElement("canvas");
   c.width = 320;

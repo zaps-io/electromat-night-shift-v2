@@ -1,29 +1,39 @@
 import * as THREE from "three";
-import { duskSky, facade, mural, street } from "./tex";
+import { duskSky, facade, facadeEmit, mural, street, type FacadeStyle } from "./tex";
 
-const plaster = new THREE.MeshStandardMaterial({
-  color: 0xd4c8b6,
-  map: facade("warm"),
-  roughness: 0.78,
-  metalness: 0.04,
-  envMapIntensity: 0.28,
-});
-const plasterCool = new THREE.MeshStandardMaterial({
-  color: 0xc4c4be,
-  map: facade("cool"),
-  roughness: 0.76,
-  metalness: 0.04,
-  envMapIntensity: 0.28,
+function plaster(style: FacadeStyle): THREE.MeshStandardMaterial {
+  return new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    map: facade(style),
+    emissive: 0xffb060,
+    emissiveMap: facadeEmit(style),
+    emissiveIntensity: 0.7,
+    roughness: 0.76,
+    metalness: 0.04,
+    envMapIntensity: 0.22,
+  });
+}
+
+const plasterWarm = plaster("warm");
+const plasterCool = plaster("cool");
+const plasterDark = plaster("dark");
+const plasterBrick = plaster("brick");
+const roof = new THREE.MeshStandardMaterial({ color: 0x3a3834, roughness: 0.88, metalness: 0.04 });
+const steel = new THREE.MeshStandardMaterial({
+  color: 0x8a9096,
+  roughness: 0.38,
+  metalness: 0.55,
+  envMapIntensity: 0.7,
 });
 const concrete = new THREE.MeshStandardMaterial({
   color: 0x9aa0a6,
   map: facade("cool"),
   roughness: 0.8,
   metalness: 0.06,
-  envMapIntensity: 0.22,
+  envMapIntensity: 0.2,
 });
 const night = new THREE.MeshStandardMaterial({
-  color: 0x1a1c22,
+  color: 0xffffff,
   map: facade("dark"),
   roughness: 0.68,
   metalness: 0.08,
@@ -35,9 +45,18 @@ const darkGlass = new THREE.MeshStandardMaterial({
   metalness: 0.28,
   envMapIntensity: 1.05,
 });
-const roof = new THREE.MeshStandardMaterial({ color: 0x4a463e, roughness: 0.86, metalness: 0.04 });
-const steel = new THREE.MeshStandardMaterial({ color: 0x8a9096, roughness: 0.38, metalness: 0.55, envMapIntensity: 0.7 });
-const house = new THREE.MeshStandardMaterial({ color: 0xb8a890, roughness: 0.82, envMapIntensity: 0.16 });
+const house = new THREE.MeshStandardMaterial({
+  color: 0xffffff,
+  map: facade("warm"),
+  roughness: 0.82,
+  envMapIntensity: 0.16,
+  emissive: 0xffb060,
+  emissiveMap: facadeEmit("warm"),
+  emissiveIntensity: 0.45,
+});
+const band = new THREE.MeshStandardMaterial({ color: 0x2a2620, roughness: 0.7, metalness: 0.08 });
+const silFar = new THREE.MeshBasicMaterial({ color: 0x141218, fog: true });
+const silNear = new THREE.MeshBasicMaterial({ color: 0x1c1816, fog: true });
 const paint = (color: number) =>
   new THREE.MeshPhysicalMaterial({
     color,
@@ -66,33 +85,218 @@ function addRoofGear(root: THREE.Group, x: number, y: number, z: number): void {
   unit.position.set(x, y, z);
   const vent = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.35, 0.7), roof);
   vent.position.set(x + 1.4, y - 0.08, z + 0.2);
-  root.add(unit, vent);
+  const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.4, 6), steel);
+  mast.position.set(x - 0.5, y + 0.7, z);
+  root.add(unit, vent, mast);
 }
 
-const band = new THREE.MeshStandardMaterial({ color: 0x2a2620, roughness: 0.7, metalness: 0.08 });
-
-function addTower(
+function addPodium(
   root: THREE.Group,
-  spec: { x: number; z: number; w: number; h: number; d: number; mat: THREE.Material; balconies?: boolean },
+  x: number,
+  z: number,
+  w: number,
+  d: number,
+  h: number,
+  mat: THREE.Material,
 ): void {
-  const tower = new THREE.Mesh(new THREE.BoxGeometry(spec.w, spec.h, spec.d), spec.mat);
-  tower.position.set(spec.x, spec.h * 0.5 - 0.15, spec.z);
-  const cap = new THREE.Mesh(new THREE.BoxGeometry(spec.w + 0.45, 0.32, spec.d + 0.45), roof);
-  cap.position.set(spec.x, spec.h - 0.04, spec.z);
+  const block = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+  block.position.set(x, h * 0.5 - 0.08, z);
+  const glass = new THREE.Mesh(new THREE.PlaneGeometry(w * 0.72, h * 0.42), darkGlass);
+  glass.position.set(x, h * 0.42, z - d * 0.5 - 0.02);
+  glass.rotation.y = Math.PI;
+  root.add(block, glass);
+}
+
+function addApartment(
+  root: THREE.Group,
+  spec: {
+    x: number;
+    z: number;
+    w: number;
+    h: number;
+    d: number;
+    mat: THREE.Material;
+    balconies?: boolean;
+    setback?: number;
+    podium?: boolean;
+  },
+): void {
+  if (spec.podium !== false) {
+    addPodium(root, spec.x, spec.z + 0.15, spec.w + 1.1, spec.d + 0.9, 3.1, plasterDark);
+  }
+  const shaftH = spec.setback ? spec.h * 0.62 : spec.h;
+  const tower = new THREE.Mesh(new THREE.BoxGeometry(spec.w, shaftH, spec.d), spec.mat);
+  tower.position.set(spec.x, shaftH * 0.5 + (spec.podium === false ? -0.15 : 2.7), spec.z);
+  const capY = (spec.podium === false ? 0 : 2.7) + shaftH;
+  const cap = new THREE.Mesh(new THREE.BoxGeometry(spec.w + 0.5, 0.34, spec.d + 0.5), roof);
+  cap.position.set(spec.x, capY + 0.12, spec.z);
   root.add(tower, cap);
-  addRoofGear(root, spec.x - spec.w * 0.18, spec.h + 0.28, spec.z);
-  for (let i = 1; i < 3; i++) {
-    const belt = new THREE.Mesh(new THREE.BoxGeometry(spec.w + 0.12, 0.14, spec.d + 0.12), band);
-    belt.position.set(spec.x, spec.h * (0.28 * i), spec.z);
+  addRoofGear(root, spec.x - spec.w * 0.18, capY + 0.5, spec.z);
+  const belts = spec.h > 12 ? 4 : 3;
+  for (let i = 1; i < belts; i++) {
+    const belt = new THREE.Mesh(new THREE.BoxGeometry(spec.w + 0.14, 0.16, spec.d + 0.14), band);
+    belt.position.set(spec.x, (spec.podium === false ? 0 : 2.7) + shaftH * (i / belts), spec.z);
     root.add(belt);
   }
+  if (spec.setback) {
+    const topW = spec.w * 0.72;
+    const topD = spec.d * 0.78;
+    const topH = spec.h * 0.38;
+    const upper = new THREE.Mesh(new THREE.BoxGeometry(topW, topH, topD), spec.mat);
+    upper.position.set(spec.x - spec.w * 0.08, capY + topH * 0.5, spec.z);
+    const topCap = new THREE.Mesh(new THREE.BoxGeometry(topW + 0.4, 0.28, topD + 0.4), roof);
+    topCap.position.set(spec.x - spec.w * 0.08, capY + topH + 0.1, spec.z);
+    root.add(upper, topCap);
+    addRoofGear(root, spec.x - spec.w * 0.2, capY + topH + 0.45, spec.z);
+  }
   if (!spec.balconies) return;
-  for (let i = 1; i < 4; i++) {
-    const slab = new THREE.Mesh(new THREE.BoxGeometry(spec.w * 0.42, 0.08, 0.7), concrete);
-    slab.position.set(spec.x + spec.w * 0.28, 1.4 + i * (spec.h * 0.22), spec.z - spec.d * 0.5 - 0.28);
-    const rail = new THREE.Mesh(new THREE.BoxGeometry(spec.w * 0.42, 0.22, 0.04), steel);
-    rail.position.set(spec.x + spec.w * 0.28, 1.55 + i * (spec.h * 0.22), spec.z - spec.d * 0.5 - 0.58);
+  const baseY = spec.podium === false ? 1.4 : 4.1;
+  for (let i = 0; i < 5; i++) {
+    const slab = new THREE.Mesh(new THREE.BoxGeometry(spec.w * 0.4, 0.08, 0.7), concrete);
+    slab.position.set(spec.x + spec.w * 0.26, baseY + i * 2.05, spec.z - spec.d * 0.5 - 0.28);
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(spec.w * 0.4, 0.22, 0.04), steel);
+    rail.position.set(spec.x + spec.w * 0.26, baseY + 0.16 + i * 2.05, spec.z - spec.d * 0.5 - 0.58);
     root.add(slab, rail);
+  }
+}
+
+function addSilhouette(root: THREE.Group, x: number, z: number, w: number, h: number, d: number, far = true): void {
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), far ? silFar : silNear);
+  mesh.position.set(x, h * 0.5 - 0.2, z);
+  root.add(mesh);
+  const cap = new THREE.Mesh(new THREE.BoxGeometry(w * 0.35, h * 0.12, d * 0.4), far ? silFar : silNear);
+  cap.position.set(x + w * 0.12, h + h * 0.04, z);
+  root.add(cap);
+}
+
+function addRidge(root: THREE.Group): void {
+  const hill = new THREE.MeshBasicMaterial({ color: 0x241c16, fog: true });
+  for (const [x, z, w, h] of [
+    [-48, 78, 36, 9],
+    [-18, 82, 28, 12],
+    [12, 80, 32, 10],
+    [42, 76, 30, 8],
+    [-8, 86, 22, 6],
+  ] as const) {
+    const mound = new THREE.Mesh(new THREE.BoxGeometry(w, h, 8), hill);
+    mound.position.set(x, h * 0.28, z);
+    mound.rotation.z = 0.04 * Math.sign(x || 1);
+    root.add(mound);
+  }
+}
+
+function addSkylineRow(root: THREE.Group): void {
+  const far: Array<[number, number, number, number, number]> = [
+    [-52, 64, 7, 18, 5],
+    [-42, 68, 6, 24, 4.5],
+    [-34, 66, 8, 16, 5],
+    [-24, 72, 7, 30, 4],
+    [-14, 70, 9, 22, 5],
+    [-4, 74, 6, 28, 4],
+    [6, 71, 8, 20, 5],
+    [16, 76, 7, 34, 4.2],
+    [26, 69, 6, 18, 4],
+    [36, 73, 9, 26, 5],
+    [46, 67, 7, 15, 4],
+    [56, 70, 8, 21, 4.5],
+  ];
+  for (const [x, z, w, h, d] of far) addSilhouette(root, x, z, w, h, d, true);
+  const mid: Array<[number, number, number, number, number]> = [
+    [-30, 41, 5.2, 36, 3.6],
+    [-20, 43, 4.6, 42, 3.2],
+    [-9, 42, 5.0, 38, 3.4],
+    [2, 44, 4.4, 46, 3.0],
+    [13, 41, 5.6, 40, 3.6],
+    [24, 43, 4.8, 44, 3.2],
+    [34, 40, 5.2, 34, 3.4],
+  ];
+  for (const [x, z, w, h, d] of mid) addSilhouette(root, x, z, w, h, d, false);
+}
+
+function addNeighborhood(root: THREE.Group): void {
+  addApartment(root, { x: -24, z: 28.2, w: 8.0, h: 12.4, d: 4.2, mat: plasterWarm, podium: true });
+  addApartment(root, {
+    x: -14,
+    z: 29.8,
+    w: 7.2,
+    h: 16.8,
+    d: 3.8,
+    mat: plasterCool,
+    balconies: true,
+    setback: 1,
+  });
+  addApartment(root, { x: -4.0, z: 27.6, w: 8.8, h: 13.2, d: 4.2, mat: plasterBrick, podium: true });
+  addApartment(root, {
+    x: 6.6,
+    z: 29.4,
+    w: 7.6,
+    h: 18.4,
+    d: 3.6,
+    mat: plasterCool,
+    balconies: true,
+    setback: 1,
+  });
+  addApartment(root, { x: 16.8, z: 28.2, w: 8.6, h: 14.6, d: 4.4, mat: plasterWarm });
+  addApartment(root, { x: 27.4, z: 30.2, w: 6.4, h: 11.2, d: 3.4, mat: plasterCool });
+  addApartment(root, { x: -32.6, z: 22.6, w: 6.0, h: 8.2, d: 5.4, mat: plasterWarm, podium: false });
+  addApartment(root, { x: 33.2, z: 22.2, w: 6.4, h: 9.0, d: 4.8, mat: plasterBrick, podium: false });
+
+  for (const [x, z, w, h] of [
+    [-28.4, 18.8, 4.4, 3.8],
+    [30.8, 16.8, 4.8, 3.4],
+    [-8.6, 34.2, 5.4, 4.4],
+    [12.4, 34.6, 5.0, 4.0],
+    [-18.8, 35.2, 4.6, 3.6],
+    [22.0, 35.0, 4.2, 3.2],
+  ] as const) {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, 3.6), house);
+    mesh.position.set(x, h * 0.5 - 0.08, z);
+    const lid = new THREE.Mesh(new THREE.BoxGeometry(w + 0.35, 0.22, 3.9), roof);
+    lid.position.set(x, h + 0.02, z);
+    root.add(mesh, lid);
+  }
+}
+
+function addAlley(root: THREE.Group): void {
+  const alley = new THREE.Mesh(
+    new THREE.PlaneGeometry(88, 6.4),
+    new THREE.MeshStandardMaterial({ color: 0x2c2a26, map: street(), roughness: 0.96 }),
+  );
+  alley.rotation.x = -Math.PI / 2;
+  alley.position.set(2, 0.003, 19.6);
+  const curb = new THREE.Mesh(
+    new THREE.BoxGeometry(80, 0.18, 0.4),
+    new THREE.MeshStandardMaterial({ color: 0xc8c0b2, roughness: 0.84 }),
+  );
+  curb.position.set(2, 0.08, 16.6);
+  root.add(alley, curb);
+  addStreetCar(root, -16.4, 19.8, 0.02, 0x2a2c30);
+  addStreetCar(root, 8.2, 20.2, -0.04, 0xb8bcc0);
+}
+
+function addStreetLamps(root: THREE.Group): void {
+  const pole = new THREE.MeshStandardMaterial({ color: 0x1c1e22, roughness: 0.48, metalness: 0.4 });
+  const lamp = new THREE.MeshStandardMaterial({
+    color: 0xffd090,
+    emissive: 0xffb050,
+    emissiveIntensity: 1.4,
+    toneMapped: false,
+  });
+  for (const [x, z] of [
+    [-20, -24.2],
+    [-6, -24.4],
+    [8, -24.2],
+    [20, -24.4],
+    [-22, 19.2],
+    [-6, 19.4],
+    [10, 19.2],
+    [24, 19.4],
+  ] as const) {
+    const p = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.055, 4.8, 8), pole);
+    p.position.set(x, 2.4, z);
+    const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.05, 12), lamp);
+    disc.position.set(x, 4.84, z);
+    root.add(p, disc);
   }
 }
 
@@ -104,40 +308,10 @@ export function buildSkyline(): THREE.Group {
   );
   root.add(sky);
 
-  const mountain = new THREE.Mesh(
-    new THREE.PlaneGeometry(280, 42),
-    new THREE.MeshBasicMaterial({ color: 0x3a3228, fog: false }),
-  );
-  mountain.position.set(8, 8.2, 56);
-  mountain.rotation.y = Math.PI;
-  root.add(mountain);
-  const ridge = new THREE.Mesh(
-    new THREE.PlaneGeometry(160, 20),
-    new THREE.MeshBasicMaterial({ color: 0x2a241c, fog: false }),
-  );
-  ridge.position.set(-18, 5.8, 52);
-  ridge.rotation.y = Math.PI;
-  root.add(ridge);
-
-  addTower(root, { x: -24, z: 28.2, w: 8.0, h: 10.4, d: 4.0, mat: plaster });
-  addTower(root, { x: -14, z: 29.4, w: 7.0, h: 14.2, d: 3.6, mat: plasterCool, balconies: true });
-  addTower(root, { x: -4.2, z: 27.8, w: 8.6, h: 11.0, d: 4.0, mat: plaster });
-  addTower(root, { x: 6.4, z: 29.0, w: 7.4, h: 15.0, d: 3.5, mat: concrete, balconies: true });
-  addTower(root, { x: 16.8, z: 28.0, w: 8.4, h: 12.4, d: 4.2, mat: plaster });
-  addTower(root, { x: 27.2, z: 30.0, w: 6.2, h: 9.2, d: 3.2, mat: plasterCool });
-  addTower(root, { x: -32.4, z: 22.4, w: 5.6, h: 6.4, d: 5.2, mat: plaster });
-  addTower(root, { x: 33.0, z: 22.0, w: 6.0, h: 7.2, d: 4.6, mat: concrete });
-
-  for (const [x, z, w, h] of [
-    [-28.4, 18.6, 4.2, 3.4],
-    [30.8, 16.8, 4.6, 3.2],
-    [-8.8, 33.6, 5.2, 4.0],
-    [12.2, 34.0, 4.8, 3.6],
-  ] as const) {
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, 3.4), house);
-    mesh.position.set(x, h * 0.5 - 0.1, z);
-    root.add(mesh);
-  }
+  addRidge(root);
+  addSkylineRow(root);
+  addNeighborhood(root);
+  addAlley(root);
 
   const art = mural();
   const muralWall = new THREE.Mesh(
@@ -204,9 +378,26 @@ export function buildSkyline(): THREE.Group {
   curb.position.set(0, 0.09, -19.5);
   root.add(curb);
 
+  const walk = new THREE.Mesh(
+    new THREE.BoxGeometry(90, 0.06, 2.4),
+    new THREE.MeshStandardMaterial({ color: 0xb8b2a4, roughness: 0.88 }),
+  );
+  walk.position.set(0, 0.03, -21.4);
+  root.add(walk);
+
+  const hatch = new THREE.MeshStandardMaterial({ color: 0xd8d4c8, roughness: 0.7, metalness: 0.02 });
+  for (let i = 0; i < 8; i++) {
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.02, 0.1), hatch);
+    bar.position.set(-2.4 + i * 0.85, 0.03, -19.6);
+    bar.rotation.y = 0.7;
+    root.add(bar);
+  }
+
   addStreetCar(root, -11.2, -24.8, 0.04, 0x1a1a1e);
   addStreetCar(root, -2.6, -25.4, 0.02, 0xc42820);
   addStreetCar(root, 7.2, -25.0, -0.03, 0xc8ccd0);
+  addStreetCar(root, 16.8, -25.6, 0.01, 0x243040);
+  addStreetLamps(root);
 
   return root;
 }

@@ -153,12 +153,13 @@ export function curbRough(): THREE.CanvasTexture {
 export function duskSky(): THREE.CanvasTexture {
   return canvasTex(16, 256, (ctx, w, h) => {
     const g = ctx.createLinearGradient(0, 0, 0, h);
-    g.addColorStop(0, "#1c2436");
-    g.addColorStop(0.22, "#3a3a52");
-    g.addColorStop(0.42, "#b45a2a");
-    g.addColorStop(0.6, "#f08830");
-    g.addColorStop(0.78, "#f6c060");
-    g.addColorStop(1, "#ffe8b4");
+    g.addColorStop(0, "#121624");
+    g.addColorStop(0.18, "#2a3048");
+    g.addColorStop(0.36, "#7a3e38");
+    g.addColorStop(0.5, "#c45a28");
+    g.addColorStop(0.66, "#e88830");
+    g.addColorStop(0.82, "#f4b858");
+    g.addColorStop(1, "#ffe4b0");
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, w, h);
   }, { wrap: false });
@@ -229,30 +230,72 @@ export function stucco(base = "#F6F1E6"): THREE.CanvasTexture {
   }, { repeatX: 3, repeatY: 2 });
 }
 
-export function facade(style: "warm" | "cool" | "dark" = "warm"): THREE.CanvasTexture {
-  const plaster = style === "dark" ? "#2a2e34" : style === "cool" ? "#b8b6b0" : "#c8b8a4";
-  return canvasTex(256, 512, (ctx, w, h) => {
-    ctx.fillStyle = plaster;
-    ctx.fillRect(0, 0, w, h);
-    for (let i = 0; i < 2400; i++) {
-      const n = style === "dark" ? 36 + Math.random() * 28 : 160 + Math.random() * 48;
+export type FacadeStyle = "warm" | "cool" | "dark" | "brick";
+
+function plasterHex(style: FacadeStyle): string {
+  if (style === "dark") return "#2a2e34";
+  if (style === "cool") return "#a8a8a4";
+  if (style === "brick") return "#8a6a58";
+  return "#b8a890";
+}
+
+function paintFacadeGrid(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  style: FacadeStyle,
+  emitOnly: boolean,
+): void {
+  ctx.fillStyle = emitOnly ? "#000000" : plasterHex(style);
+  ctx.fillRect(0, 0, w, h);
+  if (!emitOnly) {
+    for (let i = 0; i < 2200; i++) {
+      const n = style === "dark" ? 36 + Math.random() * 28 : 140 + Math.random() * 40;
       ctx.fillStyle = `rgb(${n},${n - 8},${n - 16})`;
       ctx.fillRect(Math.random() * w, Math.random() * h, 2, 2);
     }
-    ctx.fillStyle = style === "dark" ? "rgba(12,12,16,0.35)" : "rgba(90,80,70,0.22)";
-    for (let y = 64; y < h; y += 96) ctx.fillRect(0, y, w, 3);
-    for (let row = 22; row < h - 20; row += 32) {
-      for (let col = 14; col < w - 12; col += 26) {
-        const seed = (row * 17 + col * 11) % 11;
-        const on = seed !== 0 && seed !== 4;
-        const bright = seed === 2 || seed === 7;
-        ctx.fillStyle = on ? (bright ? "#f6c878" : "#d89848") : style === "dark" ? "#0c1016" : "#1a222c";
-        ctx.fillRect(col, row, 12, 7);
-        ctx.fillStyle = "rgba(255,220,160,0.18)";
-        if (on) ctx.fillRect(col, row, 12, 2);
+    ctx.fillStyle = style === "dark" ? "rgba(8,8,12,0.45)" : "rgba(70,60,50,0.32)";
+    for (let y = 48; y < h; y += 64) ctx.fillRect(0, y, w, 4);
+  }
+  for (let row = 18; row < h - 24; row += 40) {
+    for (let col = 10; col < w - 10; col += 32) {
+      const seed = (row * 17 + col * 11) % 9;
+      const on = seed !== 0 && seed !== 3;
+      const bright = seed === 2 || seed === 6;
+      if (emitOnly) {
+        if (!on) continue;
+        ctx.fillStyle = bright ? "#ffe2a0" : "#d88840";
+        ctx.fillRect(col, row, 18, 14);
+        continue;
+      }
+      ctx.fillStyle = "#141820";
+      ctx.fillRect(col - 1, row - 1, 20, 16);
+      ctx.fillStyle = on ? (bright ? "#f6c878" : "#c88840") : style === "dark" ? "#0a0c10" : "#161c24";
+      ctx.fillRect(col, row, 18, 14);
+      if (on) {
+        ctx.fillStyle = "rgba(255,230,180,0.28)";
+        ctx.fillRect(col, row, 18, 3);
       }
     }
-  }, { repeatX: 2, repeatY: 1 });
+  }
+}
+
+export function facade(style: FacadeStyle = "warm"): THREE.CanvasTexture {
+  return canvasTex(256, 512, (ctx, w, h) => paintFacadeGrid(ctx, w, h, style, false), {
+    repeatX: 2,
+    repeatY: 1,
+    aniso: 6,
+  });
+}
+
+/** Warm window punch for dusk — no extra lights. */
+export function facadeEmit(style: FacadeStyle = "warm"): THREE.CanvasTexture {
+  return canvasTex(256, 512, (ctx, w, h) => paintFacadeGrid(ctx, w, h, style, true), {
+    repeatX: 2,
+    repeatY: 1,
+    srgb: false,
+    aniso: 4,
+  });
 }
 
 export function gravel(): THREE.CanvasTexture {
