@@ -117,10 +117,13 @@ export const KIOSK_REACH = 7.2;
 export const WAVE_POINT = { x: 2.85, z: -15.2 };
 export const WAVE_REACH = 8.2;
 
-/** Keep Zoey on the asphalt / lounge apron — no unrendered void. */
-export const WALK_BOUNDS = { xmin: -26.2, xmax: 23.2, zmin: -21.6, zmax: 17.4 };
+/** Lot rails stay on the asphalt apron. Walk bounds include the pavilion interior. */
+export const LOT_RAILS = { xmin: -26.2, xmax: 23.2, zmin: -21.6, zmax: 17.4 };
+export const WALK_BOUNDS = { xmin: -28.55, xmax: 23.2, zmin: -21.6, zmax: 17.4 };
 
 export const PAVILION = { x: -23.4, z: 3.4, yaw: 0, w: 11.6, d: 13.4, h: 3.35 };
+/** South storefront door, local X toward the lounge PAY stand. */
+export const PAVILION_DOOR = { localX: 0.8, width: 1.52, height: 2.32 };
 
 export const CANOPIES = [
   { x: LEFT_CANOPY_X, z: -0.15, w: 12.6, d: 18.4, y: 5.22 },
@@ -167,11 +170,22 @@ export const CANOPY_SHOT = {
 } as const;
 
 export const ZEUS_SHOT = {
-  x: -1.15,
-  z: 0.35,
-  eyeY: 1.28,
-  yaw: Math.PI / 2,
+  x: -2.35,
+  z: -3.45,
+  eyeY: 1.32,
+  yaw: 0.62,
   pitch: 0.02,
-  lookAt: { x: LEFT_EAST_ZEUS_X, y: 1.0, z: -1.2 },
+  lookAt: { x: -6.9, y: 0.88, z: -1.15 },
   fov: 42,
+} as const;
+
+/** Inside the lounge, sofa in frame, looking out the east storefront toward the lot. */
+export const INTERIOR_SHOT = {
+  x: -24.15,
+  z: 5.15,
+  eyeY: 1.54,
+  yaw: -1.05,
+  pitch: 0.02,
+  lookAt: { x: -17.55, y: 1.28, z: 3.55 },
+  fov: 62,
 } as const;

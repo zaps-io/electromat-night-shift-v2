@@ -24,6 +24,7 @@ import { configureKeyLight, createDuskEnvironment, createPipeline, createRendere
 import { addLodFillers, hullDebug, loadCarPrototypes, syncCars, trimLodFillers, type CarView } from "./world/cars";
 import {
   CANOPY_SHOT,
+  INTERIOR_SHOT,
   KIOSK_REACH,
   PAY_POINTS,
   REAR_SHOT,
@@ -362,7 +363,7 @@ function loop(now: number): void {
   last = now;
   resize();
   if (state.phase === "shift") tick(state, (dt * 1000) / MS_PER_GAME_MIN);
-  walker.tick(dt, false);
+  walker.tick(dt, station.colliders);
   tickHand(hand, now / 1000, walker.position.y);
   if (ready) syncCars(cars, scene, state, now / 1000);
   paintHud();
@@ -465,6 +466,12 @@ async function saveShots(): Promise<void> {
   walker.lookAt(ZEUS_SHOT.lookAt.x, ZEUS_SHOT.lookAt.y, ZEUS_SHOT.lookAt.z);
   await new Promise((r) => setTimeout(r, 500));
   await post("/workspace/docs/shots/slim-zeus.png", capture(1280, 800));
+  await new Promise((r) => setTimeout(r, 400));
+  walker.setFov(INTERIOR_SHOT.fov);
+  walker.place(INTERIOR_SHOT.x, INTERIOR_SHOT.z, INTERIOR_SHOT.yaw, INTERIOR_SHOT.pitch, INTERIOR_SHOT.eyeY);
+  walker.lookAt(INTERIOR_SHOT.lookAt.x, INTERIOR_SHOT.lookAt.y, INTERIOR_SHOT.lookAt.z);
+  await new Promise((r) => setTimeout(r, 500));
+  await post("/workspace/docs/shots/interior.png", capture(1280, 800));
 }
 
 if (params.has("saveshots")) void saveShots();
