@@ -1,9 +1,9 @@
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { C } from "../brand";
-import { BAY_SIZE, CANOPIES, PAY_POINTS, PAVILION, STALLS, WALK_BOUNDS, YARD } from "./layout";
+import { BAY_SIZE, CANOPIES, PAY_POINTS, PAVILION, STALLS, WALK_BOUNDS, WAVE_POINT, YARD } from "./layout";
 import { asphaltColor, asphaltNormal, asphaltRough, creamPanels, curbColor, curbRough, gravel, soffitPanels, stucco } from "./tex";
-import { makePayIcon } from "./icons";
+import { makePayIcon, makeWaveIcon } from "./icons";
 import { addZeusCharger } from "./zeus";
 
 export interface Station {
@@ -12,6 +12,8 @@ export interface Station {
   kiosk: THREE.Object3D;
   kiosks: THREE.Object3D[];
   kioskAlerts: THREE.Sprite[];
+  waveKiosk: THREE.Object3D;
+  waveAlert: THREE.Sprite;
   bayAnchors: THREE.Object3D[];
   colliders: THREE.Box3[];
 }
@@ -45,14 +47,14 @@ function makeAsphalt(root: THREE.Group): THREE.Mesh {
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(78, 68),
     new THREE.MeshStandardMaterial({
-      color: 0x121318,
+      color: 0x16151a,
       map: asphaltColor(),
-      roughness: 0.92,
+      roughness: 0.94,
       roughnessMap: asphaltRough(),
       normalMap: asphaltNormal(),
       normalScale: new THREE.Vector2(0.85, 0.85),
       metalness: 0.02,
-      envMapIntensity: 0.22,
+      envMapIntensity: 0.16,
     }),
   );
   ground.rotation.x = -Math.PI / 2;
@@ -85,20 +87,20 @@ export function addLotMirror(root: THREE.Group, _renderer: THREE.WebGLRenderer):
 }
 
 function addLaneMarks(root: THREE.Group): void {
-  const white = new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false });
+  const paint = mat(0xd4d0c4, { roughness: 0.82, metalness: 0.02, envMapIntensity: 0.08 });
   for (let i = 0; i < 12; i++) {
-    const dash = box(0.14, 0.012, 0.82, white, 0, 0.02, -14.2 + i * 1.35);
+    const dash = box(0.14, 0.012, 0.82, paint, 0, 0.02, -14.2 + i * 1.35);
     dash.castShadow = false;
     root.add(dash);
   }
   for (const x of [-3.15, 3.15]) {
     for (let i = 0; i < 4; i++) {
-      const dash = box(0.1, 0.012, 0.55, white, x, 0.02, -8.8 + i * 1.15);
+      const dash = box(0.1, 0.012, 0.55, paint, x, 0.02, -8.8 + i * 1.15);
       dash.castShadow = false;
       root.add(dash);
     }
   }
-  const arrow = box(0.58, 0.014, 0.14, white, 0, 0.022, -15.2);
+  const arrow = box(0.58, 0.014, 0.14, paint, 0, 0.022, -15.2);
   root.add(arrow);
 }
 
@@ -110,7 +112,7 @@ function addBayOutline(root: THREE.Group, x: number, z: number, yaw: number, ada
     g.userData.kind = "bay";
     g.userData.bayId = bayId;
   }
-  const paint = new THREE.MeshBasicMaterial({ color: ada ? 0x4a8ae8 : 0xffffff, toneMapped: false });
+  const paint = mat(ada ? 0x4a8ae8 : 0xd8d4c8, { roughness: 0.8, metalness: 0.02, envMapIntensity: 0.08 });
   const t = 0.07;
   const { w, d } = BAY_SIZE;
   g.add(box(w, 0.012, t, paint, 0, 0, d / 2));
@@ -153,24 +155,30 @@ function roundedRectShape(w: number, d: number, r: number): THREE.Shape {
 
 function addCanopyAt(root: THREE.Group, cx: number, cz: number, w: number, d: number, y: number, _shadow: boolean): void {
   const panels = creamPanels();
-  const shell = mat(0xf4f0e8, {
-    roughness: 0.48,
-    metalness: 0.06,
-    envMapIntensity: 0.32,
+  const shell = mat(0xe6e0d4, {
+    roughness: 0.56,
+    metalness: 0.05,
+    envMapIntensity: 0.24,
     map: panels,
   });
   const under = new THREE.MeshStandardMaterial({
-    color: 0xefe4d2,
+    color: 0xddd4c4,
     map: soffitPanels(),
     emissive: 0xc47a28,
-    emissiveIntensity: 0.42,
-    roughness: 0.62,
+    emissiveIntensity: 0.26,
+    roughness: 0.68,
     metalness: 0.02,
   });
   const redLip = mat(C.red, {
-    roughness: 0.36,
-    metalness: 0.08,
-    envMapIntensity: 0.28,
+    roughness: 0.32,
+    metalness: 0.1,
+    envMapIntensity: 0.34,
+  });
+  const fasciaPlate = mat(0xddd6c8, {
+    roughness: 0.5,
+    metalness: 0.06,
+    envMapIntensity: 0.22,
+    map: panels,
   });
   const topGeo = new THREE.ExtrudeGeometry(roundedRectShape(w, d, 1.35), {
     depth: 0.58,
@@ -199,14 +207,17 @@ function addCanopyAt(root: THREE.Group, cx: number, cz: number, w: number, d: nu
   root.add(soffit);
 
   const fasciaZ = cz - d * 0.5 - 0.1;
-  const fascia = new THREE.Mesh(new THREE.BoxGeometry(w - 1.45, 0.72, 0.18), shell);
-  fascia.position.set(cx, y + 0.04, fasciaZ);
+  const fascia = new THREE.Mesh(new THREE.BoxGeometry(w - 1.45, 0.78, 0.2), fasciaPlate);
+  fascia.position.set(cx, y + 0.02, fasciaZ);
   fascia.castShadow = true;
   fascia.userData.canopyFascia = true;
   root.add(fascia);
-  const lip = new THREE.Mesh(new THREE.BoxGeometry(w - 1.2, 0.1, 0.22), redLip);
-  lip.position.set(cx, y - 0.28, fasciaZ - 0.02);
+  const lip = new THREE.Mesh(new THREE.BoxGeometry(w - 1.15, 0.16, 0.26), redLip);
+  lip.position.set(cx, y - 0.32, fasciaZ - 0.03);
   root.add(lip);
+  const shade = new THREE.Mesh(new THREE.BoxGeometry(w - 1.5, 0.04, 0.16), mat(0x3a342c, { roughness: 0.7 }));
+  shade.position.set(cx, y - 0.22, fasciaZ + 0.02);
+  root.add(shade);
 
   const col = mat(0xf2eee6, { metalness: 0.18, roughness: 0.4, envMapIntensity: 0.38 });
   const insetZ = d * 0.5 - 0.55;
@@ -225,7 +236,7 @@ function addCanopyAt(root: THREE.Group, cx: number, cz: number, w: number, d: nu
   const lamp = new THREE.MeshStandardMaterial({
     color: 0xffe8c0,
     emissive: 0xf0a848,
-    emissiveIntensity: 1.15,
+    emissiveIntensity: 0.72,
     toneMapped: false,
   });
   const zs = [cz - d * 0.32, cz - d * 0.12, cz + d * 0.12, cz + d * 0.32];
@@ -243,27 +254,27 @@ function addCanopyAt(root: THREE.Group, cx: number, cz: number, w: number, d: nu
     root.add(seam);
   }
 
-  const pad = mat(0xd8d2c6, {
-    roughness: 0.82,
-    metalness: 0.02,
-    map: curbColor(),
-    roughnessMap: curbRough(),
-    envMapIntensity: 0.12,
-  });
-  const median = new THREE.Mesh(new RoundedBoxGeometry(1.35, 0.16, d - 3.2, 2, 0.05), pad);
-  median.position.set(cx, 0.08, cz);
-  median.receiveShadow = true;
-  root.add(median);
-  const curb = mat(0xe8e2d6, {
+  const pad = mat(0xe8e2d4, {
     roughness: 0.78,
     metalness: 0.02,
     map: curbColor(),
     roughnessMap: curbRough(),
-    envMapIntensity: 0.12,
+    envMapIntensity: 0.1,
+  });
+  const median = new THREE.Mesh(new RoundedBoxGeometry(1.45, 0.2, d - 3.2, 2, 0.05), pad);
+  median.position.set(cx, 0.1, cz);
+  median.receiveShadow = true;
+  root.add(median);
+  const curb = mat(0xf0eadc, {
+    roughness: 0.74,
+    metalness: 0.02,
+    map: curbColor(),
+    roughnessMap: curbRough(),
+    envMapIntensity: 0.1,
   });
   for (const sx of [-1, 1]) {
-    const island = new THREE.Mesh(new RoundedBoxGeometry(0.42, 0.14, d - 2.6, 2, 0.05), curb);
-    island.position.set(cx + sx * (w * 0.42), 0.07, cz);
+    const island = new THREE.Mesh(new RoundedBoxGeometry(0.48, 0.18, d - 2.6, 2, 0.05), curb);
+    island.position.set(cx + sx * (w * 0.42), 0.09, cz);
     island.receiveShadow = true;
     root.add(island);
   }
@@ -412,6 +423,50 @@ function addOneKiosk(root: THREE.Group, x: number, z: number): { kiosk: THREE.Gr
   return { kiosk, alert };
 }
 
+function wavePlate(): THREE.CanvasTexture {
+  const c = document.createElement("canvas");
+  c.width = 256;
+  c.height = 96;
+  const ctx = c.getContext("2d")!;
+  ctx.fillStyle = "#1E1E24";
+  ctx.fillRect(0, 0, 256, 96);
+  ctx.fillStyle = "#E89A2E";
+  ctx.font = "900 46px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("WAVE", 128, 52);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.needsUpdate = true;
+  return tex;
+}
+
+const waveTex = wavePlate();
+
+function addWaveKiosk(root: THREE.Group): { kiosk: THREE.Group; alert: THREE.Sprite } {
+  const { x, z } = WAVE_POINT;
+  const kiosk = new THREE.Group();
+  kiosk.userData.kind = "wave";
+  const cream = mat(0xf3eee4);
+  const stand = box(0.62, 1.22, 0.4, cream, x, 0.62, z);
+  const head = box(0.56, 0.42, 0.1, mat(C.charcoal), x, 1.38, z - 0.16);
+  const glow = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.5, 0.32),
+    new THREE.MeshBasicMaterial({ map: waveTex, toneMapped: false }),
+  );
+  glow.position.set(x, 1.38, z - 0.22);
+  const ghost = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
+  const hit = new THREE.Mesh(new THREE.BoxGeometry(2.2, 2.2, 2.0), ghost);
+  hit.position.set(x, 1.05, z);
+  hit.userData.kind = "wave";
+  const alert = makeWaveIcon();
+  alert.position.set(x, 2.15, z);
+  alert.visible = false;
+  kiosk.add(stand, head, glow, hit, alert);
+  root.add(kiosk);
+  return { kiosk, alert };
+}
+
 function addKiosks(root: THREE.Group): { kiosks: THREE.Group[]; alerts: THREE.Sprite[] } {
   const kiosks: THREE.Group[] = [];
   const alerts: THREE.Sprite[] = [];
@@ -553,7 +608,7 @@ function addPlanters(root: THREE.Group): void {
 }
 
 function addHatch(root: THREE.Group): void {
-  const hatch = new THREE.MeshBasicMaterial({ color: 0xe8e4dc, toneMapped: false });
+  const hatch = mat(0xd4d0c4, { roughness: 0.8, metalness: 0.02, envMapIntensity: 0.08 });
   for (let i = 0; i < 10; i++) {
     const x = -17.2 + i * 0.72;
     const a = box(0.7, 0.008, 0.08, hatch, x, 0.02, 3.45);
@@ -566,7 +621,7 @@ function addHatch(root: THREE.Group): void {
 }
 
 function addArrows(root: THREE.Group): void {
-  const yel = new THREE.MeshBasicMaterial({ color: 0xf0c030, toneMapped: false });
+  const yel = mat(0xd4a028, { roughness: 0.72, metalness: 0.04, envMapIntensity: 0.1 });
   const chevron = (x: number, z: number, yaw: number) => {
     const shaft = box(0.18, 0.012, 0.55, yel, x, 0.02, z);
     shaft.rotation.y = yaw;
@@ -583,7 +638,7 @@ function addArrows(root: THREE.Group): void {
 }
 
 function addParking(root: THREE.Group): void {
-  const paint = new THREE.MeshBasicMaterial({ color: 0xe8e4dc, toneMapped: false });
+  const paint = mat(0xd4d0c4, { roughness: 0.8, metalness: 0.02, envMapIntensity: 0.08 });
   for (let i = 0; i < 6; i++) {
     const x = -25.4 + i * 2.55;
     const z = 14.8;
@@ -672,6 +727,7 @@ export function buildStation(): Station {
   addCanopies(root);
   const pavilionBox = addPavilion(root);
   const { kiosks, alerts } = addKiosks(root);
+  const wave = addWaveKiosk(root);
   addLotRails(root);
   addPlanters(root);
   addStreetlights(root);
@@ -697,6 +753,8 @@ export function buildStation(): Station {
     kiosk: kiosks[0],
     kiosks,
     kioskAlerts: alerts,
+    waveKiosk: wave.kiosk,
+    waveAlert: wave.alert,
     bayAnchors,
     colliders: [pavilionBox],
   };

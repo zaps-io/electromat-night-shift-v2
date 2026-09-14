@@ -12,6 +12,7 @@ import {
   tick,
   unplugInlet,
   waitingParker,
+  waveQueue,
 } from "../src/game/shift.ts";
 import { assertOpaqueCarMaterials, glassMaterial, paintMaterial } from "../src/cars/opaque.ts";
 import {
@@ -25,6 +26,8 @@ import {
   STALLS,
   WAIT_SLOTS,
   WALK_BOUNDS,
+  WAVE_POINT,
+  WAVE_REACH,
   ZEUS_HALF_DEPTH,
 } from "../src/world/layout.ts";
 import * as THREE from "three";
@@ -50,12 +53,13 @@ if (BAYS.some((b, i) => b.playable !== i + 1)) throw new Error("playable bay ids
 
 if (STALL_CLEARANCE < 0.85) throw new Error("stall clearance must keep Tesla off Zeus");
 if (KIOSK_REACH < 6) throw new Error("kiosk reach must not require pixel-perfect aim");
+if (WAVE_REACH < 6) throw new Error("WAVE reach must not require pixel-perfect aim");
 if (PAY_POINTS.length < 2) throw new Error("need lot PAY kiosk and lounge door");
 if (START_SHOT.x < WALK_BOUNDS.xmin || START_SHOT.x > WALK_BOUNDS.xmax) throw new Error("start X outside walk");
 if (START_SHOT.z < WALK_BOUNDS.zmin || START_SHOT.z > WALK_BOUNDS.zmax) throw new Error("start Z outside walk");
-for (const p of PAY_POINTS) {
+for (const p of [...PAY_POINTS, WAVE_POINT]) {
   if (p.x < WALK_BOUNDS.xmin || p.x > WALK_BOUNDS.xmax || p.z < WALK_BOUNDS.zmin || p.z > WALK_BOUNDS.zmax) {
-    throw new Error("PAY point outside walk bounds");
+    throw new Error("PAY/WAVE point outside walk bounds");
   }
 }
 
@@ -74,6 +78,12 @@ if (!s.guests.find((g) => g.id === "hale")?.plugged) throw new Error("Hale shoul
 const peck = s.guests.find((g) => g.id === "peck")!;
 if (guestAction(peck) !== "pay") throw new Error("opening Peck should be ready to pay");
 if (pendingPayGuest(s)?.id !== "peck") throw new Error("kiosk ticket should be Peck");
+if (!waveQueue(s)) throw new Error("WAVE should pull Ng into the last open bay");
+const ng = s.guests.find((g) => g.id === "ng")!;
+if (ng.assignedBay !== 6) throw new Error(`WAVE should park Ng in bay 6, got ${ng.assignedBay}`);
+if (s.queueWaves < 1) throw new Error("WAVE should count a hustle");
+if (guestAction(ng) !== "plug") throw new Error("waved Ng should need plug");
+
 if (!payKiosk(s, "peck")) throw new Error("kiosk pay failed");
 if (!peck.authorized) throw new Error("Peck should be authorized");
 if (guestAction(peck) !== "auto") throw new Error("Peck should offer AutoCharge after pay");
@@ -86,13 +96,13 @@ if (!unplugInlet(s, "peck")) throw new Error("unplug Peck failed");
 if (!peck.served) throw new Error("Peck should zip out after unplug");
 if (s.sessionsDone < 1) throw new Error("session should count after unplug");
 
-if (!greetDriver(s, "ng")) throw new Error("talk Ng failed");
-if (guestAction(s.guests.find((g) => g.id === "ng")) !== "park") throw new Error("Ng should need park");
-if (!waitingParker(s) || waitingParker(s)?.id !== "ng") throw new Error("Ng should be waiting to park");
-if (!parkInBay(s, "ng")) throw new Error("park Ng failed");
-if (!plugInlet(s, "ng")) throw new Error("plug Ng failed");
-if (guestAction(s.guests.find((g) => g.id === "ng")) !== "pay") throw new Error("Ng should need pay after plug");
-if (!payKiosk(s, "ng")) throw new Error("Ng pay failed");
+if (!greetDriver(s, "kim")) throw new Error("talk Kim failed");
+if (guestAction(s.guests.find((g) => g.id === "kim")) !== "park") throw new Error("Kim should need park");
+if (!waitingParker(s) || waitingParker(s)?.id !== "kim") throw new Error("Kim should be waiting to park");
+if (!parkInBay(s, "kim")) throw new Error("park Kim failed");
+if (!plugInlet(s, "kim")) throw new Error("plug Kim failed");
+if (guestAction(s.guests.find((g) => g.id === "kim")) !== "pay") throw new Error("Kim should need pay after plug");
+if (!payKiosk(s, "kim")) throw new Error("Kim pay failed");
 
 const paint = paintMaterial(0x1c2434);
 if (paint.transparent || paint.opacity < 1) throw new Error("paint must be fully opaque");

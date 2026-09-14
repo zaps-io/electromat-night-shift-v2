@@ -18,6 +18,7 @@ export function createState(): GameState {
     bays: Array.from({ length: BAY_COUNT }, (_, i) => ({ id: i + 1, guestId: null })),
     plugs: 0,
     autochargeSignups: 0,
+    queueWaves: 0,
     walkaways: 0,
     sessionsDone: 0,
     toast: "",
@@ -65,6 +66,25 @@ export function pendingPayGuest(s: GameState): Guest | undefined {
 
 export function waitingParker(s: GameState): Guest | undefined {
   return arrivedGuests(s).find((g) => g.greeted && g.assignedBay == null);
+}
+
+export function nextQueueGuest(s: GameState): Guest | undefined {
+  return waitingParker(s) ?? arrivedGuests(s).find((g) => !g.greeted && g.assignedBay == null);
+}
+
+/** Aisle hustle: greet if needed and pull the next waiter into an open bay. */
+export function waveQueue(s: GameState, bayId?: number): boolean {
+  if (s.phase !== "shift") return false;
+  const g = nextQueueGuest(s);
+  if (!g) {
+    speak(s, "Queue is clear.");
+    return false;
+  }
+  if (!g.greeted) g.greeted = true;
+  if (!parkInBay(s, g.id, bayId)) return false;
+  s.queueWaves += 1;
+  speak(s, `${g.name} — bay ${g.assignedBay}. Queue moving.`);
+  return true;
 }
 
 function openBay(s: GameState): Bay | undefined {
@@ -166,7 +186,7 @@ export function enrollAuto(s: GameState, guestId: string): boolean {
   g.enrolled = true;
   g.auth = "auto";
   s.autochargeSignups += 1;
-  speak(s, "DRIVE IN. CHARGE UP. ZIP OUT.");
+  speak(s, `AutoCharge — ${g.name} pulls full power. They zip sooner.`);
   return true;
 }
 
@@ -174,7 +194,7 @@ function finish(s: GameState, phase: "grade" | "lose"): void {
   s.phase = phase;
   const score = s.sessionsDone * 2 + s.autochargeSignups - s.walkaways;
   const rank = score >= 8 ? "GOLD" : score >= 5 ? "SILVER" : score >= 2 ? "BRONZE" : "FAIL";
-  s.gradeLine = `${rank}  ·  ${s.plugs} plugs  ·  ${s.autochargeSignups} Auto  ·  ${s.walkaways} walkaways`;
+  s.gradeLine = `${rank}  ·  ${s.plugs} plugs  ·  ${s.autochargeSignups} Auto  ·  ${s.queueWaves} waves  ·  ${s.walkaways} walkaways`;
 }
 
 export function tick(s: GameState, dtMin: number): void {
@@ -199,7 +219,8 @@ export function tick(s: GameState, dtMin: number): void {
     const g = guestById(s, bay.guestId);
     if (!g || !g.plugged || !g.authorized || g.served) continue;
     if (g.delivered >= g.targetKwh) continue;
-    g.delivered = Math.min(g.targetKwh, g.delivered + 4.8 * dtMin);
+    const kw = g.enrolled ? 7.4 : 4.8;
+    g.delivered = Math.min(g.targetKwh, g.delivered + kw * dtMin);
     if (g.delivered >= g.targetKwh) speak(s, `${g.name} is full — E UNPLUG.`, 10);
   }
 

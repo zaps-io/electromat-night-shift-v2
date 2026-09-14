@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { CANOPIES, PAY_POINTS } from "./layout";
+import { CANOPIES, PAY_POINTS, WAVE_POINT } from "./layout";
 import { applyZeusLogos } from "./zeus";
 
 function trimAlpha(src: HTMLCanvasElement): THREE.CanvasTexture {
@@ -100,6 +100,10 @@ export async function addBrandSignage(root: THREE.Group): Promise<void> {
     kioskMark.position.set(p.x, 1.98, p.z - 0.22);
     root.add(kioskMark);
   }
+
+  const waveMark = signPlate(0.42, 0.1, red);
+  waveMark.position.set(WAVE_POINT.x, 1.72, WAVE_POINT.z - 0.2);
+  root.add(waveMark);
 
   const monument = signPlate(0.82, 0.3, red);
   monument.position.set(-11.95, 1.18, -15.4);

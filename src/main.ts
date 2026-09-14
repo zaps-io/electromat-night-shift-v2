@@ -6,6 +6,7 @@ import {
   enrollAuto,
   greetDriver,
   guestAction,
+  nextQueueGuest,
   nudgePay,
   parkInBay,
   payKiosk,
@@ -16,11 +17,22 @@ import {
   tick,
   unplugInlet,
   waitingParker,
+  waveQueue,
 } from "./game/shift";
 import { Walker } from "./input/walker";
 import { configureKeyLight, createDuskEnvironment, createPipeline, createRenderer } from "./render/pipeline";
 import { addLodFillers, hullDebug, loadCarPrototypes, syncCars, trimLodFillers, type CarView } from "./world/cars";
-import { CANOPY_SHOT, KIOSK_REACH, PAY_POINTS, REAR_SHOT, START_SHOT, WIDE_SHOT, ZEUS_SHOT } from "./world/layout";
+import {
+  CANOPY_SHOT,
+  KIOSK_REACH,
+  PAY_POINTS,
+  REAR_SHOT,
+  START_SHOT,
+  WAVE_POINT,
+  WAVE_REACH,
+  WIDE_SHOT,
+  ZEUS_SHOT,
+} from "./world/layout";
 import { addBrandSignage } from "./world/branding";
 import { makeAttendantHand, tickHand } from "./world/hand";
 import { buildSkyline } from "./world/skyline";
@@ -45,9 +57,9 @@ const renderer = createRenderer(canvas);
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x2a2438);
-scene.fog = new THREE.Fog(0x4a3828, 88, 198);
-scene.add(new THREE.HemisphereLight(0xffd4a8, 0x16141c, 0.12));
-const sun = new THREE.DirectionalLight(0xffc078, 0.92);
+scene.fog = new THREE.Fog(0x4a3428, 52, 148);
+scene.add(new THREE.HemisphereLight(0xffd4a8, 0x16141c, 0.1));
+const sun = new THREE.DirectionalLight(0xffc078, 0.78);
 sun.position.set(-30, 12, -14);
 configureKeyLight(sun);
 scene.add(sun);
@@ -125,13 +137,17 @@ function restart(): void {
 }
 
 function pickables(): THREE.Object3D[] {
-  const list: THREE.Object3D[] = [...station.kiosks, ...station.bayAnchors];
+  const list: THREE.Object3D[] = [...station.kiosks, station.waveKiosk, ...station.bayAnchors];
   for (const view of cars.values()) list.push(view.root, view.inlet, view.driver);
   return list;
 }
 
 function nearKiosk(max = KIOSK_REACH): boolean {
   return PAY_POINTS.some((p) => walker.position.distanceTo(new THREE.Vector3(p.x, walker.position.y, p.z)) < max);
+}
+
+function nearWave(max = WAVE_REACH): boolean {
+  return walker.position.distanceTo(new THREE.Vector3(WAVE_POINT.x, walker.position.y, WAVE_POINT.z)) < max;
 }
 
 function aim(): THREE.Intersection | null {
@@ -271,10 +287,18 @@ function act(): void {
     if (!tryPay()) nudgePay(state);
     return;
   }
+  if (kind === "wave") {
+    if (waveQueue(state)) playTalk();
+    return;
+  }
   if (kind === "bay" && bayId && parkIntoBay(bayId)) return;
   if (id && useGuest(id)) return;
   const near = nearbyGuestId();
   if (near && useGuest(near)) return;
+  if (nearWave() && nextQueueGuest(state) && waveQueue(state)) {
+    playTalk();
+    return;
+  }
   if (nearKiosk() && tryPay()) return;
   if (pendingPayGuest(state)) nudgePay(state);
 }
@@ -304,14 +328,18 @@ function paintHud(): void {
   const id = guestIdOf(hit?.object);
   const bayId = bayIdOf(hit?.object);
   const pending = pendingPayGuest(state);
+  const queued = nextQueueGuest(state);
   const bayOpen = bayId != null && !state.bays.find((b) => b.id === bayId)?.guestId;
   let prompt = "";
   for (const spr of station.kioskAlerts) spr.visible = !!pending;
+  station.waveAlert.visible = !!queued;
   if (kind === "kiosk") prompt = pending ? promptFor("pay", pending.name) : "";
+  else if (kind === "wave" && queued) prompt = `E  WAVE  ·  ${queued.name.toUpperCase()}`;
   else if (kind === "bay" && bayOpen && waitingParker(state)) prompt = promptFor("park", waitingParker(state)?.name);
   else if (kind === "inlet" && guestNeed(id) === "plug") prompt = promptFor("plug", guestName(id));
   else if (id) prompt = promptFor(guestNeed(id), guestName(id));
   if (!prompt) prompt = promptFor(guestNeed(nearbyGuestId()), guestName(nearbyGuestId()));
+  if (!prompt && queued && nearWave()) prompt = `E  WAVE  ·  ${queued.name.toUpperCase()}`;
   if (!prompt && pending && nearKiosk()) prompt = promptFor("pay", pending.name);
   promptEl.textContent = prompt;
   toastEl.textContent = live && state.toastUntil > state.timeMin ? state.toast : "";
@@ -508,7 +536,7 @@ window.__electromat = {
     const data = capture(w, h);
     for (const o of hidden) o.visible = true;
     scene.background = prev;
-    scene.fog = new THREE.Fog(0x4a3828, 88, 198);
+    scene.fog = new THREE.Fog(0x4a3428, 52, 148);
     return data;
   },
 };

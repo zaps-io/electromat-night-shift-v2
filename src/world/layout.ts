@@ -113,6 +113,10 @@ export const PAY_POINTS = [
 export const KIOSK = PAY_POINTS[0];
 export const KIOSK_REACH = 7.2;
 
+/** Aisle-mouth WAVE stand — hustle the next waiter into an open bay. */
+export const WAVE_POINT = { x: 2.85, z: -15.2 };
+export const WAVE_REACH = 8.2;
+
 /** Keep Zoey on the asphalt / lounge apron — no unrendered void. */
 export const WALK_BOUNDS = { xmin: -26.2, xmax: 23.2, zmin: -21.6, zmax: 17.4 };
 

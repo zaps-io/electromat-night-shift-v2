@@ -64,6 +64,28 @@ export function makePayIcon(): THREE.Sprite {
   return sprite(new THREE.CanvasTexture(c), 1.15, 0.58, "kiosk");
 }
 
+export function makeWaveIcon(): THREE.Sprite {
+  const c = document.createElement("canvas");
+  c.width = 320;
+  c.height = 160;
+  const ctx = c.getContext("2d")!;
+  ctx.clearRect(0, 0, 320, 160);
+  const g = ctx.createRadialGradient(160, 80, 12, 160, 80, 90);
+  g.addColorStop(0, "rgba(232,154,46,0.55)");
+  g.addColorStop(1, "rgba(232,154,46,0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 320, 160);
+  ctx.fillStyle = "#E89A2E";
+  round(ctx, 36, 36, 248, 88, 16);
+  ctx.fill();
+  ctx.fillStyle = "#1E1E24";
+  ctx.font = "900 42px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("WAVE", 160, 84);
+  return sprite(new THREE.CanvasTexture(c), 1.2, 0.6, "wave");
+}
+
 export function makeBatteryIcon(): THREE.Sprite {
   const c = document.createElement("canvas");
   c.width = 320;
