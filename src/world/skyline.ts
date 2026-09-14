@@ -186,7 +186,7 @@ function addRidge(root: THREE.Group): void {
 }
 
 function addSkylineRow(root: THREE.Group): void {
-  const row: Array<[number, number, number, number, number]> = [
+  const far: Array<[number, number, number, number, number]> = [
     [-52, 64, 7, 18, 5],
     [-42, 68, 6, 24, 4.5],
     [-34, 66, 8, 16, 5],
@@ -200,7 +200,17 @@ function addSkylineRow(root: THREE.Group): void {
     [46, 67, 7, 15, 4],
     [56, 70, 8, 21, 4.5],
   ];
-  for (const [x, z, w, h, d] of row) addSilhouette(root, x, z, w, h, d, true);
+  for (const [x, z, w, h, d] of far) addSilhouette(root, x, z, w, h, d, true);
+  const mid: Array<[number, number, number, number, number]> = [
+    [-30, 41, 5.2, 36, 3.6],
+    [-20, 43, 4.6, 42, 3.2],
+    [-9, 42, 5.0, 38, 3.4],
+    [2, 44, 4.4, 46, 3.0],
+    [13, 41, 5.6, 40, 3.6],
+    [24, 43, 4.8, 44, 3.2],
+    [34, 40, 5.2, 34, 3.4],
+  ];
+  for (const [x, z, w, h, d] of mid) addSilhouette(root, x, z, w, h, d, false);
 }
 
 function addNeighborhood(root: THREE.Group): void {

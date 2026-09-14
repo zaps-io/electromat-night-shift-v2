@@ -423,26 +423,6 @@ function addOneKiosk(root: THREE.Group, x: number, z: number): { kiosk: THREE.Gr
   return { kiosk, alert };
 }
 
-function wavePlate(): THREE.CanvasTexture {
-  const c = document.createElement("canvas");
-  c.width = 256;
-  c.height = 96;
-  const ctx = c.getContext("2d")!;
-  ctx.fillStyle = "#1E1E24";
-  ctx.fillRect(0, 0, 256, 96);
-  ctx.fillStyle = "#E89A2E";
-  ctx.font = "900 46px sans-serif";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText("WAVE", 128, 52);
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.needsUpdate = true;
-  return tex;
-}
-
-const waveTex = wavePlate();
-
 function addWaveKiosk(root: THREE.Group): { kiosk: THREE.Group; alert: THREE.Sprite } {
   const { x, z } = WAVE_POINT;
   const kiosk = new THREE.Group();
@@ -450,19 +430,13 @@ function addWaveKiosk(root: THREE.Group): { kiosk: THREE.Group; alert: THREE.Spr
   const cream = mat(0xf3eee4);
   const stand = box(0.62, 1.22, 0.4, cream, x, 0.62, z);
   const head = box(0.56, 0.42, 0.1, mat(C.charcoal), x, 1.38, z - 0.16);
-  const glow = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.5, 0.32),
-    new THREE.MeshBasicMaterial({ map: waveTex, toneMapped: false }),
-  );
-  glow.position.set(x, 1.38, z - 0.22);
   const ghost = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
   const hit = new THREE.Mesh(new THREE.BoxGeometry(2.2, 2.2, 2.0), ghost);
   hit.position.set(x, 1.05, z);
   hit.userData.kind = "wave";
   const alert = makeWaveIcon();
-  alert.position.set(x, 2.15, z);
-  alert.visible = false;
-  kiosk.add(stand, head, glow, hit, alert);
+  alert.position.set(x, 2.72, z);
+  kiosk.add(stand, head, hit, alert);
   root.add(kiosk);
   return { kiosk, alert };
 }
