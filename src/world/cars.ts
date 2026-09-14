@@ -623,7 +623,7 @@ const handleSilver = new THREE.MeshStandardMaterial({
 });
 
 function makeCable(inlet: { x: number; y: number; z: number }): THREE.Mesh {
-  const lead = new THREE.Mesh(tubeFromPoints(ccsLeadPoints(inlet), 0.016, 22), cableMat);
+  const lead = new THREE.Mesh(tubeFromPoints(ccsLeadPoints(inlet), 0.018, 36), cableMat);
   const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.02, 0.09, 8), cableMat);
   grip.rotation.x = Math.PI / 2;
   grip.position.set(inlet.x + 0.05, inlet.y, inlet.z);

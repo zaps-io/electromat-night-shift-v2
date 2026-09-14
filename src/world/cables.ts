@@ -11,10 +11,9 @@ export function ccsLeadPoints(inlet: { x: number; y: number; z: number }): THREE
   const s = Math.sign(inlet.x) || 1;
   return [
     new THREE.Vector3(s * ZEUS_CABLE_EXIT.x, ZEUS_CABLE_EXIT.y, -3.3),
-    new THREE.Vector3(s * 0.48, 0.44, -2.94),
-    new THREE.Vector3(s * 1.1, 0.34, -2.5),
-    new THREE.Vector3(s * 1.22, 0.4, -1.66),
-    new THREE.Vector3(s * 1.14, 0.7, -1.08),
+    new THREE.Vector3(s * 0.55, 0.38, -2.88),
+    new THREE.Vector3(s * 1.05, 0.24, -2.15),
+    new THREE.Vector3(s * 1.2, 0.38, -1.42),
     new THREE.Vector3(inlet.x, inlet.y, inlet.z),
   ];
 }
@@ -43,6 +42,6 @@ export function cableHitsCarBody(
   return false;
 }
 
-export function tubeFromPoints(points: THREE.Vector3[], radius: number, segs = 20): THREE.TubeGeometry {
-  return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points, false, "catmullrom", 0.15), segs, radius, 6, false);
+export function tubeFromPoints(points: THREE.Vector3[], radius: number, segs = 28): THREE.TubeGeometry {
+  return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points, false, "centripetal", 0.4), segs, radius, 7, false);
 }

@@ -178,25 +178,39 @@ function addInterior(g: THREE.Group, W: number, D: number, H: number): THREE.Box
     g.add(pack);
   }
 
-  addSofa(g, -1.35, 3.55, 0.15, cloth, cream);
-  addChair(g, 1.55, 2.85, -2.3, cloth, cream);
-  addChair(g, 2.05, 4.45, -2.0, cloth, cream);
+  addSofa(g, 1.65, 3.35, -Math.PI / 2, cloth, cream);
+  addChair(g, 2.85, 1.55, -2.5, cloth, cream);
+  addChair(g, 2.95, 4.85, -0.7, cloth, cream);
   const table = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.5, 0.08, 16), wood);
-  table.position.set(0.35, 0.46, 3.55);
+  table.position.set(2.55, 0.46, 3.25);
   const pedestal = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, 0.4, 8), charcoal);
-  pedestal.position.set(0.35, 0.22, 3.55);
-  const mug = box(0.07, 0.08, 0.07, mat(C.cyan, { roughness: 0.35 }), 0.22, 0.54, 3.48);
+  pedestal.position.set(2.55, 0.22, 3.25);
+  const mug = box(0.07, 0.08, 0.07, mat(C.cyan, { roughness: 0.35 }), 2.42, 0.54, 3.18);
   mug.castShadow = false;
   g.add(table, pedestal, mug);
 
+  const display = new THREE.Mesh(new RoundedBoxGeometry(0.7, 0.82, 1.55, 2, 0.05), cream);
+  display.position.set(3.55, 0.5, -1.85);
+  const displayTop = new THREE.Mesh(new THREE.BoxGeometry(0.74, 0.04, 1.6), charcoal);
+  displayTop.position.set(3.55, 0.93, -1.85);
+  g.add(display, displayTop);
+  for (const [x, z, c] of [
+    [3.45, -2.25, C.red],
+    [3.48, -1.95, C.cyan],
+    [3.42, -1.55, C.amber],
+    [3.5, -1.25, C.cream],
+  ] as const) {
+    g.add(box(0.16, 0.22, 0.12, mat(c, { roughness: 0.38 }), x, 1.08, z));
+  }
+
   const plantPot = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.16, 0.22, 8), charcoal);
-  plantPot.position.set(3.9, 0.2, 5.35);
+  plantPot.position.set(3.85, 0.2, 5.15);
   const frond = new THREE.Mesh(new THREE.SphereGeometry(0.28, 8, 6), mat(0x3a5a28, { roughness: 0.8 }));
-  frond.position.set(3.9, 0.52, 5.35);
+  frond.position.set(3.85, 0.52, 5.15);
   g.add(plantPot, frond);
 
-  addPerson(g, -1.5, 3.75, 0.4, 1.42);
-  addPerson(g, 1.55, 2.95, -2.2, 1.4);
+  addPerson(g, 1.85, 3.45, -1.4, 1.42);
+  addPerson(g, 2.85, 1.65, -2.4, 1.4);
 
   const lamp = new THREE.MeshBasicMaterial({ color: 0xffc070, toneMapped: false });
   for (const [x, z] of [
@@ -223,8 +237,9 @@ function addInterior(g: THREE.Group, W: number, D: number, H: number): THREE.Box
     worldBox(px - 2.55, 0.6, pz - 3.15, 2.7, 1.2, 0.9),
     worldBox(px - 4.85, 0.7, pz - 3.4, 0.7, 1.4, 2.6),
     worldBox(px - 4.9, 0.8, pz + 0.15, 0.65, 1.5, 2.0),
-    worldBox(px - 1.35, 0.5, pz + 3.55, 2.3, 1.0, 1.05),
-    worldBox(px + 0.35, 0.4, pz + 3.55, 1.1, 0.8, 1.1),
+    worldBox(px + 1.65, 0.5, pz + 3.35, 1.1, 1.0, 2.3),
+    worldBox(px + 2.55, 0.4, pz + 3.25, 1.1, 0.8, 1.1),
+    worldBox(px + 3.55, 0.5, pz - 1.85, 0.9, 1.0, 1.7),
   ];
 }
 
@@ -267,7 +282,12 @@ export function addPavilion(root: THREE.Group): THREE.Box3[] {
   });
 
   const kick = 0.28;
-  g.add(box(W + 0.2, kick, T + 0.04, plinth, 0, kick * 0.5, south + T * 0.2));
+  const doorL = PAVILION_DOOR.localX - PAVILION_DOOR.width * 0.5;
+  const doorR = PAVILION_DOOR.localX + PAVILION_DOOR.width * 0.5;
+  const southLeftW = doorL - west;
+  const southRightW = east - doorR;
+  g.add(box(southLeftW, kick, T + 0.04, plinth, west + southLeftW * 0.5, kick * 0.5, south + T * 0.2));
+  g.add(box(southRightW, kick, T + 0.04, plinth, doorR + southRightW * 0.5, kick * 0.5, south + T * 0.2));
   g.add(box(T + 0.04, kick, D + 0.2, plinth, east - T * 0.2, kick * 0.5, 0));
   g.add(box(T + 0.04, kick, D + 0.2, plinth, west + T * 0.2, kick * 0.5, 0));
   g.add(box(W + 0.2, kick, T + 0.04, plinth, 0, kick * 0.5, north - T * 0.2));
@@ -278,10 +298,6 @@ export function addPavilion(root: THREE.Group): THREE.Box3[] {
   g.add(box(T, H - 0.12, D, wall, west + T * 0.5, H * 0.5, 0));
   g.add(box(W, H - 0.12, T, wall, 0, H * 0.5, north - T * 0.5));
 
-  const doorL = doorX - doorW * 0.5;
-  const doorR = doorX + doorW * 0.5;
-  const southLeftW = doorL - west;
-  const southRightW = east - doorR;
   g.add(box(southLeftW, 0.22, T, wall, west + southLeftW * 0.5, kick + 0.11, south + T * 0.5));
   g.add(box(southRightW, 0.22, T, wall, doorR + southRightW * 0.5, kick + 0.11, south + T * 0.5));
   g.add(box(0.18, H - 0.12, T + 0.04, wall, west + 0.12, H * 0.5, south + T * 0.5));
@@ -290,33 +306,45 @@ export function addPavilion(root: THREE.Group): THREE.Box3[] {
   g.add(box(T + 0.04, H - 0.12, 0.18, wall, east - T * 0.5, H * 0.5, north - 0.12));
 
   const jamb = mat(C.charcoal, { roughness: 0.4, metalness: 0.18 });
-  g.add(box(0.1, doorH, 0.12, jamb, doorL, doorH * 0.5 + 0.02, south + 0.02));
-  g.add(box(0.1, doorH, 0.12, jamb, doorR, doorH * 0.5 + 0.02, south + 0.02));
-  g.add(box(doorW + 0.16, 0.1, 0.14, jamb, doorX, doorH + 0.06, south + 0.02));
+  g.add(box(0.14, doorH + 0.08, 0.16, jamb, doorL, doorH * 0.5 + 0.02, south + 0.02));
+  g.add(box(0.14, doorH + 0.08, 0.16, jamb, doorR, doorH * 0.5 + 0.02, south + 0.02));
+  g.add(box(doorW + 0.28, 0.16, 0.18, jamb, doorX, doorH + 0.1, south + 0.02));
+  g.add(box(doorW + 0.2, 0.06, 0.22, jamb, doorX, 0.04, south + 0.04));
 
   const leaf = new THREE.Group();
   leaf.position.set(doorL + 0.04, 0, south + 0.04);
   leaf.rotation.y = 1.22;
-  const leafGlass = new THREE.Mesh(new THREE.PlaneGeometry(doorW - 0.16, doorH - 0.18), glass);
-  leafGlass.position.set((doorW - 0.16) * 0.5, doorH * 0.5 + 0.02, 0);
-  const leafFrame = box(doorW - 0.12, doorH - 0.08, 0.05, jamb, (doorW - 0.16) * 0.5, doorH * 0.5, 0.01);
-  const pull = box(0.04, 0.32, 0.04, mat(C.chrome, { metalness: 0.85, roughness: 0.2 }), doorW - 0.28, 1.05, -0.04);
-  leaf.add(leafFrame, leafGlass, pull);
+  const leafW = doorW - 0.16;
+  const leafH = doorH - 0.16;
+  const leafCx = leafW * 0.5;
+  const leafCy = doorH * 0.5 + 0.02;
+  const leafGlass = new THREE.Mesh(new THREE.PlaneGeometry(leafW - 0.08, leafH - 0.08), glass);
+  leafGlass.position.set(leafCx, leafCy, 0);
+  const stileL = box(0.07, leafH, 0.05, jamb, 0.05, leafCy, 0.01);
+  const stileR = box(0.07, leafH, 0.05, jamb, leafW - 0.05, leafCy, 0.01);
+  const railT = box(leafW, 0.08, 0.05, jamb, leafCx, leafCy + leafH * 0.5 - 0.04, 0.01);
+  const railB = box(leafW, 0.08, 0.05, jamb, leafCx, leafCy - leafH * 0.5 + 0.04, 0.01);
+  const railM = box(leafW - 0.04, 0.06, 0.04, jamb, leafCx, 1.12, 0.01);
+  const pull = box(0.035, 0.34, 0.04, mat(C.chrome, { metalness: 0.85, roughness: 0.2 }), leafW - 0.16, 1.05, -0.04);
+  leaf.add(stileL, stileR, railT, railB, railM, leafGlass, pull);
   g.add(leaf);
 
-  const frontGlassW = W - 0.7;
-  const front = new THREE.Mesh(new THREE.PlaneGeometry(frontGlassW, paneH), glass);
-  front.position.set(0, paneY, south + 0.06);
+  const leftPane = new THREE.Mesh(new THREE.PlaneGeometry(Math.max(0.4, southLeftW - 0.25), paneH), glass);
+  leftPane.position.set(west + southLeftW * 0.5, paneY, south + 0.06);
+  const rightPane = new THREE.Mesh(new THREE.PlaneGeometry(Math.max(0.4, southRightW - 0.25), paneH), glass);
+  rightPane.position.set(doorR + southRightW * 0.5, paneY, south + 0.06);
   const side = new THREE.Mesh(new THREE.PlaneGeometry(D - 0.7, paneH), glass);
   side.position.set(east - 0.06, paneY, 0);
   side.rotation.y = Math.PI / 2;
-  g.add(front, side);
+  g.add(leftPane, rightPane, side);
 
   for (const x of [-W * 0.28, W * 0.28, doorL - 0.08, doorR + 0.08]) {
     g.add(box(0.06, paneH + 0.1, 0.08, mullion, x, paneY, south + 0.04));
   }
-  g.add(box(W - 0.5, 0.07, 0.08, mullion, 0, paneY + paneH * 0.5, south + 0.04));
-  g.add(box(W - 0.5, 0.07, 0.08, mullion, 0, paneY - paneH * 0.5, south + 0.04));
+  g.add(box(southLeftW - 0.2, 0.07, 0.08, mullion, west + southLeftW * 0.5, paneY + paneH * 0.5, south + 0.04));
+  g.add(box(southRightW - 0.2, 0.07, 0.08, mullion, doorR + southRightW * 0.5, paneY + paneH * 0.5, south + 0.04));
+  g.add(box(southLeftW - 0.2, 0.07, 0.08, mullion, west + southLeftW * 0.5, paneY - paneH * 0.5, south + 0.04));
+  g.add(box(southRightW - 0.2, 0.07, 0.08, mullion, doorR + southRightW * 0.5, paneY - paneH * 0.5, south + 0.04));
   for (const z of [-D * 0.28, 0, D * 0.28]) {
     g.add(box(0.08, paneH + 0.1, 0.06, mullion, east - 0.04, paneY, z));
   }

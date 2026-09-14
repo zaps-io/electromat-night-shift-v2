@@ -170,22 +170,22 @@ export const CANOPY_SHOT = {
 } as const;
 
 export const ZEUS_SHOT = {
-  x: -1.15,
-  z: 0.35,
-  eyeY: 1.28,
-  yaw: Math.PI / 2,
+  x: -2.35,
+  z: -3.45,
+  eyeY: 1.32,
+  yaw: 0.62,
   pitch: 0.02,
-  lookAt: { x: LEFT_EAST_ZEUS_X, y: 1.0, z: -1.2 },
+  lookAt: { x: -6.9, y: 0.88, z: -1.15 },
   fov: 42,
 } as const;
 
-/** Inside the store/lounge, looking out the east storefront toward the lot. */
+/** Inside the lounge, sofa in frame, looking out the east storefront toward the lot. */
 export const INTERIOR_SHOT = {
-  x: -21.8,
-  z: 2.55,
-  eyeY: 1.56,
-  yaw: -1.12,
-  pitch: 0.06,
-  lookAt: { x: -16.8, y: 1.42, z: -0.4 },
-  fov: 58,
+  x: -24.15,
+  z: 5.15,
+  eyeY: 1.54,
+  yaw: -1.05,
+  pitch: 0.02,
+  lookAt: { x: -17.55, y: 1.28, z: 3.55 },
+  fov: 62,
 } as const;
