@@ -20,7 +20,9 @@ import {
   WAIT_ORDER,
   WAIT_SLOTS,
 } from "./layout";
+import { ccsLeadPoints, tubeFromPoints } from "./cables";
 import { makeAttentionIcon, makeBatteryIcon } from "./icons";
+import { setZeusHolsterPlugged } from "./zeus";
 
 export const FULL_PBR_IDS = new Set(["hale", "ruiz", "vora", "chen", "peck"]);
 
@@ -604,25 +606,32 @@ export function hullDebug(): {
   };
 }
 
+const cableMat = new THREE.MeshStandardMaterial({
+  color: 0x111214,
+  roughness: 0.82,
+  metalness: 0.04,
+  transparent: false,
+  opacity: 1,
+  depthWrite: true,
+});
+
+const handleSilver = new THREE.MeshStandardMaterial({
+  color: 0xb8bcc0,
+  metalness: 0.88,
+  roughness: 0.22,
+  envMapIntensity: 0.7,
+});
+
 function makeCable(inlet: { x: number; y: number; z: number }): THREE.Mesh {
-  const curve = new THREE.CatmullRomCurve3([
-    new THREE.Vector3(0.12, 0.96, -2.18),
-    new THREE.Vector3(0.42, 1.28, -1.55),
-    new THREE.Vector3(0.78, 1.08, -1.12),
-    new THREE.Vector3(inlet.x, inlet.y, inlet.z),
-  ]);
-  const mesh = new THREE.Mesh(
-    new THREE.TubeGeometry(curve, 28, 0.042, 10, false),
-    new THREE.MeshStandardMaterial({
-      color: 0x2a3338,
-      roughness: 0.7,
-      metalness: 0.08,
-      transparent: false,
-      opacity: 1,
-      depthWrite: true,
-    }),
-  );
-  return mesh;
+  const lead = new THREE.Mesh(tubeFromPoints(ccsLeadPoints(inlet), 0.016, 22), cableMat);
+  const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.02, 0.09, 8), cableMat);
+  grip.rotation.x = Math.PI / 2;
+  grip.position.set(inlet.x + 0.05, inlet.y, inlet.z);
+  const nose = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.016, 0.03, 8), handleSilver);
+  nose.rotation.y = Math.PI / 2;
+  nose.position.set(inlet.x + 0.012, inlet.y, inlet.z);
+  lead.add(grip, nose);
+  return lead;
 }
 
 function finishCar(root: THREE.Group, guest: Guest, inletPos: { x: number; y: number; z: number }): CarView {
@@ -699,6 +708,9 @@ export function placeGuest(view: CarView, guest: Guest, now: number): void {
   view.battery.visible = onCharge;
   view.cable.visible = guest.plugged && !guest.served;
   view.portGlow.visible = guest.plugged && !guest.served;
+  if (guest.assignedBay != null) {
+    setZeusHolsterPlugged(BAYS[guest.assignedBay - 1]?.id, guest.plugged && !guest.served);
+  }
   view.attention.position.y = (guest.hull === "suv" ? 2.36 : 2.02) + Math.sin(now * 3) * 0.05;
 }
 
@@ -706,6 +718,8 @@ export function syncCars(map: Map<string, CarView>, scene: THREE.Scene, state: G
   const live = new Set(arrivedGuests(state).map((g) => g.id));
   for (const [id, view] of map) {
     if (!live.has(id)) {
+      const gone = state.guests.find((g) => g.id === id);
+      if (gone?.assignedBay != null) setZeusHolsterPlugged(BAYS[gone.assignedBay - 1]?.id, false);
       scene.remove(view.root);
       map.delete(id);
     }

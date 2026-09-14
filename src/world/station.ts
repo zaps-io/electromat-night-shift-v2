@@ -1,8 +1,9 @@
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { C } from "../brand";
-import { BAY_SIZE, CANOPIES, PAY_POINTS, PAVILION, STALLS, WALK_BOUNDS, WAVE_POINT, YARD } from "./layout";
-import { asphaltColor, asphaltNormal, asphaltRough, creamPanels, curbColor, curbRough, gravel, soffitPanels, stucco } from "./tex";
+import { BAY_SIZE, CANOPIES, LOT_RAILS, PAY_POINTS, PAVILION, STALLS, WALK_BOUNDS, WAVE_POINT, YARD } from "./layout";
+import { addPavilion } from "./pavilion";
+import { asphaltColor, asphaltNormal, asphaltRough, creamPanels, curbColor, curbRough, gravel, soffitPanels } from "./tex";
 import { makePayIcon, makeWaveIcon } from "./icons";
 import { addZeusCharger } from "./zeus";
 
@@ -286,100 +287,6 @@ function addCanopies(root: THREE.Group): void {
   });
 }
 
-function addPerson(g: THREE.Group, x: number, z: number, yaw: number, h = 1.7): void {
-  const dark = new THREE.MeshBasicMaterial({ color: 0x0c0a09 });
-  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.2, h * 0.44, 4, 8), dark);
-  body.position.set(x, h * 0.52, z);
-  body.rotation.y = yaw;
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 8), dark);
-  head.position.set(x, h * 0.9, z);
-  g.add(body, head);
-}
-
-function addPavilion(root: THREE.Group): THREE.Box3 {
-  const g = new THREE.Group();
-  g.position.set(PAVILION.x, 0, PAVILION.z);
-  g.rotation.y = PAVILION.yaw;
-  const wall = mat(0xf8f4ec, {
-    roughness: 0.5,
-    metalness: 0.03,
-    envMapIntensity: 0.3,
-    map: stucco(),
-    emissive: 0x3a2a18,
-    emissiveIntensity: 0.05,
-  });
-  const plinth = mat(C.charcoal, { roughness: 0.62, metalness: 0.08, envMapIntensity: 0.2 });
-  const glass = new THREE.MeshPhysicalMaterial({
-    color: 0x6a88a0,
-    roughness: 0.04,
-    metalness: 0.08,
-    transparent: true,
-    opacity: 0.34,
-    envMapIntensity: 1.15,
-    side: THREE.DoubleSide,
-  });
-  const W = PAVILION.w;
-  const D = PAVILION.d;
-  const H = PAVILION.h;
-  const base = new THREE.Mesh(new RoundedBoxGeometry(W + 0.15, 0.42, D + 0.15, 2, 0.08), plinth);
-  base.position.y = 0.21;
-  const body = new THREE.Mesh(new RoundedBoxGeometry(W, H - 0.28, D, 3, 0.22), wall);
-  body.position.y = H * 0.5 + 0.08;
-  body.castShadow = true;
-  g.add(base, body);
-
-  const paneH = H - 0.85;
-  const paneY = H * 0.52;
-  const mullion = mat(0x1c1e24, { roughness: 0.45, metalness: 0.2 });
-  const front = new THREE.Mesh(new THREE.PlaneGeometry(W - 0.85, paneH), glass);
-  front.position.set(0, paneY, -D / 2 + 0.05);
-  const side = new THREE.Mesh(new THREE.PlaneGeometry(D - 0.85, paneH), glass);
-  side.position.set(W / 2 - 0.05, paneY, 0);
-  side.rotation.y = Math.PI / 2;
-  g.add(front, side);
-  for (const x of [-W * 0.22, W * 0.22]) {
-    g.add(box(0.06, paneH + 0.12, 0.08, mullion, x, paneY, -D / 2 + 0.03));
-  }
-  g.add(box(W - 0.6, 0.08, 0.08, mullion, 0, paneY + paneH * 0.5, -D / 2 + 0.03));
-  g.add(box(W - 0.6, 0.08, 0.08, mullion, 0, paneY - paneH * 0.5, -D / 2 + 0.03));
-
-  const warm = new THREE.MeshBasicMaterial({ color: 0xf2a040, toneMapped: false });
-  const backLit = new THREE.Mesh(new THREE.PlaneGeometry(D - 0.5, paneH - 0.1), warm);
-  backLit.position.set(-W / 2 + 0.2, H * 0.5, 0);
-  backLit.rotation.y = Math.PI / 2;
-  const inside = new THREE.Mesh(new THREE.PlaneGeometry(W - 1.0, paneH - 0.2), warm);
-  inside.position.set(0, H * 0.5, 0.35);
-  g.add(backLit, inside);
-  const lampMat = new THREE.MeshBasicMaterial({ color: 0xffb050 });
-  for (const [x, z] of [
-    [-1.5, 0.7],
-    [-1.3, -0.7],
-    [0.3, 0.1],
-  ] as const) {
-    const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 6), lampMat);
-    bulb.position.set(x, 2.55, z);
-    g.add(bulb);
-  }
-  const shade = new THREE.MeshBasicMaterial({ color: 0x050403 });
-  g.add(box(0.8, 0.4, 2.8, shade, -1.7, 0.42, 0));
-  g.add(box(0.6, 0.85, 0.6, shade, -0.2, 0.55, -1.1));
-  g.add(box(0.6, 0.85, 0.6, shade, -0.15, 0.55, 1.05));
-  addPerson(g, -1.4, -0.4, 1.4, 1.56);
-  addPerson(g, -1.25, 0.55, 1.7, 1.6);
-  /* Lounge read comes from emissive interiors + scene env; skip extra point lights. */
-
-  const roof = new THREE.Mesh(new RoundedBoxGeometry(W + 0.55, 0.42, D + 0.55, 3, 0.16), wall);
-  roof.position.y = H + 0.12;
-  roof.castShadow = true;
-  g.add(roof);
-
-  root.add(g);
-  return new THREE.Box3().setFromCenterAndSize(
-    new THREE.Vector3(PAVILION.x, 1.7, PAVILION.z),
-    new THREE.Vector3(W + 0.8, 3.6, D + 0.8),
-  );
-}
-
 function payPlate(): THREE.CanvasTexture {
   const c = document.createElement("canvas");
   c.width = 256;
@@ -454,7 +361,7 @@ function addKiosks(root: THREE.Group): { kiosks: THREE.Group[]; alerts: THREE.Sp
 
 function addLotRails(root: THREE.Group): void {
   const rail = mat(0xe8e2d4, { roughness: 0.62, metalness: 0.04 });
-  const { xmin, xmax, zmin, zmax } = WALK_BOUNDS;
+  const { xmin, xmax, zmin, zmax } = LOT_RAILS;
   const y = 0.16;
   const t = 0.18;
   const hx = (xmax - xmin) * 0.5;
@@ -463,7 +370,10 @@ function addLotRails(root: THREE.Group): void {
   const cz = (zmin + zmax) * 0.5;
   root.add(box(hx * 2 + t, 0.28, t, rail, cx, y, zmin));
   root.add(box(hx * 2 + t, 0.28, t, rail, cx, y, zmax));
-  root.add(box(t, 0.28, hz * 2, rail, xmin, y, cz));
+  const pavSouth = PAVILION.z - PAVILION.d * 0.5 - 0.15;
+  const pavNorth = PAVILION.z + PAVILION.d * 0.5 + 0.15;
+  root.add(box(t, 0.28, pavSouth - zmin, rail, xmin, y, (zmin + pavSouth) * 0.5));
+  root.add(box(t, 0.28, zmax - pavNorth, rail, xmin, y, (pavNorth + zmax) * 0.5));
   root.add(box(t, 0.28, hz * 2, rail, xmax, y, cz));
 }
 
@@ -699,7 +609,7 @@ export function buildStation(): Station {
   const ground = makeAsphalt(root);
   addLaneMarks(root);
   addCanopies(root);
-  const pavilionBox = addPavilion(root);
+  const pavilionBoxes = addPavilion(root);
   const { kiosks, alerts } = addKiosks(root);
   const wave = addWaveKiosk(root);
   addLotRails(root);
@@ -717,9 +627,22 @@ export function buildStation(): Station {
       anchor.userData.bayId = stall.playable;
       bayAnchors.push(anchor);
     }
-    addZeusCharger(root, stall.zeusX, stall.zeusZ, stall.zeusYaw, stall.playable != null ? "full" : "lite");
+    addZeusCharger(root, stall.zeusX, stall.zeusZ, stall.zeusYaw, stall.playable != null ? "full" : "lite", stall.id);
   }
   bayAnchors.sort((a, b) => (a.userData.bayId as number) - (b.userData.bayId as number));
+
+  const railX = LOT_RAILS.xmin;
+  const west = WALK_BOUNDS.xmin;
+  const westLot = [
+    new THREE.Box3().setFromCenterAndSize(
+      new THREE.Vector3((west + railX) * 0.5, 1.2, (LOT_RAILS.zmin + PAVILION.z - PAVILION.d * 0.5) * 0.5),
+      new THREE.Vector3(railX - west + 0.2, 2.4, PAVILION.z - PAVILION.d * 0.5 - LOT_RAILS.zmin),
+    ),
+    new THREE.Box3().setFromCenterAndSize(
+      new THREE.Vector3((west + railX) * 0.5, 1.2, (PAVILION.z + PAVILION.d * 0.5 + LOT_RAILS.zmax) * 0.5),
+      new THREE.Vector3(railX - west + 0.2, 2.4, LOT_RAILS.zmax - (PAVILION.z + PAVILION.d * 0.5)),
+    ),
+  ];
 
   return {
     root,
@@ -730,6 +653,6 @@ export function buildStation(): Station {
     waveKiosk: wave.kiosk,
     waveAlert: wave.alert,
     bayAnchors,
-    colliders: [pavilionBox],
+    colliders: [...pavilionBoxes, ...westLot],
   };
 }

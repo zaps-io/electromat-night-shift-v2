@@ -18,8 +18,11 @@ import { assertOpaqueCarMaterials, glassMaterial, paintMaterial } from "../src/c
 import {
   BAYS,
   CAR_LENGTH,
+  INTERIOR_SHOT,
   KIOSK_REACH,
   PAY_POINTS,
+  PAVILION,
+  PAVILION_DOOR,
   QUEUE_GAP,
   START_SHOT,
   STALL_CLEARANCE,
@@ -30,6 +33,8 @@ import {
   WAVE_REACH,
   ZEUS_HALF_DEPTH,
 } from "../src/world/layout.ts";
+import { cableHitsCarBody, ccsLeadPoints, holsterRestPoints } from "../src/world/cables.ts";
+import { OPAQUE_SEDAN_INLET } from "../src/cars/opaque.ts";
 import * as THREE from "three";
 
 for (const name of [
@@ -130,5 +135,25 @@ for (let i = 1; i < WAIT_SLOTS.length; i++) {
 for (const slot of WAIT_SLOTS) {
   if (Math.abs(slot.yaw - Math.PI) > 0.05) throw new Error("queue cars must face +Z (yaw PI)");
 }
+
+const lead = ccsLeadPoints(OPAQUE_SEDAN_INLET);
+if (lead[0].z > -3) throw new Error("CCS lead must start at the Slim Zeus holster, not the bumper");
+if (Math.abs(lead[lead.length - 1].x - OPAQUE_SEDAN_INLET.x) > 0.02) throw new Error("CCS lead must end at the inlet");
+if (cableHitsCarBody(lead)) throw new Error("CCS lead threads the car hull");
+for (const side of [-1, 1] as const) {
+  for (const p of holsterRestPoints(side)) {
+    if (p.z > -0.22) throw new Error("holster rest cable clips into the Zeus body");
+  }
+}
+
+const doorX = PAVILION.x + PAVILION_DOOR.localX;
+const doorZ = PAVILION.z - PAVILION.d * 0.5;
+if (doorX < WALK_BOUNDS.xmin || doorX > WALK_BOUNDS.xmax) throw new Error("pavilion door X outside walk");
+if (doorZ < WALK_BOUNDS.zmin || doorZ > WALK_BOUNDS.zmax) throw new Error("pavilion door Z outside walk");
+if (INTERIOR_SHOT.x < WALK_BOUNDS.xmin || INTERIOR_SHOT.x > WALK_BOUNDS.xmax) {
+  throw new Error("interior shot outside walk bounds");
+}
+if (PAVILION_DOOR.width < 1.4) throw new Error("storefront door must be walkable");
+if (WALK_BOUNDS.xmin > PAVILION.x - PAVILION.w * 0.35) throw new Error("walk bounds must reach the pavilion interior");
 
 console.log("verify-shift ok");

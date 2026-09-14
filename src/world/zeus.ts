@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { C } from "../brand";
+import { holsterRestPoints, tubeFromPoints } from "./cables";
 import { brushMetal } from "./tex";
 
 const brush = brushMetal();
@@ -144,26 +145,20 @@ const geo = {
   nose: new THREE.CylinderGeometry(0.014, 0.018, 0.036, 8),
 };
 
-function frontCable(side: -1 | 1): THREE.TubeGeometry {
-  const x = 0.078 * side;
-  const curve = new THREE.QuadraticBezierCurve3(
-    new THREE.Vector3(x, 0.68, -0.21),
-    new THREE.Vector3(x + side * 0.05, 0.36, -0.1),
-    new THREE.Vector3(x * 0.35, 0.15, 0.0),
-  );
-  return new THREE.TubeGeometry(curve, 10, 0.011, 6, false);
-}
+const cableGeoL = tubeFromPoints(holsterRestPoints(-1), 0.01, 12);
+const cableGeoR = tubeFromPoints(holsterRestPoints(1), 0.01, 12);
+const wellGeo = new THREE.BoxGeometry(0.055, 0.04, 0.02);
 
-const cableGeoL = frontCable(-1);
-const cableGeoR = frontCable(1);
+const holstersByStall = new Map<number, { rest: THREE.Mesh; handle: THREE.Group; side: -1 | 1 }[]>();
 
-function addFrontHolster(g: THREE.Group, side: -1 | 1, cables: boolean): void {
+function addFrontHolster(g: THREE.Group, side: -1 | 1): { rest: THREE.Mesh; handle: THREE.Group; side: -1 | 1 } {
   const x = 0.07 * side;
   const z = -0.22;
   const pocket = new THREE.Mesh(geo.pocket, charcoal);
   pocket.position.set(x, 0.88, z);
   const lip = new THREE.Mesh(geo.lip, black);
   lip.position.set(x, 1.04, z - 0.004);
+  const handle = new THREE.Group();
   const barrel = new THREE.Mesh(geo.barrel, handleSilver);
   barrel.rotation.x = Math.PI / 2;
   barrel.position.set(x, 0.9, z - 0.02);
@@ -173,9 +168,12 @@ function addFrontHolster(g: THREE.Group, side: -1 | 1, cables: boolean): void {
   const nose = new THREE.Mesh(geo.nose, black);
   nose.rotation.x = Math.PI / 2;
   nose.position.set(x, 1.0, z - 0.024);
-  g.add(pocket, lip, barrel, gripMesh, nose);
-  if (!cables) return;
-  g.add(new THREE.Mesh(side < 0 ? cableGeoL : cableGeoR, cableMat));
+  handle.add(barrel, gripMesh, nose);
+  const rest = new THREE.Mesh(side < 0 ? cableGeoL : cableGeoR, cableMat);
+  const well = new THREE.Mesh(wellGeo, black);
+  well.position.set(0.09 * side, 0.12, -0.248);
+  g.add(pocket, lip, handle, rest, well);
+  return { rest, handle, side };
 }
 
 /** Slim Zeus: brushed frame, charcoal recess, front twin holsters, cyan base, PLUG IN. */
@@ -184,12 +182,14 @@ export function addZeusCharger(
   x: number,
   z: number,
   yaw = 0,
-  detail: "full" | "lite" = "full",
+  _detail: "full" | "lite" = "full",
+  stallId?: number,
 ): void {
   const g = new THREE.Group();
   g.position.set(x, 0, z);
   g.rotation.y = yaw;
   g.userData.kind = "zeus";
+  if (stallId != null) g.userData.stallId = stallId;
 
   const base = new THREE.Mesh(geo.base, black);
   base.position.y = 0.075;
@@ -231,11 +231,24 @@ export function addZeusCharger(
   display.position.set(0, 1.54, -0.246);
   display.rotation.y = Math.PI;
 
-  addFrontHolster(g, -1, detail === "full");
-  addFrontHolster(g, 1, detail === "full");
+  const left = addFrontHolster(g, -1);
+  const right = addFrontHolster(g, 1);
+  if (stallId != null) holstersByStall.set(stallId, [left, right]);
 
   g.add(base, body, cap, seam, seamHalo, recess, well, screen, bezel, display);
   root.add(g);
+}
+
+/** Hide the port-side holster handle + rest loop while that stall's CCS lead is in the car. */
+export function setZeusHolsterPlugged(stallId: number | undefined, plugged: boolean): void {
+  if (stallId == null) return;
+  const bits = holstersByStall.get(stallId);
+  if (!bits) return;
+  for (const h of bits) {
+    const inUse = plugged && h.side === -1;
+    h.rest.visible = !inUse;
+    h.handle.visible = !inUse;
+  }
 }
 
 export function applyZeusLogos(_root: THREE.Object3D, _tex: THREE.Texture): void {

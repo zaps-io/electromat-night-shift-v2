@@ -1,6 +1,28 @@
 import * as THREE from "three";
 import { WALK_BOUNDS } from "../world/layout";
 
+export const WALK_RADIUS = 0.34;
+
+/** Slide the walker out of expanded XZ AABBs. */
+export function resolveColliders(pos: THREE.Vector3, colliders: THREE.Box3[], radius = WALK_RADIUS): void {
+  for (const box of colliders) {
+    const x0 = box.min.x - radius;
+    const x1 = box.max.x + radius;
+    const z0 = box.min.z - radius;
+    const z1 = box.max.z + radius;
+    if (pos.x <= x0 || pos.x >= x1 || pos.z <= z0 || pos.z >= z1) continue;
+    const left = pos.x - x0;
+    const right = x1 - pos.x;
+    const south = pos.z - z0;
+    const north = z1 - pos.z;
+    const m = Math.min(left, right, south, north);
+    if (m === left) pos.x = x0;
+    else if (m === right) pos.x = x1;
+    else if (m === south) pos.z = z0;
+    else pos.z = z1;
+  }
+}
+
 const MOVE = new Set(["KeyW", "KeyA", "KeyS", "KeyD", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
 
 function keyToken(e: KeyboardEvent): string[] {
@@ -112,11 +134,7 @@ export class Walker {
     this.sync();
   }
 
-  tick(dt: number, blocked: boolean): void {
-    if (blocked) {
-      this.sync();
-      return;
-    }
+  tick(dt: number, colliders: THREE.Box3[] = []): void {
     this.wish.set(0, 0, 0);
     if (this.keys.has("KeyW") || this.keys.has("ArrowUp")) this.wish.z -= 1;
     if (this.keys.has("KeyS") || this.keys.has("ArrowDown")) this.wish.z += 1;
@@ -137,6 +155,9 @@ export class Walker {
         this.yaw = Math.atan2(-delta.x, -delta.z);
       }
     }
+    this.position.x = THREE.MathUtils.clamp(this.position.x, WALK_BOUNDS.xmin, WALK_BOUNDS.xmax);
+    this.position.z = THREE.MathUtils.clamp(this.position.z, WALK_BOUNDS.zmin, WALK_BOUNDS.zmax);
+    resolveColliders(this.position, colliders);
     this.position.x = THREE.MathUtils.clamp(this.position.x, WALK_BOUNDS.xmin, WALK_BOUNDS.xmax);
     this.position.z = THREE.MathUtils.clamp(this.position.z, WALK_BOUNDS.zmin, WALK_BOUNDS.zmax);
     this.sync();

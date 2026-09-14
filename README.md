@@ -14,7 +14,8 @@ Default `startNight()` lot view (no local build required):
 - [`docs/shots/lot-rear34.png`](docs/shots/lot-rear34.png) — rear 3/4 of the Sketchfab 2018 Tesla Model 3 guest hull
 - [`docs/shots/lot-wide.png`](docs/shots/lot-wide.png) — elevated dual-canopy Electromat site
 - [`docs/shots/canopy-fascia.png`](docs/shots/canopy-fascia.png) — official red Zaps on the cream canopy fascia
-- [`docs/shots/slim-zeus.png`](docs/shots/slim-zeus.png) — Slim Zeus product face (brushed metal, charcoal recess, front holsters)
+- [`docs/shots/slim-zeus.png`](docs/shots/slim-zeus.png) — Slim Zeus product face (brushed metal, charcoal recess, CCS holsters)
+- [`docs/shots/interior.png`](docs/shots/interior.png) — walk-in store / lounge looking out the east storefront
 - [`docs/shots/v2b-lot.png`](docs/shots/v2b-lot.png) — wider canopy / pavilion / occupancy
 
 ## GitHub Pages
@@ -40,7 +41,7 @@ Private-repo Pages also needs a GitHub plan that includes Pages (org GitHub Team
 7. **How to pay (QA repro):**
    1. Start night. Toast: `Peck is plugged — E PAY at the car or the west PAY kiosk.`
    2. **At the car:** walk to the dark Tesla on the **right island** (amber `!`). Prompt `E PAY · PECK`. Press **E**. Toast `Paid — Peck.`
-   3. **At the kiosk (operator path):** after any first-visit **E PLUG**, walk **west** (left of the left canopy). Look for the cream stand with amber **PAY** and a floating PAY badge. Within ~7m the prompt is `E PAY · NAME` without aiming the mesh. Press **E**. The lounge door has a second PAY stand if you go to the building.
+   3. **At the kiosk (operator path):** after any first-visit **E PLUG**, walk **west** (left of the left canopy). Look for the cream stand with amber **PAY** and a floating PAY badge. Within ~7m the prompt is `E PAY · NAME` without aiming the mesh. Press **E**. The lounge south door (frame + open glass leaf) has a second PAY stand — walk inside the store/lounge.
    4. Payment is not gated on a full battery. Then **E AUTOCHARGE** (faster charge). Later queue cars: talk → park → plug → same pay, or WAVE from the aisle.
 8. When the battery finishes, `!` returns — **E UNPLUG** to zip them out.
 8. Cyan battery icons mark occupancy. Three walkaways end the night. 04:00 grades the shift.
@@ -49,7 +50,7 @@ Site line: **DRIVE IN. CHARGE UP. ZIP OUT.**
 
 ## Visual bar
 
-Cinematic WebGL lot: ACES Filmic (exposure ~0.78) + one warm dusk `DirectionalLight`, golden-hour `scene.environment` via `PMREMGenerator`, `postprocessing` bloom / vignette / SMAA. Twin cream canopies with a readable red fascia lip and official red Zaps wordmarks, 24 Slim Zeus (brushed metal, charcoal recess, cyan base, amber PLUG IN), glass lounge, grit asphalt + raised curb islands, dusk apartment / street / skyline-silhouette backdrop (emissive window maps, no extra Reflectors). Guest cars are the Sketchfab **2018 Tesla Model 3** (Ameer Studio, CC BY 4.0) with paint forced opaque (`MeshPhysicalMaterial` clearcoat, `transmission: 0`) and dark opaque greenhouse glass. Stall X is `Zeus + half hull + 0.28m pedestal + 0.9m bumper gap` so cars do not interpenetrate Slim Zeus. Walker stays inside lot rails (no void). No lofted placeholders, no Taycan helper cages, no see-through paint.
+Cinematic WebGL lot: ACES Filmic (exposure ~0.78) + one warm dusk `DirectionalLight`, golden-hour `scene.environment` via `PMREMGenerator`, `postprocessing` bloom / vignette / SMAA. Twin cream canopies with a readable red fascia lip and official red Zaps wordmarks, 24 Slim Zeus (brushed metal, charcoal recess, cyan base, amber PLUG IN, CCS leads from holster to port), enterable glass store/lounge (south door + storefront windows, counter + merch + sofa), grit asphalt + raised curb islands, dusk apartment / street / skyline-silhouette backdrop (emissive window maps, no extra Reflectors). Guest cars are the Sketchfab **2018 Tesla Model 3** (Ameer Studio, CC BY 4.0) with paint forced opaque (`MeshPhysicalMaterial` clearcoat, `transmission: 0`) and dark opaque greenhouse glass. Stall X is `Zeus + half hull + 0.28m pedestal + 0.9m bumper gap` so cars do not interpenetrate Slim Zeus. Walker stays inside lot rails (no void) and can walk through the lounge door. No lofted placeholders, no Taycan helper cages, no see-through paint.
 
 Official cream/red Zaps wordmarks only. Palette: `#E63225` `#1E1E24` `#E89A2E` `#00D4F5` `#F5F0E8`.
 
