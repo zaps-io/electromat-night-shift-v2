@@ -7,6 +7,8 @@ interface ElectromatApi {
   lookAt: (x: number, y: number, z: number) => void;
   position: { x: number; y: number; z: number };
   target: import("./game/interact").InteractResult;
+  walkTo: (x: number, z: number) => void;
+  inPlayable: (x: number, z: number) => boolean;
   capture: (w?: number, h?: number) => string;
   carProbe: (w?: number, h?: number) => string;
   hullDebug: () => {

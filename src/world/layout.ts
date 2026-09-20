@@ -118,13 +118,97 @@ export const WAVE_POINT = { x: 2.85, z: -15.2 };
 /** Aimed reach. Un-aimed close range lives in interact.ts so spawn does not steal PAY. */
 export const WAVE_REACH = 6.4;
 
-/** Lot rails stay on the asphalt apron. Walk bounds include the pavilion interior. */
+/** Lot rails stay on the asphalt apron. Playable walk is lot ∪ lounge, not one fat AABB. */
 export const LOT_RAILS = { xmin: -26.2, xmax: 23.2, zmin: -21.6, zmax: 17.4 };
-export const WALK_BOUNDS = { xmin: -28.55, xmax: 23.2, zmin: -21.6, zmax: 17.4 };
 
 export const PAVILION = { x: -23.4, z: 3.4, yaw: 0, w: 11.6, d: 13.4, h: 3.35 };
-/** South storefront door, local X toward the lounge PAY stand. */
-export const PAVILION_DOOR = { localX: 0.8, width: 1.72, height: 2.38 };
+/** South storefront door, local X toward the lounge PAY stand. Wide enough for the walker. */
+export const PAVILION_DOOR = { localX: 0.8, width: 2.16, height: 2.38 };
+
+export type XZRect = { xmin: number; xmax: number; zmin: number; zmax: number };
+
+/** Asphalt apron inside the lot rails. */
+export const LOT_WALK: XZRect = { ...LOT_RAILS };
+
+const LOUNGE_WALL = 0.28;
+/** Lounge interior plus a short south-door threshold onto the lot. */
+export const LOUNGE_WALK: XZRect = {
+  xmin: PAVILION.x - PAVILION.w * 0.5 + LOUNGE_WALL,
+  xmax: PAVILION.x + PAVILION.w * 0.5 - LOUNGE_WALL,
+  zmin: PAVILION.z - PAVILION.d * 0.5 - 0.45,
+  zmax: PAVILION.z + PAVILION.d * 0.5 - LOUNGE_WALL,
+};
+
+/** Outer envelope of lot ∪ lounge — not the playable shape. */
+export const WALK_BOUNDS: XZRect = {
+  xmin: Math.min(LOT_WALK.xmin, LOUNGE_WALK.xmin),
+  xmax: Math.max(LOT_WALK.xmax, LOUNGE_WALK.xmax),
+  zmin: Math.min(LOT_WALK.zmin, LOUNGE_WALK.zmin),
+  zmax: Math.max(LOT_WALK.zmax, LOUNGE_WALK.zmax),
+};
+
+export const SAFE_LOT_SPAWN = { x: -3.2, z: -20.4 };
+/** Deeper than a rail scrape — recover to spawn instead of sliding along a void. */
+export const VOID_TELEPORT_M = 3.2;
+
+export function inRect(x: number, z: number, r: XZRect): boolean {
+  return x >= r.xmin && x <= r.xmax && z >= r.zmin && z <= r.zmax;
+}
+
+export function inPlayableVolume(x: number, z: number): boolean {
+  return inRect(x, z, LOT_WALK) || inRect(x, z, LOUNGE_WALK);
+}
+
+export function closestOnRect(x: number, z: number, r: XZRect): { x: number; z: number } {
+  return {
+    x: Math.min(r.xmax, Math.max(r.xmin, x)),
+    z: Math.min(r.zmax, Math.max(r.zmin, z)),
+  };
+}
+
+export function clampPlayable(x: number, z: number): { x: number; z: number; teleported: boolean } {
+  if (inPlayableVolume(x, z)) return { x, z, teleported: false };
+  const lot = closestOnRect(x, z, LOT_WALK);
+  const lounge = closestOnRect(x, z, LOUNGE_WALK);
+  const lotD = Math.hypot(x - lot.x, z - lot.z);
+  const loungeD = Math.hypot(x - lounge.x, z - lounge.z);
+  const pick = lotD <= loungeD ? lot : lounge;
+  if (Math.min(lotD, loungeD) > VOID_TELEPORT_M) {
+    return { x: SAFE_LOT_SPAWN.x, z: SAFE_LOT_SPAWN.z, teleported: true };
+  }
+  return { x: pick.x, z: pick.z, teleported: false };
+}
+
+/** Right-click walk-to only keeps destinations on asphalt or in the lounge. */
+export function playableWalkTarget(x: number, z: number): { x: number; z: number } | null {
+  return inPlayableVolume(x, z) ? { x, z } : null;
+}
+
+/** Invisible walls filling the west void strip south/north of the lounge. */
+export function westVoidWalls(): { cx: number; cy: number; cz: number; w: number; h: number; d: number }[] {
+  const railX = LOT_RAILS.xmin;
+  const west = WALK_BOUNDS.xmin - 0.15;
+  const pavSouth = PAVILION.z - PAVILION.d * 0.5;
+  const pavNorth = PAVILION.z + PAVILION.d * 0.5;
+  return [
+    {
+      cx: (west + railX) * 0.5,
+      cy: 1.2,
+      cz: (LOT_RAILS.zmin + pavSouth) * 0.5,
+      w: railX - west + 0.2,
+      h: 2.4,
+      d: Math.max(0.4, pavSouth - LOT_RAILS.zmin),
+    },
+    {
+      cx: (west + railX) * 0.5,
+      cy: 1.2,
+      cz: (pavNorth + LOT_RAILS.zmax) * 0.5,
+      w: railX - west + 0.2,
+      h: 2.4,
+      d: Math.max(0.4, LOT_RAILS.zmax - pavNorth),
+    },
+  ];
+}
 
 /** World-space door opening used by walk tests and signage. */
 export function pavilionDoorWorld(): { x: number; z: number; width: number; height: number } {
@@ -248,6 +332,17 @@ export const DOOR_SHOT = {
   pitch: 0.08,
   lookAt: { x: -21.55, y: 1.55, z: -3.55 },
   fov: 54,
+} as const;
+
+/** Just inside the south OPEN door, looking into the lounge. */
+export const DOOR_IN_SHOT = {
+  x: -22.6,
+  z: -1.55,
+  eyeY: 1.58,
+  yaw: 0.18,
+  pitch: 0.04,
+  lookAt: { x: -24.4, y: 1.25, z: 3.35 },
+  fov: 58,
 } as const;
 
 /** Aisle face of Peck's opening bay — prompt and objective both read PAY. */

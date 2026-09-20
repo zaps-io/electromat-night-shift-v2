@@ -25,14 +25,18 @@ import { assertOpaqueCarMaterials, glassMaterial, paintMaterial } from "../src/c
 import {
   BAYS,
   CAR_LENGTH,
+  DOOR_IN_SHOT,
   DOOR_SHOT,
   INTERIOR_SHOT,
   KIOSK_REACH,
+  LOT_WALK,
+  LOUNGE_WALK,
   PAY_POINTS,
   PAVILION,
   PAVILION_DOOR,
   PROMPT_SHOT,
   QUEUE_GAP,
+  SAFE_LOT_SPAWN,
   START_SHOT,
   STALL_CLEARANCE,
   STALLS,
@@ -42,9 +46,13 @@ import {
   WAVE_POINT,
   WAVE_REACH,
   ZEUS_HALF_DEPTH,
+  clampPlayable,
+  inPlayableVolume,
   pavilionDoorGap,
   pavilionDoorWorld,
   pavilionExteriorWalls,
+  playableWalkTarget,
+  westVoidWalls,
 } from "../src/world/layout.ts";
 import { cableHitsCarBody, ccsLeadPoints, holsterRestPoints } from "../src/world/cables.ts";
 import { OPAQUE_SEDAN_INLET } from "../src/cars/opaque.ts";
@@ -168,7 +176,7 @@ if (doorZ < WALK_BOUNDS.zmin || doorZ > WALK_BOUNDS.zmax) throw new Error("pavil
 if (INTERIOR_SHOT.x < WALK_BOUNDS.xmin || INTERIOR_SHOT.x > WALK_BOUNDS.xmax) {
   throw new Error("interior shot outside walk bounds");
 }
-if (PAVILION_DOOR.width < 1.4) throw new Error("storefront door must be walkable");
+if (PAVILION_DOOR.width < 2) throw new Error("storefront door must be walkable");
 if (WALK_BOUNDS.xmin > PAVILION.x - PAVILION.w * 0.35) throw new Error("walk bounds must reach the pavilion interior");
 if (DOOR_SHOT.x < WALK_BOUNDS.xmin || DOOR_SHOT.x > WALK_BOUNDS.xmax) throw new Error("door shot X outside walk");
 if (DOOR_SHOT.z < WALK_BOUNDS.zmin || DOOR_SHOT.z > WALK_BOUNDS.zmax) throw new Error("door shot Z outside walk");
@@ -274,11 +282,147 @@ const aimedWave = resolveInteract(
   cands,
   job,
 );
-if (!aimedWave.ready || aimedWave.ready.need !== "wave") throw new Error("aimed WAVE stand must resolve WAVE");
-if (aimedWave.prompt !== aimedWave.objective.replace(/^/, "E  ")) {
-  throw new Error(`WAVE prompt/objective disagree ${aimedWave.prompt} / ${aimedWave.objective}`);
+if (aimedWave.ready?.need === "wave" || aimedWave.ready?.need === "talk" || aimedWave.ready?.need === "park") {
+  throw new Error("PAY job must beat WAVE/TALK/PARK");
+}
+if (!aimedWave.objective.includes("PAY") || !aimedWave.objective.includes("PECK")) {
+  throw new Error(`aimed WAVE during PAY must keep PAY Peck, got ${aimedWave.objective}`);
+}
+if (aimedWave.prompt && !aimedWave.prompt.includes("PAY")) {
+  throw new Error(`PAY job prompt leaked ${aimedWave.prompt}`);
+}
+
+const kimSlot = WAIT_SLOTS[Math.max(0, WAIT_ORDER.indexOf("kim"))];
+const besideKim = { x: kimSlot.x + 1.5, y: 1.56, z: kimSlot.z };
+const steal = resolveInteract(besideKim, { x: -1, y: 0, z: 0 }, "guest:kim", cands, job);
+if (steal.ready?.need === "talk" || steal.ready?.need === "park" || steal.ready?.need === "wave") {
+  throw new Error("standing on Kim must not steal E while PAY is the job");
+}
+if (!steal.objective.includes("PAY") || !steal.objective.includes("PECK")) {
+  throw new Error(`Kim-adjacent objective must stay PAY Peck, got ${steal.objective}`);
+}
+if (steal.prompt && steal.prompt !== "E  PAY  ·  PECK") {
+  throw new Error(`Kim-adjacent prompt leaked ${steal.prompt}`);
+}
+
+const loungePay = PAY_POINTS[1];
+const atLoungePay = resolveInteract(
+  { x: loungePay.x, y: 1.56, z: loungePay.z + 1.1 },
+  { x: 0, y: 0, z: -1 },
+  "kiosk:1",
+  cands,
+  job,
+);
+if (!atLoungePay.ready || atLoungePay.ready.need !== "pay" || atLoungePay.ready.guestId !== "peck") {
+  throw new Error("lounge PAY totem must resolve PAY Peck");
+}
+if (atLoungePay.prompt !== "E  PAY  ·  PECK" || atLoungePay.objective !== "PAY  ·  PECK") {
+  throw new Error(`lounge PAY HUD disagree ${atLoungePay.prompt} / ${atLoungePay.objective}`);
+}
+
+if (!payKiosk(opening, "peck")) throw new Error("verify pay Peck failed");
+const paidCands = collectCandidates(opening, carPos, PAY_POINTS, KIOSK_REACH, WAVE_POINT, WAVE_REACH, bays);
+const paidJob = nextJob(opening);
+const autoHit = resolveInteract(besidePeck, besideLook, "guest:peck", paidCands, paidJob);
+if (!autoHit.ready || autoHit.ready.need !== "auto" || autoHit.ready.guestId !== "peck") {
+  throw new Error("after pay, Peck must offer AUTOCHARGE");
+}
+if (autoHit.prompt !== "E  AUTOCHARGE  ·  PECK" || autoHit.objective !== "AUTOCHARGE  ·  PECK") {
+  throw new Error(`after-pay HUD disagree ${autoHit.prompt} / ${autoHit.objective}`);
+}
+if (!enrollAuto(opening, "peck")) throw new Error("verify AutoCharge enroll failed");
+if (opening.autochargeSignups < 1) throw new Error("AUTO must increment after Peck enrolls");
+
+const waveAfter = resolveInteract(
+  { x: WAVE_POINT.x, y: 1.56, z: WAVE_POINT.z + 2.4 },
+  { x: 0, y: 0, z: -1 },
+  "wave",
+  paidCands,
+  paidJob,
+);
+if (!waveAfter.ready || waveAfter.ready.need !== "wave") {
+  throw new Error("after PAY, aimed WAVE stand must resolve WAVE");
+}
+if (waveAfter.prompt !== waveAfter.objective.replace(/^/, "E  ")) {
+  throw new Error(`WAVE prompt/objective disagree ${waveAfter.prompt} / ${waveAfter.objective}`);
 }
 
 if (GUEST_REACH > 5.2) throw new Error("guest reach grew too loose");
+
+if (!inPlayableVolume(START_SHOT.x, START_SHOT.z)) throw new Error("spawn must be on the lot");
+if (!inPlayableVolume(PROMPT_SHOT.x, PROMPT_SHOT.z)) throw new Error("Peck prompt shot off playable volume");
+if (!inPlayableVolume(loungePay.x, loungePay.z)) throw new Error("lounge PAY totem off playable volume");
+if (!inPlayableVolume(INTERIOR_SHOT.x, INTERIOR_SHOT.z)) throw new Error("interior shot off lounge volume");
+if (!inPlayableVolume(DOOR_IN_SHOT.x, DOOR_IN_SHOT.z)) throw new Error("door-in shot off playable volume");
+if (!inPlayableVolume(door.x, door.z)) throw new Error("south door center must be walkable");
+if (inPlayableVolume(-28.2, -10.4)) throw new Error("west planter strip must be out of playable volume");
+if (inPlayableVolume(-28.2, 14.8)) throw new Error("northwest void must be out of playable volume");
+if (playableWalkTarget(-28.2, -10.4) != null) throw new Error("walk-to must reject the west void");
+if (playableWalkTarget(START_SHOT.x, START_SHOT.z) == null) throw new Error("walk-to must accept spawn");
+
+const scrape = clampPlayable(-27.1, -10.4);
+if (scrape.teleported) throw new Error("near-rail scrape should clamp, not teleport");
+if (!inPlayableVolume(scrape.x, scrape.z)) throw new Error("clamped scrape left playable volume");
+if (scrape.x + 1e-6 < LOT_WALK.xmin) throw new Error("west scrape must stay on the lot apron");
+
+const lost = clampPlayable(-40, -40);
+if (!lost.teleported) throw new Error("deep void must soft-teleport");
+if (lost.x !== SAFE_LOT_SPAWN.x || lost.z !== SAFE_LOT_SPAWN.z) {
+  throw new Error("deep void must recover to the lot spawn");
+}
+
+const loungeHold = clampPlayable(INTERIOR_SHOT.x, INTERIOR_SHOT.z);
+if (loungeHold.teleported || loungeHold.x !== INTERIOR_SHOT.x) {
+  throw new Error("lounge interior must stay put");
+}
+
+if (LOUNGE_WALK.xmin > INTERIOR_SHOT.x) throw new Error("lounge walk must reach the sofa shot");
+
+const lotBoxes = [
+  ...pavilionExteriorWalls().map(
+    (w) => new THREE.Box3().setFromCenterAndSize(new THREE.Vector3(w.cx, w.cy, w.cz), new THREE.Vector3(w.w, w.h, w.d)),
+  ),
+  ...westVoidWalls().map(
+    (w) => new THREE.Box3().setFromCenterAndSize(new THREE.Vector3(w.cx, w.cy, w.cz), new THREE.Vector3(w.w, w.h, w.d)),
+  ),
+];
+const inWalk = new THREE.Vector3(door.x, 1.64, door.z - 2.4);
+for (let i = 0; i < 36; i++) {
+  inWalk.z += 0.16;
+  inWalk.x = door.x;
+  resolveColliders(inWalk, lotBoxes);
+  const held = clampPlayable(inWalk.x, inWalk.z);
+  inWalk.x = held.x;
+  inWalk.z = held.z;
+  if (held.teleported) throw new Error("door walk teleported into spawn");
+  if (!inPlayableVolume(inWalk.x, inWalk.z)) throw new Error(`door walk left playable at z=${inWalk.z.toFixed(2)}`);
+  if (Math.abs(inWalk.x - door.x) > 0.4) {
+    throw new Error(`door path pinched at z=${inWalk.z.toFixed(2)} x=${inWalk.x.toFixed(2)}`);
+  }
+}
+if (inWalk.z < door.z + 1.4) throw new Error("door walk did not enter the lounge");
+
+const outWalk = inWalk.clone();
+for (let i = 0; i < 36; i++) {
+  outWalk.z -= 0.16;
+  outWalk.x = door.x;
+  resolveColliders(outWalk, lotBoxes);
+  const held = clampPlayable(outWalk.x, outWalk.z);
+  outWalk.x = held.x;
+  outWalk.z = held.z;
+  if (held.teleported) throw new Error("door exit teleported into spawn");
+  if (!inPlayableVolume(outWalk.x, outWalk.z)) throw new Error(`door exit left playable at z=${outWalk.z.toFixed(2)}`);
+}
+if (outWalk.z > door.z - 1.1) throw new Error("door walk did not return to the lot");
+
+const slide = new THREE.Vector3(door.x, 1.64, door.z - 0.55);
+for (let i = 0; i < 22; i++) {
+  slide.x -= 0.28;
+  resolveColliders(slide, lotBoxes);
+  const held = clampPlayable(slide.x, slide.z);
+  slide.x = held.x;
+  slide.z = held.z;
+  if (!inPlayableVolume(slide.x, slide.z)) throw new Error("west slide along the lounge fell into the void");
+}
 
 console.log("verify-shift ok");

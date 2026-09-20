@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { WALK_BOUNDS } from "../world/layout";
+import { clampPlayable, playableWalkTarget } from "../world/layout";
 
 export const WALK_RADIUS = 0.34;
 
@@ -108,9 +108,14 @@ export class Walker {
   }
 
   walkTo(point: THREE.Vector3): void {
+    const target = playableWalkTarget(point.x, point.z);
+    if (!target) {
+      this.destination = null;
+      return;
+    }
     this.destination = point.clone();
-    this.destination.x = THREE.MathUtils.clamp(this.destination.x, WALK_BOUNDS.xmin, WALK_BOUNDS.xmax);
-    this.destination.z = THREE.MathUtils.clamp(this.destination.z, WALK_BOUNDS.zmin, WALK_BOUNDS.zmax);
+    this.destination.x = target.x;
+    this.destination.z = target.z;
     this.destination.y = this.position.y;
   }
 
@@ -131,6 +136,7 @@ export class Walker {
     this.yaw = yaw;
     this.pitch = pitch;
     this.destination = null;
+    if (eyeY <= 3.2) this.applyPlayable();
     this.sync();
   }
 
@@ -155,12 +161,23 @@ export class Walker {
         this.yaw = Math.atan2(-delta.x, -delta.z);
       }
     }
-    this.position.x = THREE.MathUtils.clamp(this.position.x, WALK_BOUNDS.xmin, WALK_BOUNDS.xmax);
-    this.position.z = THREE.MathUtils.clamp(this.position.z, WALK_BOUNDS.zmin, WALK_BOUNDS.zmax);
-    resolveColliders(this.position, colliders);
-    this.position.x = THREE.MathUtils.clamp(this.position.x, WALK_BOUNDS.xmin, WALK_BOUNDS.xmax);
-    this.position.z = THREE.MathUtils.clamp(this.position.z, WALK_BOUNDS.zmin, WALK_BOUNDS.zmax);
+    this.confine(colliders);
     this.sync();
+  }
+
+  /** Keep the walker on asphalt ∪ lounge; recover to lot spawn if already in the void. */
+  confine(colliders: THREE.Box3[] = []): void {
+    if (this.position.y > 3.2) return;
+    this.applyPlayable();
+    resolveColliders(this.position, colliders);
+    this.applyPlayable();
+  }
+
+  private applyPlayable(): void {
+    const held = clampPlayable(this.position.x, this.position.z);
+    this.position.x = held.x;
+    this.position.z = held.z;
+    if (held.teleported) this.destination = null;
   }
 
   private sync(): void {

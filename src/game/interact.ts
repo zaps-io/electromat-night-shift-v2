@@ -121,6 +121,11 @@ function usable(c: InteractCandidate, eye: Vec3, look: Vec3, aimedId: string | n
   return { ok, aimed: aimed && inReach, dist, dot };
 }
 
+/** While PAY is the live job, talk / wave / park cannot steal E, the prompt, or the objective. */
+export function payLocked(job: { need: InteractNeed } | null): boolean {
+  return job?.need === "pay";
+}
+
 /** Single nearest live target. Prompt only when the action is available and in range / aimed. */
 export function resolveInteract(
   eye: Vec3,
@@ -140,7 +145,8 @@ export function resolveInteract(
   if (!candidates.length) return empty;
 
   const scored = candidates.map((c) => ({ c, ...usable(c, eye, look, aimedId) }));
-  const live = scored.filter((s) => s.ok);
+  const liveAll = scored.filter((s) => s.ok);
+  const live = payLocked(job) ? liveAll.filter((s) => s.c.need === "pay") : liveAll;
   const aimedHit = live.find((s) => s.c.id === aimedId) ?? live.filter((s) => s.aimed).sort((a, b) => a.dist - b.dist)[0];
   const nearest = live.slice().sort((a, b) => a.dist - b.dist)[0];
   const pick = aimedHit ?? nearest;
@@ -158,7 +164,7 @@ export function resolveInteract(
   }
 
   const aimedFar = aimedId ? scored.find((s) => s.c.id === aimedId) : undefined;
-  if (aimedFar) {
+  if (aimedFar && (!payLocked(job) || aimedFar.c.need === "pay")) {
     return {
       ready: null,
       focus: aimedFar.c,
