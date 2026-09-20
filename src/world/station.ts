@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { C } from "../brand";
-import { BAY_SIZE, CANOPIES, LOT_RAILS, PAY_POINTS, PAVILION, STALLS, WALK_BOUNDS, WAVE_POINT, YARD } from "./layout";
+import { BAY_SIZE, CANOPIES, LOT_RAILS, PAY_POINTS, PAVILION, STALLS, WAVE_POINT, YARD, westVoidWalls } from "./layout";
 import { addPavilion } from "./pavilion";
 import { asphaltColor, asphaltNormal, asphaltRough, creamPanels, curbColor, curbRough, gravel, soffitPanels } from "./tex";
 import { makePayIcon, makeWaveIcon } from "./icons";
@@ -693,18 +693,9 @@ export function buildStation(): Station {
   }
   bayAnchors.sort((a, b) => (a.userData.bayId as number) - (b.userData.bayId as number));
 
-  const railX = LOT_RAILS.xmin;
-  const west = WALK_BOUNDS.xmin;
-  const westLot = [
-    new THREE.Box3().setFromCenterAndSize(
-      new THREE.Vector3((west + railX) * 0.5, 1.2, (LOT_RAILS.zmin + PAVILION.z - PAVILION.d * 0.5) * 0.5),
-      new THREE.Vector3(railX - west + 0.2, 2.4, PAVILION.z - PAVILION.d * 0.5 - LOT_RAILS.zmin),
-    ),
-    new THREE.Box3().setFromCenterAndSize(
-      new THREE.Vector3((west + railX) * 0.5, 1.2, (PAVILION.z + PAVILION.d * 0.5 + LOT_RAILS.zmax) * 0.5),
-      new THREE.Vector3(railX - west + 0.2, 2.4, LOT_RAILS.zmax - (PAVILION.z + PAVILION.d * 0.5)),
-    ),
-  ];
+  const westLot = westVoidWalls().map(
+    (w) => new THREE.Box3().setFromCenterAndSize(new THREE.Vector3(w.cx, w.cy, w.cz), new THREE.Vector3(w.w, w.h, w.d)),
+  );
 
   return {
     root,

@@ -32,6 +32,7 @@ import { addLodFillers, hullDebug, loadCarPrototypes, syncCars, trimLodFillers, 
 import {
   BAYS,
   CANOPY_SHOT,
+  DOOR_IN_SHOT,
   DOOR_SHOT,
   INTERIOR_SHOT,
   KIOSK_REACH,
@@ -43,6 +44,7 @@ import {
   WAVE_REACH,
   WIDE_SHOT,
   ZEUS_SHOT,
+  inPlayableVolume,
 } from "./world/layout";
 import { addBrandSignage } from "./world/branding";
 import { makeAttendantHand, tickHand } from "./world/hand";
@@ -495,6 +497,16 @@ async function saveShots(): Promise<void> {
   walker.lookAt(PROMPT_SHOT.lookAt.x, PROMPT_SHOT.lookAt.y, PROMPT_SHOT.lookAt.z);
   await new Promise((r) => setTimeout(r, 500));
   await post("/workspace/docs/shots/prompt-pay.png", capture(1280, 800));
+  await new Promise((r) => setTimeout(r, 200));
+  act();
+  await new Promise((r) => setTimeout(r, 200));
+  await post("/workspace/docs/shots/after-pay.png", capture(1280, 800));
+  await new Promise((r) => setTimeout(r, 400));
+  walker.setFov(DOOR_IN_SHOT.fov);
+  walker.place(DOOR_IN_SHOT.x, DOOR_IN_SHOT.z, DOOR_IN_SHOT.yaw, DOOR_IN_SHOT.pitch, DOOR_IN_SHOT.eyeY);
+  walker.lookAt(DOOR_IN_SHOT.lookAt.x, DOOR_IN_SHOT.lookAt.y, DOOR_IN_SHOT.lookAt.z);
+  await new Promise((r) => setTimeout(r, 500));
+  await post("/workspace/docs/shots/door-interior.png", capture(1280, 800));
 }
 
 if (params.has("saveshots")) void saveShots();
@@ -548,6 +560,12 @@ window.__electromat = {
   },
   get target() {
     return refreshTarget();
+  },
+  walkTo(x: number, z: number) {
+    walker.walkTo(new THREE.Vector3(x, 0, z));
+  },
+  inPlayable(x: number, z: number) {
+    return inPlayableVolume(x, z);
   },
   capture,
   hullDebug,

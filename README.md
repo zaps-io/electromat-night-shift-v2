@@ -18,6 +18,8 @@ Default `startNight()` lot view (no local build required):
 - [`docs/shots/interior.png`](docs/shots/interior.png) — walk-in store / lounge looking out the east storefront
 - [`docs/shots/door-exterior.png`](docs/shots/door-exterior.png) — south store door (red portal + OPEN)
 - [`docs/shots/prompt-pay.png`](docs/shots/prompt-pay.png) — HUD objective and E-prompt both `PAY · PECK`
+- [`docs/shots/after-pay.png`](docs/shots/after-pay.png) — after E PAY + AUTOCHARGE, `AUTO 1`
+- [`docs/shots/door-interior.png`](docs/shots/door-interior.png) — lounge interior from the south OPEN door
 - [`docs/shots/door-exterior.png`](docs/shots/door-exterior.png) — south storefront door from the lot
 - [`docs/shots/v2b-lot.png`](docs/shots/v2b-lot.png) — wider canopy / pavilion / occupancy
 
@@ -39,7 +41,7 @@ Private-repo Pages also needs a GitHub plan that includes Pages (org GitHub Team
 2. Click once to lock mouse-look. **WASD** walks continuously after lock. **E** uses the on-screen prompt only. Right-click walks to a ground spot (amber puck). There is no left-click-to-destination.
 3. **E TALK** to a driver (amber `!` in the aisle queue).
 4. **E PARK** — pulls them into an open stall (or look at an empty painted bay and press E).
-5. **E WAVE** at the aisle-mouth cream stand (amber **WAVE**) — greets if needed and hustles the next waiter into an open bay. Opening lot: bay 6 is free; WAVE parks Ng while Peck is still on PAY.
+5. **E WAVE** at the aisle-mouth cream stand (amber **WAVE**) — greets if needed and hustles the next waiter into an open bay. Opening lot: **PAY Peck** stays on E until paid; WAVE / TALK / PARK cannot steal the key. After pay, WAVE parks Ng in bay 6.
 6. **E PLUG** the inlet. AutoCharge cars take power immediately. Enrolling AutoCharge after PAY pulls full power so they zip sooner.
 7. **How to pay (QA repro):**
    1. Start night. Objective: `PAY · PECK — walk to the car or a PAY stand`. No E prompt until Peck or a PAY stand is in range / aimed.
