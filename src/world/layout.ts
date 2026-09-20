@@ -239,15 +239,15 @@ export const INTERIOR_SHOT = {
   fov: 64,
 } as const;
 
-/** South storefront door from the lot, next to the lounge PAY stand. */
+/** South storefront door from the lot, framing the OPEN portal and lounge PAY totem. */
 export const DOOR_SHOT = {
-  x: -21.35,
-  z: -6.45,
-  eyeY: 1.56,
-  yaw: 0.18,
-  pitch: 0.04,
-  lookAt: { x: -22.55, y: 1.35, z: -3.15 },
-  fov: 50,
+  x: -20.15,
+  z: -7.35,
+  eyeY: 1.58,
+  yaw: 0.22,
+  pitch: 0.08,
+  lookAt: { x: -21.55, y: 1.55, z: -3.55 },
+  fov: 54,
 } as const;
 
 /** Aisle face of Peck's opening bay — prompt and objective both read PAY. */

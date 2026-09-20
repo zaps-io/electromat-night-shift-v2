@@ -59,7 +59,7 @@ export function makeTargetMark(): THREE.Group {
   ring.rotation.x = -Math.PI / 2;
   ring.position.y = 0.04;
   const chevron = makeChevronSprite();
-  chevron.position.y = 2.35;
+  chevron.position.y = 2.85;
   g.add(ring, chevron);
   g.visible = false;
   return g;
