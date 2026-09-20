@@ -181,13 +181,13 @@ export const ZEUS_SHOT = {
 
 /** Inside the lounge, sofa in frame, looking out the east storefront toward the lot. */
 export const INTERIOR_SHOT = {
-  x: -24.15,
-  z: 5.15,
-  eyeY: 1.54,
+  x: -26.55,
+  z: 4.85,
+  eyeY: 1.56,
   yaw: -1.05,
-  pitch: 0.02,
-  lookAt: { x: -17.55, y: 1.28, z: 3.55 },
-  fov: 62,
+  pitch: 0.04,
+  lookAt: { x: -18.4, y: 1.18, z: 3.05 },
+  fov: 64,
 } as const;
 
 /** South storefront door from the lot, next to the lounge PAY stand. */

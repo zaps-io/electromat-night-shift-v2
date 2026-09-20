@@ -227,12 +227,12 @@ export function addZeusCharger(
   cap.position.y = 2.272;
 
   const seam = new THREE.Mesh(geo.seam, cyanSeam);
-  seam.position.y = 0.148;
+  seam.position.y = 0.228;
   const seamHalo = new THREE.Mesh(geo.seamGlow, cyanGlow);
-  seamHalo.position.y = 0.148;
+  seamHalo.position.y = 0.228;
   const ring = new THREE.Mesh(geo.ring, cyanRing);
   ring.rotation.x = -Math.PI / 2;
-  ring.position.y = 0.012;
+  ring.position.y = 0.214;
 
   const recess = new THREE.Mesh(geo.recess, charcoal);
   recess.position.set(0, 1.28, -0.212);

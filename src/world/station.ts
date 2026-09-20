@@ -267,11 +267,11 @@ function addCanopyAt(root: THREE.Group, cx: number, cz: number, w: number, d: nu
   });
   const face = mat(0x6a6458, { roughness: 0.82, metalness: 0.03, envMapIntensity: 0.08 });
   const paint = mat(0xe8c040, { roughness: 0.62, metalness: 0.04, envMapIntensity: 0.12 });
-  const median = new THREE.Mesh(new RoundedBoxGeometry(1.45, 0.26, d - 3.2, 2, 0.05), pad);
-  median.position.set(cx, 0.13, cz);
+  const median = new THREE.Mesh(new RoundedBoxGeometry(1.45, 0.16, d - 3.2, 2, 0.05), pad);
+  median.position.set(cx, 0.09, cz);
   median.receiveShadow = true;
-  const medianFace = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.12, d - 3.05), face);
-  medianFace.position.set(cx, 0.06, cz);
+  const medianFace = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.08, d - 3.05), face);
+  medianFace.position.set(cx, 0.04, cz);
   root.add(median, medianFace);
   const curb = mat(0xf4eee0, {
     roughness: 0.7,
@@ -281,13 +281,13 @@ function addCanopyAt(root: THREE.Group, cx: number, cz: number, w: number, d: nu
     envMapIntensity: 0.14,
   });
   for (const sx of [-1, 1]) {
-    const island = new THREE.Mesh(new RoundedBoxGeometry(0.52, 0.24, d - 2.6, 2, 0.05), curb);
-    island.position.set(cx + sx * (w * 0.42), 0.12, cz);
+    const island = new THREE.Mesh(new RoundedBoxGeometry(0.52, 0.16, d - 2.6, 2, 0.05), curb);
+    island.position.set(cx + sx * (w * 0.42), 0.09, cz);
     island.receiveShadow = true;
-    const riser = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.1, d - 2.48), face);
-    riser.position.set(cx + sx * (w * 0.42), 0.05, cz);
-    const nose = new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.03, 0.42), paint);
-    nose.position.set(cx + sx * (w * 0.42), 0.25, cz - (d - 2.6) * 0.48);
+    const riser = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.07, d - 2.48), face);
+    riser.position.set(cx + sx * (w * 0.42), 0.035, cz);
+    const nose = new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.025, 0.42), paint);
+    nose.position.set(cx + sx * (w * 0.42), 0.175, cz - (d - 2.6) * 0.48);
     root.add(island, riser, nose);
   }
 }
@@ -334,7 +334,7 @@ function addOneKiosk(root: THREE.Group, x: number, z: number): { kiosk: THREE.Gr
   hit.position.set(x, 1.15, z);
   hit.userData.kind = "kiosk";
   const alert = makePayIcon();
-  alert.position.set(x, 2.35, z);
+  alert.position.set(x, 2.72, z);
   alert.visible = false;
   kiosk.add(stand, head, glow, hit, alert);
   root.add(kiosk);

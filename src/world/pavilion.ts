@@ -25,14 +25,14 @@ function worldBox(cx: number, cy: number, cz: number, w: number, h: number, d: n
   return new THREE.Box3().setFromCenterAndSize(new THREE.Vector3(cx, cy, cz), new THREE.Vector3(w, h, d));
 }
 
-function addPerson(g: THREE.Group, x: number, z: number, yaw: number, h = 1.58): void {
+function addPerson(g: THREE.Group, x: number, z: number, yaw: number, h = 1.58, sit = false): void {
   const cloth = new THREE.MeshStandardMaterial({ color: 0x2a2c32, roughness: 0.84 });
   const skin = new THREE.MeshStandardMaterial({ color: 0x8a5a38, roughness: 0.7 });
-  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.18, h * 0.38, 4, 8), cloth);
-  body.position.set(x, h * 0.42, z);
+  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.17, sit ? 0.28 : h * 0.38, 4, 8), cloth);
+  body.position.set(x, sit ? 0.62 : h * 0.42, z);
   body.rotation.y = yaw;
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 8), skin);
-  head.position.set(x, h * 0.78, z);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 8), skin);
+  head.position.set(x, sit ? 0.96 : h * 0.78, z);
   g.add(body, head);
 }
 
@@ -172,7 +172,13 @@ function addInterior(g: THREE.Group, W: number, D: number, H: number): THREE.Box
   floor.rotation.x = -Math.PI / 2;
   floor.position.y = 0.03;
   floor.receiveShadow = true;
-  g.add(floor);
+  const runner = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.35, 4.8),
+    new THREE.MeshStandardMaterial({ color: 0x3a2a24, roughness: 0.82, metalness: 0.03 }),
+  );
+  runner.rotation.x = -Math.PI / 2;
+  runner.position.set(0.75, 0.035, -2.4);
+  g.add(floor, runner);
 
   const counter = new THREE.Mesh(new RoundedBoxGeometry(2.55, 0.96, 0.78, 2, 0.05), cream);
   counter.position.set(-2.55, 0.58, -3.15);
@@ -187,10 +193,10 @@ function addInterior(g: THREE.Group, W: number, D: number, H: number): THREE.Box
   pitcher.position.set(-2.72, 1.2, -3.08);
   g.add(counter, top, pos, posGlow, groupHead, groupCup, pitcher);
 
-  const pastry = new THREE.Mesh(new RoundedBoxGeometry(0.72, 0.92, 0.58, 2, 0.04), charcoal);
-  pastry.position.set(-1.15, 0.52, -3.22);
+  const pastry = new THREE.Mesh(new RoundedBoxGeometry(0.72, 0.92, 0.62, 2, 0.04), charcoal);
+  pastry.position.set(-1.35, 0.52, -2.35);
   const pastryGlass = new THREE.Mesh(
-    new THREE.BoxGeometry(0.64, 0.42, 0.5),
+    new THREE.BoxGeometry(0.64, 0.42, 0.54),
     new THREE.MeshPhysicalMaterial({
       color: 0xc8d4dc,
       transparent: true,
@@ -200,14 +206,28 @@ function addInterior(g: THREE.Group, W: number, D: number, H: number): THREE.Box
       envMapIntensity: 0.7,
     }),
   );
-  pastryGlass.position.set(-1.15, 0.86, -3.22);
+  pastryGlass.position.set(-1.35, 0.86, -2.35);
   g.add(pastry, pastryGlass);
   for (const [dx, c] of [
     [-0.18, C.red],
     [0.0, C.amber],
     [0.18, C.cream],
   ] as const) {
-    g.add(box(0.12, 0.08, 0.12, mat(c, { roughness: 0.42 }), -1.15 + dx, 0.62, -3.18));
+    g.add(box(0.12, 0.08, 0.12, mat(c, { roughness: 0.42 }), -1.35 + dx, 0.62, -2.28));
+  }
+
+  const island = new THREE.Mesh(new RoundedBoxGeometry(0.85, 0.72, 0.85, 2, 0.05), cream);
+  island.position.set(-1.85, 0.42, 0.35);
+  const islandTop = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.04, 0.9), charcoal);
+  islandTop.position.set(-1.85, 0.8, 0.35);
+  g.add(island, islandTop);
+  for (const [dx, dz, c] of [
+    [-0.18, -0.16, C.red],
+    [0.16, -0.12, C.cyan],
+    [-0.12, 0.18, C.amber],
+    [0.2, 0.14, C.cream],
+  ] as const) {
+    g.add(box(0.14, 0.18, 0.1, mat(c, { roughness: 0.4 }), -1.85 + dx, 0.94, 0.35 + dz));
   }
 
   const caseA = new THREE.Mesh(new RoundedBoxGeometry(0.46, 1.15, 2.4, 2, 0.04), charcoal);
@@ -293,8 +313,8 @@ function addInterior(g: THREE.Group, W: number, D: number, H: number): THREE.Box
   lampGlow.position.set(0.95, 1.18, 4.55);
   g.add(plantPot, frond, lampStem, lampShade, lampGlow);
 
-  addPerson(g, 1.95, 3.55, -1.55, 1.18);
-  addPerson(g, 4.0, 1.85, 1.2, 1.22);
+  addPerson(g, 1.95, 3.55, -1.55, 1.18, true);
+  addPerson(g, 4.0, 1.85, 1.2, 1.22, true);
   addPerson(g, -2.35, -2.55, 0.2, 1.45);
 
   addPendant(g, -2.4, -3.05, H, lamp, chrome);
@@ -324,7 +344,8 @@ function addInterior(g: THREE.Group, W: number, D: number, H: number): THREE.Box
   const pz = PAVILION.z;
   return [
     worldBox(px - 2.55, 0.6, pz - 3.15, 2.7, 1.2, 0.95),
-    worldBox(px - 1.15, 0.5, pz - 3.22, 0.85, 1.1, 0.7),
+    worldBox(px - 1.35, 0.5, pz - 2.35, 0.85, 1.1, 0.75),
+    worldBox(px - 1.85, 0.45, pz + 0.35, 1.0, 1.0, 1.0),
     worldBox(px - 4.85, 0.7, pz - 3.4, 0.7, 1.4, 2.6),
     worldBox(px - 4.9, 0.8, pz + 0.15, 0.65, 1.5, 2.0),
     worldBox(px + 1.85, 0.5, pz + 3.55, 1.15, 1.0, 2.25),
