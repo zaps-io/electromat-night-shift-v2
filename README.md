@@ -18,6 +18,8 @@ Default `startNight()` lot view (no local build required):
 - [`docs/shots/interior.png`](docs/shots/interior.png) — walk-in store / lounge looking out the east storefront
 - [`docs/shots/door-exterior.png`](docs/shots/door-exterior.png) — south store door (red portal + OPEN)
 - [`docs/shots/prompt-pay.png`](docs/shots/prompt-pay.png) — HUD objective and E-prompt both `PAY · PECK`
+- [`docs/shots/after-pay.png`](docs/shots/after-pay.png) — after E PAY + AUTOCHARGE, `AUTO 1`
+- [`docs/shots/door-interior.png`](docs/shots/door-interior.png) — lounge interior from the south OPEN door
 - [`docs/shots/door-exterior.png`](docs/shots/door-exterior.png) — south storefront door from the lot
 - [`docs/shots/v2b-lot.png`](docs/shots/v2b-lot.png) — wider canopy / pavilion / occupancy
 
