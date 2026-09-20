@@ -170,7 +170,12 @@ export function payKiosk(s: GameState, guestId: string): boolean {
   }
   if (g.authorized) return false;
   g.authorized = true;
-  speak(s, `Paid — ${g.name}. E AUTOCHARGE for next time.`);
+  if (!g.enrolled) {
+    g.enrolled = true;
+    g.auth = "auto";
+    s.autochargeSignups += 1;
+  }
+  speak(s, `Paid — ${g.name}. AutoCharge on — they zip sooner.`);
   return true;
 }
 

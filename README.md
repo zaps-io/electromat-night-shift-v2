@@ -42,12 +42,12 @@ Private-repo Pages also needs a GitHub plan that includes Pages (org GitHub Team
 3. **E TALK** to a driver (amber `!` in the aisle queue).
 4. **E PARK** — pulls them into an open stall (or look at an empty painted bay and press E).
 5. **E WAVE** at the aisle-mouth cream stand (amber **WAVE**) — greets if needed and hustles the next waiter into an open bay. Opening lot: **PAY Peck** stays on E until paid; WAVE / TALK / PARK cannot steal the key. After pay, WAVE parks Ng in bay 6.
-6. **E PLUG** the inlet. AutoCharge cars take power immediately. Enrolling AutoCharge after PAY pulls full power so they zip sooner.
+6. **E PLUG** the inlet. AutoCharge cars take power immediately. Paying a kiosk guest enrolls AutoCharge (HUD AUTO increments) so they pull full power and zip sooner.
 7. **How to pay (QA repro):**
    1. Start night. Objective: `PAY · PECK — walk to the car or a PAY stand`. No E prompt until Peck or a PAY stand is in range / aimed.
    2. **At the car:** walk to the dark Tesla on the **right island** (cyan arrow + amber `!`). Objective and prompt both read `PAY · PECK`. Press **E**. Toast `Paid — Peck.`
    3. **At the kiosk (operator path):** after any first-visit **E PLUG**, walk **west** (left of the left canopy) or to the lounge south door. Both stands have a floating **PAY** badge; the lounge stand is a taller totem with a pole flag. When the prompt reads `E PAY · NAME`, **E** pays that guest.
-   4. Payment is not gated on a full battery. Then **E AUTOCHARGE** (faster charge). Later queue cars: talk → park → plug → same pay, or WAVE from the aisle.
+   4. Payment is not gated on a full battery. Paying Peck (car or PAY stand) enrolls AutoCharge — HUD **AUTO** goes to 1 and they zip sooner. Later queue cars: talk → park → plug → same pay, or WAVE from the aisle.
 8. When the battery finishes, `!` returns — **E UNPLUG** to zip them out.
 8. Cyan battery icons mark occupancy. Three walkaways end the night. 04:00 grades the shift.
 

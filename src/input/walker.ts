@@ -1,7 +1,61 @@
 import * as THREE from "three";
-import { clampPlayable, playableWalkTarget } from "../world/layout";
+import { clampPlayable, inPlayableVolume, playableWalkPath, segmentPlayable } from "../world/layout";
 
 export const WALK_RADIUS = 0.34;
+
+export type WalkStep = {
+  x: number;
+  z: number;
+  dest: { x: number; z: number } | null;
+  route: { x: number; z: number }[];
+  teleported: boolean;
+};
+
+/** Plan a right-click walk. Empty dest cancels when the target or path leaves playable volume. */
+export function beginWalk(fromX: number, fromZ: number, toX: number, toZ: number): WalkStep {
+  const path = playableWalkPath(fromX, fromZ, toX, toZ);
+  if (!path?.length) return { x: fromX, z: fromZ, dest: null, route: [], teleported: false };
+  const [dest, ...route] = path;
+  return { x: fromX, z: fromZ, dest: dest ?? null, route, teleported: false };
+}
+
+/** One frame of path follow: clamp every sample, cancel if the remaining path exits the volume. */
+export function stepWalk(step: WalkStep, dt: number, colliders: THREE.Box3[] = []): WalkStep {
+  const pos = new THREE.Vector3(step.x, 1.64, step.z);
+  let dest = step.dest;
+  const route = step.route.map((p) => ({ ...p }));
+
+  const takeNext = (): { x: number; z: number } | null => route.shift() ?? null;
+  const destOk = (d: { x: number; z: number } | null): d is { x: number; z: number } =>
+    !!d && inPlayableVolume(d.x, d.z) && segmentPlayable(pos.x, pos.z, d.x, d.z);
+
+  if (dest && !destOk(dest)) dest = takeNext();
+  while (dest && !destOk(dest)) dest = takeNext();
+
+  if (dest) {
+    const dx = dest.x - pos.x;
+    const dz = dest.z - pos.z;
+    const dist = Math.hypot(dx, dz);
+    if (dist < 0.12) dest = takeNext();
+    else {
+      const reach = Math.min(3.8 * dt, dist);
+      pos.x += (dx / dist) * reach;
+      pos.z += (dz / dist) * reach;
+    }
+  }
+
+  const apply = (): boolean => {
+    const held = clampPlayable(pos.x, pos.z);
+    pos.x = held.x;
+    pos.z = held.z;
+    return held.teleported;
+  };
+  if (apply()) return { x: pos.x, z: pos.z, dest: null, route: [], teleported: true };
+  resolveColliders(pos, colliders);
+  if (apply()) return { x: pos.x, z: pos.z, dest: null, route: [], teleported: true };
+  if (dest && !inPlayableVolume(dest.x, dest.z)) dest = takeNext();
+  return { x: pos.x, z: pos.z, dest, route, teleported: false };
+}
 
 /** Slide the walker out of expanded XZ AABBs. */
 export function resolveColliders(pos: THREE.Vector3, colliders: THREE.Box3[], radius = WALK_RADIUS): void {
@@ -42,10 +96,16 @@ export class Walker {
   pitch = -0.04;
   locked = false;
   destination: THREE.Vector3 | null = null;
+  private readonly route: { x: number; z: number }[] = [];
 
   private readonly keys = new Set<string>();
   private readonly look = new THREE.Vector3();
   private readonly wish = new THREE.Vector3();
+
+  private clearWalk(): void {
+    this.destination = null;
+    this.route.length = 0;
+  }
 
   constructor() {
     this.camera = new THREE.PerspectiveCamera(62, 1, 0.08, 220);
@@ -108,14 +168,16 @@ export class Walker {
   }
 
   walkTo(point: THREE.Vector3): void {
-    const target = playableWalkTarget(point.x, point.z);
-    if (!target) {
+    const planned = beginWalk(this.position.x, this.position.z, point.x, point.z);
+    this.route.length = 0;
+    this.route.push(...planned.route);
+    if (!planned.dest) {
       this.destination = null;
       return;
     }
-    this.destination = point.clone();
-    this.destination.x = target.x;
-    this.destination.z = target.z;
+    this.destination = this.position.clone();
+    this.destination.x = planned.dest.x;
+    this.destination.z = planned.dest.z;
     this.destination.y = this.position.y;
   }
 
@@ -135,7 +197,7 @@ export class Walker {
     this.position.set(x, eyeY, z);
     this.yaw = yaw;
     this.pitch = pitch;
-    this.destination = null;
+    this.clearWalk();
     if (eyeY <= 3.2) this.applyPlayable();
     this.sync();
   }
@@ -147,21 +209,43 @@ export class Walker {
     if (this.keys.has("KeyA") || this.keys.has("ArrowLeft")) this.wish.x -= 1;
     if (this.keys.has("KeyD") || this.keys.has("ArrowRight")) this.wish.x += 1;
     if (this.wish.lengthSq() > 0) {
-      this.destination = null;
+      this.clearWalk();
       this.wish.normalize().applyAxisAngle(new THREE.Vector3(0, 1, 0), this.yaw);
       this.position.addScaledVector(this.wish, 4.6 * dt);
-    } else if (this.destination) {
-      const delta = this.destination.clone().sub(this.position);
-      delta.y = 0;
-      const dist = delta.length();
-      if (dist < 0.12) this.destination = null;
-      else {
-        delta.multiplyScalar((3.8 * dt) / dist);
-        this.position.add(delta);
-        this.yaw = Math.atan2(-delta.x, -delta.z);
+      this.confine(colliders);
+    } else if (this.destination || this.route.length) {
+      const beforeX = this.position.x;
+      const beforeZ = this.position.z;
+      const stepped = stepWalk(
+        {
+          x: this.position.x,
+          z: this.position.z,
+          dest: this.destination ? { x: this.destination.x, z: this.destination.z } : null,
+          route: this.route,
+          teleported: false,
+        },
+        dt,
+        colliders,
+      );
+      this.position.x = stepped.x;
+      this.position.z = stepped.z;
+      this.route.length = 0;
+      this.route.push(...stepped.route);
+      if (stepped.dest) {
+        if (!this.destination) this.destination = this.position.clone();
+        this.destination.x = stepped.dest.x;
+        this.destination.z = stepped.dest.z;
+        this.destination.y = this.position.y;
+        const dx = this.position.x - beforeX;
+        const dz = this.position.z - beforeZ;
+        if (dx * dx + dz * dz > 1e-8) this.yaw = Math.atan2(-dx, -dz);
+      } else {
+        this.destination = null;
       }
+      if (stepped.teleported) this.clearWalk();
+    } else {
+      this.confine(colliders);
     }
-    this.confine(colliders);
     this.sync();
   }
 
@@ -177,7 +261,7 @@ export class Walker {
     const held = clampPlayable(this.position.x, this.position.z);
     this.position.x = held.x;
     this.position.z = held.z;
-    if (held.teleported) this.destination = null;
+    if (held.teleported) this.clearWalk();
   }
 
   private sync(): void {
