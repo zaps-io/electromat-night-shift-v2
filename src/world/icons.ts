@@ -92,6 +92,33 @@ function makeChevronSprite(): THREE.Sprite {
   return sprite(new THREE.CanvasTexture(c), 0.72, 0.72, "target");
 }
 
+export function makeDoorChevron(): THREE.Sprite {
+  const c = document.createElement("canvas");
+  c.width = 256;
+  c.height = 256;
+  const ctx = c.getContext("2d")!;
+  ctx.clearRect(0, 0, 256, 256);
+  const glow = ctx.createRadialGradient(128, 128, 10, 128, 128, 124);
+  glow.addColorStop(0, "rgba(232,154,46,0.62)");
+  glow.addColorStop(1, "rgba(232,154,46,0)");
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, 256, 256);
+  ctx.fillStyle = "#E89A2E";
+  ctx.beginPath();
+  ctx.moveTo(128, 208);
+  ctx.lineTo(40, 72);
+  ctx.lineTo(92, 72);
+  ctx.lineTo(128, 148);
+  ctx.lineTo(164, 72);
+  ctx.lineTo(216, 72);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = "#F5F0E8";
+  ctx.lineWidth = 8;
+  ctx.stroke();
+  return sprite(new THREE.CanvasTexture(c), 0.95, 0.95, "door-chevron");
+}
+
 export function makeWalkPuck(): THREE.Mesh {
   const mesh = new THREE.Mesh(
     new THREE.RingGeometry(0.18, 0.32, 24),
@@ -124,7 +151,7 @@ export function makeOpenSign(): THREE.Sprite {
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText("OPEN", 160, 76);
-  return sprite(new THREE.CanvasTexture(c), 1.35, 0.58, "door");
+  return sprite(new THREE.CanvasTexture(c), 1.62, 0.7, "door");
 }
 
 export function makePayIcon(): THREE.Sprite {

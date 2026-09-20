@@ -122,8 +122,8 @@ export const WAVE_REACH = 6.4;
 export const LOT_RAILS = { xmin: -26.2, xmax: 23.2, zmin: -21.6, zmax: 17.4 };
 
 export const PAVILION = { x: -23.4, z: 3.4, yaw: 0, w: 11.6, d: 13.4, h: 3.35 };
-/** South storefront door, local X toward the lounge PAY stand. Wide enough for the walker. */
-export const PAVILION_DOOR = { localX: 0.8, width: 2.36, height: 2.38 };
+/** South storefront door, local X toward the lounge PAY stand. Wide enough for WASD + walk-to. */
+export const PAVILION_DOOR = { localX: 0.8, width: 3.08, height: 2.38 };
 
 export type XZRect = { xmin: number; xmax: number; zmin: number; zmax: number };
 export type XZ = { x: number; z: number };
@@ -151,13 +151,33 @@ export const LOUNGE_WALK: XZRect = {
   zmax: PAVILION.z + PAVILION.d * 0.5 - LOUNGE_WALL,
 };
 
-/** Narrow south-door throat connecting lot ↔ lounge. */
+/** South-door throat: full opening plus a short lot-side funnel. */
 export const DOOR_CORRIDOR: XZRect = {
-  xmin: DOOR_WORLD_X - PAVILION_DOOR.width * 0.5 + 0.16,
-  xmax: DOOR_WORLD_X + PAVILION_DOOR.width * 0.5 - 0.16,
-  zmin: DOOR_WORLD_Z - 1.95,
-  zmax: DOOR_WORLD_Z + 1.9,
+  xmin: DOOR_WORLD_X - PAVILION_DOOR.width * 0.5 - 0.1,
+  xmax: DOOR_WORLD_X + PAVILION_DOOR.width * 0.5 + 0.1,
+  zmin: DOOR_WORLD_Z - 2.55,
+  zmax: DOOR_WORLD_Z + 2.45,
 };
+
+/** Lot-side mat + threshold. Clicks here commit to walking through the portal. */
+export const DOOR_MAT: XZRect = {
+  xmin: DOOR_CORRIDOR.xmin,
+  xmax: DOOR_CORRIDOR.xmax,
+  zmin: DOOR_WORLD_Z - 2.35,
+  zmax: DOOR_WORLD_Z + 0.42,
+};
+
+/** Building footprint for snapping furniture / wall clicks onto the lounge walk. */
+export const PAVILION_FOOTPRINT: XZRect = {
+  xmin: PAVILION.x - PAVILION.w * 0.5 - 0.12,
+  xmax: PAVILION.x + PAVILION.w * 0.5 + 0.12,
+  zmin: PAVILION.z - PAVILION.d * 0.5 - 0.12,
+  zmax: PAVILION.z + PAVILION.d * 0.5 + 0.12,
+};
+
+export const LOUNGE_ARRIVE: XZ = { x: DOOR_WORLD_X, z: DOOR_WORLD_Z + 2.15 };
+export const LOT_ARRIVE: XZ = { x: DOOR_WORLD_X, z: DOOR_WORLD_Z - 2.15 };
+export const DOOR_HINT_RANGE = 4.5;
 
 /** Outer envelope of lot ∪ lounge — not the playable shape. */
 export const WALK_BOUNDS: XZRect = {
@@ -204,9 +224,38 @@ export function clampPlayable(x: number, z: number): { x: number; z: number; tel
   return { x: pick.x, z: pick.z, teleported: false };
 }
 
-/** Right-click walk-to only keeps destinations on asphalt, the door throat, or the lounge. */
+export function inLoungeSide(x: number, z: number): boolean {
+  return inRect(x, z, LOUNGE_WALK) || (inRect(x, z, DOOR_CORRIDOR) && z >= DOOR_WORLD_Z);
+}
+
+export function onDoorMat(x: number, z: number): boolean {
+  return inRect(x, z, DOOR_MAT);
+}
+
+export function nearDoor(x: number, z: number, range = DOOR_HINT_RANGE): boolean {
+  return Math.hypot(x - DOOR_WORLD_X, z - DOOR_WORLD_Z) <= range;
+}
+
+/**
+ * Right-click walk-to. Exact playable points stay; clicks on the pavilion
+ * footprint snap onto the lounge / door throat. West planter / void stay rejected.
+ */
 export function playableWalkTarget(x: number, z: number): { x: number; z: number } | null {
-  return inPlayableVolume(x, z) ? { x, z } : null;
+  if (inPlayableVolume(x, z)) return { x, z };
+  if (!inRect(x, z, PAVILION_FOOTPRINT)) return null;
+  const held = clampPlayable(x, z);
+  if (held.teleported || !inPlayableVolume(held.x, held.z)) return null;
+  return { x: held.x, z: held.z };
+}
+
+/** Door-mat / threshold clicks commit to the other side of the portal. */
+export function resolveWalkDestination(fromX: number, fromZ: number, toX: number, toZ: number): XZ | null {
+  const snapped = playableWalkTarget(toX, toZ);
+  if (!snapped) return null;
+  if (onDoorMat(snapped.x, snapped.z)) {
+    return inLoungeSide(fromX, fromZ) ? { ...LOT_ARRIVE } : { ...LOUNGE_ARRIVE };
+  }
+  return snapped;
 }
 
 /** Straight-line samples must stay on asphalt ∪ door ∪ lounge. */
@@ -220,11 +269,19 @@ export function segmentPlayable(ax: number, az: number, bx: number, bz: number, 
   return true;
 }
 
-export function doorWaypoints(): { outside: XZ; center: XZ; inside: XZ } {
+export function doorWaypoints(): { outside: XZ; center: XZ; inside: XZ; aisle: XZ } {
   return {
-    outside: { x: DOOR_WORLD_X, z: DOOR_WORLD_Z - 1.25 },
+    outside: { x: DOOR_WORLD_X, z: DOOR_WORLD_Z - 1.85 },
     center: { x: DOOR_WORLD_X, z: DOOR_WORLD_Z },
-    inside: { x: DOOR_WORLD_X, z: DOOR_WORLD_Z + 1.45 },
+    inside: { x: DOOR_WORLD_X, z: DOOR_WORLD_Z + 1.75 },
+    aisle: { x: DOOR_WORLD_X, z: Math.min(LOUNGE_WALK.zmax - 0.45, DOOR_WORLD_Z + 3.4) },
+  };
+}
+
+function loungeAisleToward(z: number): XZ {
+  return {
+    x: DOOR_WORLD_X,
+    z: Math.min(LOUNGE_WALK.zmax - 0.4, Math.max(DOOR_WORLD_Z + 1.2, z)),
   };
 }
 
@@ -233,15 +290,18 @@ export function doorWaypoints(): { outside: XZ; center: XZ; inside: XZ } {
  * via the south door. Null cancels the click (target or path left the volume).
  */
 export function playableWalkPath(fromX: number, fromZ: number, toX: number, toZ: number): XZ[] | null {
-  if (!inPlayableVolume(toX, toZ)) return null;
+  const dest = resolveWalkDestination(fromX, fromZ, toX, toZ);
+  if (!dest) return null;
+  toX = dest.x;
+  toZ = dest.z;
   if (!inPlayableVolume(fromX, fromZ)) {
     const held = clampPlayable(fromX, fromZ);
     if (held.teleported || !inPlayableVolume(held.x, held.z)) return null;
     fromX = held.x;
     fromZ = held.z;
   }
-  const fromLounge = inRect(fromX, fromZ, LOUNGE_WALK);
-  const toLounge = inRect(toX, toZ, LOUNGE_WALK);
+  const fromLounge = inLoungeSide(fromX, fromZ);
+  const toLounge = inLoungeSide(toX, toZ);
   // Same side and a playable chord: walk straight. Crossing lot ↔ lounge
   // always uses the south door so the path cannot cut glass or the west void.
   if (fromLounge === toLounge && segmentPlayable(fromX, fromZ, toX, toZ)) {
@@ -249,7 +309,10 @@ export function playableWalkPath(fromX: number, fromZ: number, toX: number, toZ:
   }
 
   const { outside, center, inside } = doorWaypoints();
-  const hops = fromLounge ? [inside, center, outside, { x: toX, z: toZ }] : [outside, center, inside, { x: toX, z: toZ }];
+  const aisle = loungeAisleToward(fromLounge ? fromZ : toZ);
+  const hops = fromLounge
+    ? [aisle, inside, center, outside, { x: toX, z: toZ }]
+    : [outside, center, inside, aisle, { x: toX, z: toZ }];
   const path: XZ[] = [];
   let cx = fromX;
   let cz = fromZ;
@@ -308,7 +371,10 @@ export function pavilionDoorWorld(): { x: number; z: number; width: number; heig
   };
 }
 
-/** South-wall collider gap after the +0.08 box pad used in addPavilion. */
+/** South-wall collider pad — keep the opening as wide as the visual door. */
+const SOUTH_WALL_PAD = 0.02;
+
+/** South-wall collider gap after the box pad used in addPavilion. */
 export function pavilionDoorGap(): { left: number; right: number; z: number; width: number } {
   const T = 0.16;
   const west = -PAVILION.w / 2;
@@ -318,8 +384,8 @@ export function pavilionDoorGap(): { left: number; right: number; z: number; wid
   const doorR = PAVILION_DOOR.localX + PAVILION_DOOR.width * 0.5;
   const southLeftW = doorL - west;
   const southRightW = east - doorR;
-  const left = PAVILION.x + (west + doorL) * 0.5 + (southLeftW + 0.08) * 0.5;
-  const right = PAVILION.x + (doorR + east) * 0.5 - (southRightW + 0.08) * 0.5;
+  const left = PAVILION.x + (west + doorL) * 0.5 + (southLeftW + SOUTH_WALL_PAD) * 0.5;
+  const right = PAVILION.x + (doorR + east) * 0.5 - (southRightW + SOUTH_WALL_PAD) * 0.5;
   return { left, right, z: PAVILION.z + south + T * 0.5, width: right - left };
 }
 
@@ -341,8 +407,27 @@ export function pavilionExteriorWalls(): { cx: number; cy: number; cz: number; w
     { cx: px + west + T * 0.5, cy: 1.7, cz: pz, w: T + 0.12, h: 3.4, d: D + 0.3 },
     { cx: px, cy: 1.7, cz: pz + north - T * 0.5, w: W + 0.3, h: 3.4, d: T + 0.12 },
     { cx: px + east - T * 0.5, cy: 1.7, cz: pz, w: T + 0.12, h: 3.4, d: D + 0.3 },
-    { cx: px + (west + doorL) * 0.5, cy: 1.7, cz: pz + south + T * 0.5, w: southLeftW + 0.08, h: 3.4, d: T + 0.18 },
-    { cx: px + (doorR + east) * 0.5, cy: 1.7, cz: pz + south + T * 0.5, w: southRightW + 0.08, h: 3.4, d: T + 0.18 },
+    { cx: px + (west + doorL) * 0.5, cy: 1.7, cz: pz + south + T * 0.5, w: southLeftW + SOUTH_WALL_PAD, h: 3.4, d: T + 0.06 },
+    { cx: px + (doorR + east) * 0.5, cy: 1.7, cz: pz + south + T * 0.5, w: southRightW + SOUTH_WALL_PAD, h: 3.4, d: T + 0.06 },
+  ];
+}
+
+/** Furniture AABBs inside the lounge — walk around, not through. */
+export function pavilionFurniture(): { cx: number; cy: number; cz: number; w: number; h: number; d: number }[] {
+  const px = PAVILION.x;
+  const pz = PAVILION.z;
+  return [
+    { cx: px - 2.55, cy: 0.6, cz: pz - 3.15, w: 2.7, h: 1.2, d: 0.95 },
+    { cx: px - 1.35, cy: 0.5, cz: pz - 2.35, w: 0.85, h: 1.1, d: 0.75 },
+    { cx: px - 1.85, cy: 0.45, cz: pz + 0.35, w: 1.0, h: 1.0, d: 1.0 },
+    { cx: px - 4.85, cy: 0.7, cz: pz - 3.4, w: 0.7, h: 1.4, d: 2.6 },
+    { cx: px - 4.9, cy: 0.8, cz: pz + 0.15, w: 0.65, h: 1.5, d: 2.0 },
+    { cx: px + 1.85, cy: 0.5, cz: pz + 3.55, w: 1.15, h: 1.0, d: 2.25 },
+    { cx: px + 2.55, cy: 0.4, cz: pz + 3.2, w: 1.1, h: 0.8, d: 1.1 },
+    { cx: px + 3.55, cy: 0.5, cz: pz - 1.85, w: 0.9, h: 1.0, d: 1.7 },
+    { cx: px + 4.55, cy: 0.5, cz: pz + 1.85, w: 0.55, h: 1.05, d: 2.45 },
+    { cx: px + 3.05, cy: 0.45, cz: pz + 1.85, w: 0.55, h: 0.9, d: 0.55 },
+    { cx: px + 3.15, cy: 0.45, cz: pz + 4.75, w: 0.55, h: 0.9, d: 0.55 },
   ];
 }
 

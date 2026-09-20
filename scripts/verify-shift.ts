@@ -15,6 +15,7 @@ import {
 } from "../src/game/shift.ts";
 import {
   collectCandidates,
+  doorApproachHint,
   GUEST_REACH,
   nextJob,
   resolveInteract,
@@ -26,14 +27,18 @@ import {
   CAR_LENGTH,
   DOOR_CORRIDOR,
   DOOR_IN_SHOT,
+  DOOR_MAT,
   DOOR_SHOT,
   INTERIOR_SHOT,
   KIOSK_REACH,
+  LOT_ARRIVE,
   LOT_WALK,
+  LOUNGE_ARRIVE,
   LOUNGE_WALK,
   PAY_POINTS,
   PAVILION,
   PAVILION_DOOR,
+  PAVILION_FOOTPRINT,
   PROMPT_SHOT,
   QUEUE_GAP,
   SAFE_LOT_SPAWN,
@@ -48,12 +53,15 @@ import {
   ZEUS_HALF_DEPTH,
   clampPlayable,
   inPlayableVolume,
+  inRect,
   pavilionDoorGap,
   pavilionDoorWorld,
   pavilionExteriorWalls,
+  pavilionFurniture,
   planterColliders,
   playableWalkPath,
   playableWalkTarget,
+  resolveWalkDestination,
   segmentPlayable,
   westVoidWalls,
 } from "../src/world/layout.ts";
@@ -180,7 +188,7 @@ if (doorZ < WALK_BOUNDS.zmin || doorZ > WALK_BOUNDS.zmax) throw new Error("pavil
 if (INTERIOR_SHOT.x < WALK_BOUNDS.xmin || INTERIOR_SHOT.x > WALK_BOUNDS.xmax) {
   throw new Error("interior shot outside walk bounds");
 }
-if (PAVILION_DOOR.width < 2) throw new Error("storefront door must be walkable");
+if (PAVILION_DOOR.width < 2.9) throw new Error("storefront door must be a wide walk-in portal");
 if (WALK_BOUNDS.xmin > PAVILION.x - PAVILION.w * 0.35) throw new Error("walk bounds must reach the pavilion interior");
 if (DOOR_SHOT.x < WALK_BOUNDS.xmin || DOOR_SHOT.x > WALK_BOUNDS.xmax) throw new Error("door shot X outside walk");
 if (DOOR_SHOT.z < WALK_BOUNDS.zmin || DOOR_SHOT.z > WALK_BOUNDS.zmax) throw new Error("door shot Z outside walk");
@@ -189,8 +197,11 @@ if (Math.abs(doorCenterX - -22.6) > 0.2) throw new Error("door center drifted");
 if (STALL_CLEARANCE !== 0.9) throw new Error("stall clearance must stay 0.9");
 
 const gap = pavilionDoorGap();
-if (gap.width < WALK_RADIUS * 2 + 0.4) {
+if (gap.width < WALK_RADIUS * 2 + 1.2) {
   throw new Error(`door gap ${gap.width.toFixed(2)} too tight for walker`);
+}
+if (DOOR_CORRIDOR.xmax - DOOR_CORRIDOR.xmin < PAVILION_DOOR.width) {
+  throw new Error("door corridor must be at least as wide as the opening");
 }
 const door = pavilionDoorWorld();
 if (Math.abs(door.x - -22.6) > 0.2) throw new Error("door world center drifted");
@@ -308,6 +319,18 @@ if (!steal.objective.includes("PAY") || !steal.objective.includes("PECK")) {
 if (steal.prompt && steal.prompt !== "E  PAY  ·  PECK") {
   throw new Error(`Kim-adjacent prompt leaked ${steal.prompt}`);
 }
+if (doorApproachHint(besidePeck, closePay.prompt) !== "") {
+  throw new Error("door hint must not replace a ready PAY prompt");
+}
+if (doorApproachHint({ x: door.x, y: 1.56, z: door.z - 1.6 }, "E  PAY  ·  PECK") !== "") {
+  throw new Error("door hint must yield to PAY at the south door");
+}
+if (doorApproachHint({ x: door.x, y: 1.56, z: door.z - 1.6 }, "") !== "WALK IN") {
+  throw new Error("near the south door, HUD must hint WALK IN when E is free");
+}
+if (doorApproachHint({ x: door.x, y: 1.56, z: door.z + 1.8 }, "") !== "WALK OUT") {
+  throw new Error("inside the lounge door, HUD must hint WALK OUT when E is free");
+}
 
 const loungePay = PAY_POINTS[1];
 const atLoungePay = resolveInteract(
@@ -363,6 +386,14 @@ if (inPlayableVolume(-26.0, -10.4)) throw new Error("west planter lip on the old
 if (playableWalkTarget(-28.2, -10.4) != null) throw new Error("walk-to must reject the west void");
 if (playableWalkTarget(-26.0, -10.4) != null) throw new Error("walk-to must reject the west planter lip");
 if (playableWalkTarget(START_SHOT.x, START_SHOT.z) == null) throw new Error("walk-to must accept spawn");
+if (playableWalkTarget(INTERIOR_SHOT.x, INTERIOR_SHOT.z) == null) {
+  throw new Error("walk-to must accept the lounge interior AABB");
+}
+const wallSnap = playableWalkTarget(PAVILION_FOOTPRINT.xmin + 0.02, INTERIOR_SHOT.z);
+if (!wallSnap || !inPlayableVolume(wallSnap.x, wallSnap.z)) {
+  throw new Error("walk-to must snap pavilion-wall clicks onto the lounge");
+}
+if (!inRect(door.x, door.z - 0.7, DOOR_MAT)) throw new Error("door mat must cover the lot-side threshold");
 if (!inPlayableVolume(DOOR_CORRIDOR.xmin + 0.1, (DOOR_CORRIDOR.zmin + DOOR_CORRIDOR.zmax) * 0.5)) {
   throw new Error("door corridor must be playable");
 }
@@ -387,6 +418,9 @@ if (LOUNGE_WALK.xmin > INTERIOR_SHOT.x) throw new Error("lounge walk must reach 
 
 const lotBoxes = [
   ...pavilionExteriorWalls().map(
+    (w) => new THREE.Box3().setFromCenterAndSize(new THREE.Vector3(w.cx, w.cy, w.cz), new THREE.Vector3(w.w, w.h, w.d)),
+  ),
+  ...pavilionFurniture().map(
     (w) => new THREE.Box3().setFromCenterAndSize(new THREE.Vector3(w.cx, w.cy, w.cz), new THREE.Vector3(w.w, w.h, w.d)),
   ),
   ...westVoidWalls().map(
@@ -470,9 +504,32 @@ if (intoLounge.dest) throw new Error("door walk-to did not finish");
 if (intoLounge.z < door.z + 1.3) throw new Error("walk-to did not enter the lounge");
 if (!inPlayableVolume(intoLounge.x, intoLounge.z)) throw new Error("lounge walk-to ended off playable");
 
+const fromSpawn = followTo(START_SHOT.x, START_SHOT.z, INTERIOR_SHOT.x, INTERIOR_SHOT.z, 720);
+if (fromSpawn.dest) throw new Error("spawn walk-to lounge did not finish");
+if (fromSpawn.z < door.z + 1.4) throw new Error("spawn walk-to did not arrive inside the lounge");
+if (!inPlayableVolume(fromSpawn.x, fromSpawn.z)) throw new Error("spawn lounge walk-to ended off playable");
+
+const matClick = resolveWalkDestination(START_SHOT.x, START_SHOT.z, door.x, door.z - 0.8);
+if (!matClick || matClick.z < door.z + 1.4) {
+  throw new Error("door-mat walk-to must commit to a lounge-interior destination");
+}
+const matFollow = followTo(START_SHOT.x, START_SHOT.z, door.x, door.z - 0.7, 720);
+if (matFollow.dest) throw new Error("door-mat walk-to did not finish");
+if (matFollow.z < door.z + 1.4) throw new Error("door-mat walk-to cancelled at the threshold");
+if (matFollow.z < LOUNGE_WALK.zmin) throw new Error("door-mat walk-to must finish inside the lounge");
+
+const offsetFollow = followTo(door.x - 0.85, door.z - 2.7, INTERIOR_SHOT.x, INTERIOR_SHOT.z);
+if (offsetFollow.dest) throw new Error("offset door walk-to did not finish");
+if (offsetFollow.z < door.z + 1.3) throw new Error("offset approach must still enter the lounge");
+
 const outLounge = followTo(intoLounge.x, intoLounge.z, DOOR_SHOT.x, DOOR_SHOT.z);
 if (outLounge.dest) throw new Error("lounge exit walk-to did not finish");
 if (outLounge.z > door.z - 1.0) throw new Error("walk-to did not return to the lot");
+
+const exitMat = followTo(LOUNGE_ARRIVE.x, LOUNGE_ARRIVE.z, door.x, door.z - 0.8);
+if (exitMat.dest) throw new Error("interior door-mat walk-to did not finish");
+if (exitMat.z > door.z - 0.9) throw new Error("interior door-mat click must exit to the lot");
+if (Math.abs(LOT_ARRIVE.z - (door.z - 2.15)) > 0.05) throw new Error("lot arrive drifted");
 
 const edgeFollow = followTo(4.2, -6.2, LOT_WALK.xmin + 0.15, -10.4);
 if (!inPlayableVolume(edgeFollow.x, edgeFollow.z)) throw new Error("west-edge walk-to left playable volume");
