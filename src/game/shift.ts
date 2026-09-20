@@ -132,7 +132,7 @@ export function plugInlet(s: GameState, guestId: string): boolean {
     s.plugs += 1;
   }
   if (g.authorized) speak(s, "DRIVE IN. CHARGE UP. ZIP OUT.");
-  else speak(s, `${g.name} — E PAY at the car, or the PAY kiosk west of the left canopy.`);
+  else speak(s, `${g.name} — pay at the car or a PAY stand.`);
   return true;
 }
 
@@ -176,7 +176,7 @@ export function payKiosk(s: GameState, guestId: string): boolean {
 
 export function nudgePay(s: GameState): void {
   if (!pendingPayGuest(s)) return;
-  speak(s, "Walk west to the PAY kiosk (left of the left canopy), or E at the car.", 9);
+  speak(s, "Walk to a PAY stand or look at the car.", 9);
 }
 
 export function enrollAuto(s: GameState, guestId: string): boolean {
@@ -272,7 +272,7 @@ export function seedOpeningLot(s: GameState): void {
   s.bays[3].guestId = "peck";
   s.plugs = 5;
   s.autochargeSignups = 0;
-  speak(s, "Peck is plugged — E PAY at the car or the west PAY kiosk.", 10);
+  speak(s, "Peck is plugged — pay at the car or a PAY stand.", 10);
 }
 
 export function resetNight(): GameState {

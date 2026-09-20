@@ -42,6 +42,91 @@ export function makeAttentionIcon(): THREE.Sprite {
   return sprite(new THREE.CanvasTexture(c), 0.9, 0.9, "attention");
 }
 
+export function makeTargetMark(): THREE.Group {
+  const g = new THREE.Group();
+  g.name = "target-mark";
+  const ring = new THREE.Mesh(
+    new THREE.RingGeometry(0.42, 0.58, 32),
+    new THREE.MeshBasicMaterial({
+      color: 0x00d4f5,
+      transparent: true,
+      opacity: 0.9,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+      toneMapped: false,
+    }),
+  );
+  ring.rotation.x = -Math.PI / 2;
+  ring.position.y = 0.04;
+  const chevron = makeChevronSprite();
+  chevron.position.y = 2.85;
+  g.add(ring, chevron);
+  g.visible = false;
+  return g;
+}
+
+function makeChevronSprite(): THREE.Sprite {
+  const c = document.createElement("canvas");
+  c.width = 256;
+  c.height = 256;
+  const ctx = c.getContext("2d")!;
+  ctx.clearRect(0, 0, 256, 256);
+  const glow = ctx.createRadialGradient(128, 128, 10, 128, 128, 120);
+  glow.addColorStop(0, "rgba(0,212,245,0.55)");
+  glow.addColorStop(1, "rgba(0,212,245,0)");
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, 256, 256);
+  ctx.fillStyle = "#00D4F5";
+  ctx.beginPath();
+  ctx.moveTo(128, 196);
+  ctx.lineTo(48, 84);
+  ctx.lineTo(92, 84);
+  ctx.lineTo(128, 148);
+  ctx.lineTo(164, 84);
+  ctx.lineTo(208, 84);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = "#F5F0E8";
+  ctx.lineWidth = 8;
+  ctx.stroke();
+  return sprite(new THREE.CanvasTexture(c), 0.72, 0.72, "target");
+}
+
+export function makeWalkPuck(): THREE.Mesh {
+  const mesh = new THREE.Mesh(
+    new THREE.RingGeometry(0.18, 0.32, 24),
+    new THREE.MeshBasicMaterial({
+      color: 0xe89a2e,
+      transparent: true,
+      opacity: 0.85,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+      toneMapped: false,
+    }),
+  );
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.position.y = 0.03;
+  mesh.visible = false;
+  return mesh;
+}
+
+export function makeOpenSign(): THREE.Sprite {
+  const c = document.createElement("canvas");
+  c.width = 320;
+  c.height = 140;
+  const ctx = c.getContext("2d")!;
+  ctx.clearRect(0, 0, 320, 140);
+  ctx.fillStyle = "#E63225";
+  round(ctx, 16, 18, 288, 104, 14);
+  ctx.fill();
+  ctx.fillStyle = "#F5F0E8";
+  ctx.font = "900 64px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("OPEN", 160, 76);
+  return sprite(new THREE.CanvasTexture(c), 1.35, 0.58, "door");
+}
+
 export function makePayIcon(): THREE.Sprite {
   const c = document.createElement("canvas");
   c.width = 320;

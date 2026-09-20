@@ -318,24 +318,50 @@ function payPlate(): THREE.CanvasTexture {
 
 const payTex = payPlate();
 
-function addOneKiosk(root: THREE.Group, x: number, z: number): { kiosk: THREE.Group; alert: THREE.Sprite } {
+function addOneKiosk(
+  root: THREE.Group,
+  x: number,
+  z: number,
+  index: number,
+  lounge = false,
+): { kiosk: THREE.Group; alert: THREE.Sprite } {
   const kiosk = new THREE.Group();
   kiosk.userData.kind = "kiosk";
+  kiosk.userData.kioskIndex = index;
   const cream = mat(0xf3eee4);
-  const stand = box(0.78, 1.42, 0.48, cream, x, 0.72, z);
-  const head = box(0.7, 0.52, 0.12, mat(C.charcoal), x, 1.58, z - 0.18);
+  const standH = lounge ? 1.72 : 1.42;
+  const stand = box(lounge ? 0.86 : 0.78, standH, lounge ? 0.52 : 0.48, cream, x, standH * 0.5, z);
+  const headY = lounge ? 1.88 : 1.58;
+  const head = box(lounge ? 0.78 : 0.7, 0.52, 0.12, mat(C.charcoal), x, headY, z - 0.18);
   const glow = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.62, 0.4),
+    new THREE.PlaneGeometry(lounge ? 0.7 : 0.62, lounge ? 0.46 : 0.4),
     new THREE.MeshBasicMaterial({ map: payTex, toneMapped: false }),
   );
-  glow.position.set(x, 1.58, z - 0.25);
+  glow.position.set(x, headY, z - 0.25);
   const ghost = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
-  const hit = new THREE.Mesh(new THREE.BoxGeometry(2.6, 2.4, 2.2), ghost);
+  const hit = new THREE.Mesh(new THREE.BoxGeometry(2.6, 2.6, 2.2), ghost);
   hit.position.set(x, 1.15, z);
   hit.userData.kind = "kiosk";
+  hit.userData.kioskIndex = index;
   const alert = makePayIcon();
-  alert.position.set(x, 2.72, z);
-  alert.visible = false;
+  alert.position.set(x, lounge ? 3.35 : 2.72, z);
+  alert.visible = lounge;
+  if (lounge) {
+    const pole = box(0.08, 2.6, 0.08, mat(C.charcoal, { metalness: 0.28, roughness: 0.4 }), x + 0.42, 1.3, z + 0.02);
+    const flag = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.95, 0.42),
+      new THREE.MeshBasicMaterial({ map: payTex, toneMapped: false, side: THREE.DoubleSide }),
+    );
+    flag.position.set(x + 0.92, 2.55, z + 0.02);
+    const beacon = new THREE.Mesh(
+      new THREE.SphereGeometry(0.09, 12, 10),
+      new THREE.MeshBasicMaterial({ color: 0xe89a2e, toneMapped: false }),
+    );
+    beacon.position.set(x + 0.42, 2.72, z + 0.02);
+    const lamp = new THREE.PointLight(0xffb050, 0.55, 7.5, 2);
+    lamp.position.set(x + 0.42, 2.55, z);
+    kiosk.add(pole, flag, beacon, lamp);
+  }
   kiosk.add(stand, head, glow, hit, alert);
   root.add(kiosk);
   return { kiosk, alert };
@@ -387,11 +413,11 @@ function addWaveKiosk(root: THREE.Group): { kiosk: THREE.Group; alert: THREE.Spr
 function addKiosks(root: THREE.Group): { kiosks: THREE.Group[]; alerts: THREE.Sprite[] } {
   const kiosks: THREE.Group[] = [];
   const alerts: THREE.Sprite[] = [];
-  for (const p of PAY_POINTS) {
-    const built = addOneKiosk(root, p.x, p.z);
+  PAY_POINTS.forEach((p, i) => {
+    const built = addOneKiosk(root, p.x, p.z, i, i === 1);
     kiosks.push(built.kiosk);
     alerts.push(built.alert);
-  }
+  });
   return { kiosks, alerts };
 }
 

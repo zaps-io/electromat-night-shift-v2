@@ -115,7 +115,8 @@ export const KIOSK_REACH = 7.2;
 
 /** Aisle-mouth WAVE stand — hustle the next waiter into an open bay. */
 export const WAVE_POINT = { x: 2.85, z: -15.2 };
-export const WAVE_REACH = 8.2;
+/** Aimed reach. Un-aimed close range lives in interact.ts so spawn does not steal PAY. */
+export const WAVE_REACH = 6.4;
 
 /** Lot rails stay on the asphalt apron. Walk bounds include the pavilion interior. */
 export const LOT_RAILS = { xmin: -26.2, xmax: 23.2, zmin: -21.6, zmax: 17.4 };
@@ -123,7 +124,55 @@ export const WALK_BOUNDS = { xmin: -28.55, xmax: 23.2, zmin: -21.6, zmax: 17.4 }
 
 export const PAVILION = { x: -23.4, z: 3.4, yaw: 0, w: 11.6, d: 13.4, h: 3.35 };
 /** South storefront door, local X toward the lounge PAY stand. */
-export const PAVILION_DOOR = { localX: 0.8, width: 1.52, height: 2.32 };
+export const PAVILION_DOOR = { localX: 0.8, width: 1.72, height: 2.38 };
+
+/** World-space door opening used by walk tests and signage. */
+export function pavilionDoorWorld(): { x: number; z: number; width: number; height: number } {
+  return {
+    x: PAVILION.x + PAVILION_DOOR.localX,
+    z: PAVILION.z - PAVILION.d * 0.5,
+    width: PAVILION_DOOR.width,
+    height: PAVILION_DOOR.height,
+  };
+}
+
+/** South-wall collider gap after the +0.08 box pad used in addPavilion. */
+export function pavilionDoorGap(): { left: number; right: number; z: number; width: number } {
+  const T = 0.16;
+  const west = -PAVILION.w / 2;
+  const east = PAVILION.w / 2;
+  const south = -PAVILION.d / 2;
+  const doorL = PAVILION_DOOR.localX - PAVILION_DOOR.width * 0.5;
+  const doorR = PAVILION_DOOR.localX + PAVILION_DOOR.width * 0.5;
+  const southLeftW = doorL - west;
+  const southRightW = east - doorR;
+  const left = PAVILION.x + (west + doorL) * 0.5 + (southLeftW + 0.08) * 0.5;
+  const right = PAVILION.x + (doorR + east) * 0.5 - (southRightW + 0.08) * 0.5;
+  return { left, right, z: PAVILION.z + south + T * 0.5, width: right - left };
+}
+
+export function pavilionExteriorWalls(): { cx: number; cy: number; cz: number; w: number; h: number; d: number }[] {
+  const T = 0.16;
+  const W = PAVILION.w;
+  const D = PAVILION.d;
+  const px = PAVILION.x;
+  const pz = PAVILION.z;
+  const west = -W / 2;
+  const east = W / 2;
+  const south = -D / 2;
+  const north = D / 2;
+  const doorL = PAVILION_DOOR.localX - PAVILION_DOOR.width * 0.5;
+  const doorR = PAVILION_DOOR.localX + PAVILION_DOOR.width * 0.5;
+  const southLeftW = doorL - west;
+  const southRightW = east - doorR;
+  return [
+    { cx: px + west + T * 0.5, cy: 1.7, cz: pz, w: T + 0.12, h: 3.4, d: D + 0.3 },
+    { cx: px, cy: 1.7, cz: pz + north - T * 0.5, w: W + 0.3, h: 3.4, d: T + 0.12 },
+    { cx: px + east - T * 0.5, cy: 1.7, cz: pz, w: T + 0.12, h: 3.4, d: D + 0.3 },
+    { cx: px + (west + doorL) * 0.5, cy: 1.7, cz: pz + south + T * 0.5, w: southLeftW + 0.08, h: 3.4, d: T + 0.18 },
+    { cx: px + (doorR + east) * 0.5, cy: 1.7, cz: pz + south + T * 0.5, w: southRightW + 0.08, h: 3.4, d: T + 0.18 },
+  ];
+}
 
 export const CANOPIES = [
   { x: LEFT_CANOPY_X, z: -0.15, w: 12.6, d: 18.4, y: 5.22 },
@@ -190,13 +239,24 @@ export const INTERIOR_SHOT = {
   fov: 64,
 } as const;
 
-/** South storefront door from the lot, next to the lounge PAY stand. */
+/** South storefront door from the lot, framing the OPEN portal and lounge PAY totem. */
 export const DOOR_SHOT = {
-  x: -21.35,
-  z: -6.45,
+  x: -20.15,
+  z: -7.35,
+  eyeY: 1.58,
+  yaw: 0.22,
+  pitch: 0.08,
+  lookAt: { x: -21.55, y: 1.55, z: -3.55 },
+  fov: 54,
+} as const;
+
+/** Aisle face of Peck's opening bay — prompt and objective both read PAY. */
+export const PROMPT_SHOT = {
+  x: 4.15,
+  z: -5.35,
   eyeY: 1.56,
-  yaw: 0.18,
-  pitch: 0.04,
-  lookAt: { x: -22.55, y: 1.35, z: -3.15 },
-  fov: 50,
+  yaw: -1.12,
+  pitch: 0.02,
+  lookAt: { x: RIGHT_WEST_CAR_X, y: 1.15, z: -5.4 },
+  fov: 52,
 } as const;
