@@ -15,7 +15,7 @@ import {
 } from "./layout";
 import { addPavilion } from "./pavilion";
 import { asphaltColor, asphaltNormal, asphaltRough, creamPanels, curbColor, curbRough, gravel, soffitPanels } from "./tex";
-import { makePayIcon, makeWaveIcon } from "./icons";
+import { makePayIcon, makeWaveGuide, makeWaveIcon } from "./icons";
 import { addZeusCharger } from "./zeus";
 
 export interface Station {
@@ -26,6 +26,7 @@ export interface Station {
   kioskAlerts: THREE.Sprite[];
   waveKiosk: THREE.Object3D;
   waveAlert: THREE.Sprite;
+  waveGuide: THREE.Group;
   bayAnchors: THREE.Object3D[];
   colliders: THREE.Box3[];
 }
@@ -398,27 +399,41 @@ function wavePlate(): THREE.CanvasTexture {
 
 const waveTex = wavePlate();
 
-function addWaveKiosk(root: THREE.Group): { kiosk: THREE.Group; alert: THREE.Sprite } {
+function addWaveKiosk(root: THREE.Group): { kiosk: THREE.Group; alert: THREE.Sprite; guide: THREE.Group } {
   const { x, z } = WAVE_POINT;
   const kiosk = new THREE.Group();
   kiosk.userData.kind = "wave";
   const cream = mat(0xf3eee4);
-  const stand = box(0.62, 1.22, 0.4, cream, x, 0.62, z);
-  const head = box(0.56, 0.42, 0.1, mat(C.charcoal), x, 1.38, z - 0.16);
-  const glow = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.5, 0.32),
-    new THREE.MeshBasicMaterial({ map: waveTex, toneMapped: false }),
-  );
-  glow.position.set(x, 1.38, z - 0.22);
+  const stand = box(0.78, 1.58, 0.48, cream, x, 0.79, z);
+  const head = box(0.7, 0.5, 0.12, mat(C.charcoal), x, 1.72, z);
+  const plateMat = new THREE.MeshBasicMaterial({ map: waveTex, toneMapped: false, side: THREE.DoubleSide });
+  const north = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.4), plateMat);
+  north.position.set(x, 1.72, z + 0.08);
+  const south = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.4), plateMat);
+  south.position.set(x, 1.72, z - 0.08);
+  south.rotation.y = Math.PI;
+  south.scale.x = -1;
   const ghost = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
-  const hit = new THREE.Mesh(new THREE.BoxGeometry(2.2, 2.2, 2.0), ghost);
-  hit.position.set(x, 1.05, z);
+  const hit = new THREE.Mesh(new THREE.BoxGeometry(3.2, 2.8, 3.0), ghost);
+  hit.position.set(x, 1.2, z);
   hit.userData.kind = "wave";
+  const pole = box(0.08, 2.85, 0.08, mat(C.charcoal, { metalness: 0.28, roughness: 0.4 }), x + 0.38, 1.42, z);
+  const flag = new THREE.Mesh(new THREE.PlaneGeometry(0.95, 0.42), plateMat);
+  flag.position.set(x + 0.88, 2.72, z);
+  const beacon = new THREE.Mesh(
+    new THREE.SphereGeometry(0.1, 12, 10),
+    new THREE.MeshBasicMaterial({ color: 0x00d4f5, toneMapped: false }),
+  );
+  beacon.position.set(x + 0.38, 2.92, z);
+  const lamp = new THREE.PointLight(0x66e8ff, 0.45, 8, 2);
+  lamp.position.set(x + 0.38, 2.7, z);
   const alert = makeWaveIcon();
-  alert.position.set(x, 2.72, z);
-  kiosk.add(stand, head, glow, hit, alert);
-  root.add(kiosk);
-  return { kiosk, alert };
+  alert.position.set(x, 3.28, z);
+  alert.scale.set(1.45, 0.55, 1);
+  kiosk.add(stand, head, south, north, hit, pole, flag, beacon, lamp, alert);
+  const guide = makeWaveGuide({ x, z });
+  root.add(kiosk, guide);
+  return { kiosk, alert, guide };
 }
 
 function addKiosks(root: THREE.Group): { kiosks: THREE.Group[]; alerts: THREE.Sprite[] } {
@@ -719,6 +734,7 @@ export function buildStation(): Station {
     kioskAlerts: alerts,
     waveKiosk: wave.kiosk,
     waveAlert: wave.alert,
+    waveGuide: wave.guide,
     bayAnchors,
     colliders: [...pavilionBoxes, ...westLot, ...planters],
   };

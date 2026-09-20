@@ -9,6 +9,8 @@ interface ElectromatApi {
   target: import("./game/interact").InteractResult;
   walkTo: (x: number, z: number) => void;
   step: (dt?: number) => void;
+  advance: (dtMin: number) => void;
+  ready: boolean;
   destination: { x: number; z: number } | null;
   doorHint: string;
   inPlayable: (x: number, z: number) => boolean;

@@ -120,13 +120,26 @@ body {
   color: var(--amber);
 }
 
-#auto {
+#auto,
+#waves,
+#zips {
   position: absolute;
-  top: 2.6rem;
   right: 1.2rem;
   letter-spacing: 0.16em;
   color: var(--cyan);
   font-size: 0.85rem;
+}
+
+#auto {
+  top: 2.6rem;
+}
+
+#waves {
+  top: 3.85rem;
+}
+
+#zips {
+  top: 5.1rem;
 }
 
 #pips {

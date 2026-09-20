@@ -183,6 +183,78 @@ const WAVE_GLYPHS: Record<string, string[]> = {
   E: ["11111", "10000", "11110", "10000", "11111"],
 };
 
+/** Floor ring + aisle chevrons that light the WAVE stand when it is the job. */
+export function makeWaveGuide(point: { x: number; z: number }): THREE.Group {
+  const g = new THREE.Group();
+  g.name = "wave-guide";
+  const ring = new THREE.Mesh(
+    new THREE.RingGeometry(0.72, 1.02, 40),
+    new THREE.MeshBasicMaterial({
+      color: 0x00d4f5,
+      transparent: true,
+      opacity: 0.82,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+      toneMapped: false,
+    }),
+  );
+  ring.rotation.x = -Math.PI / 2;
+  ring.position.set(point.x, 0.035, point.z);
+  g.add(ring);
+
+  const pad = new THREE.Mesh(
+    new THREE.CircleGeometry(0.55, 28),
+    new THREE.MeshBasicMaterial({
+      color: 0x1e1e24,
+      transparent: true,
+      opacity: 0.55,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+      toneMapped: false,
+    }),
+  );
+  pad.rotation.x = -Math.PI / 2;
+  pad.position.set(point.x, 0.03, point.z);
+  g.add(pad);
+
+  for (const zOff of [3.8, 2.45, 1.2]) {
+    const chevron = makeChevronSprite();
+    chevron.position.set(point.x, 0.95, point.z + zOff);
+    chevron.scale.setScalar(0.95);
+    g.add(chevron);
+    const arrow = groundArrow();
+    arrow.position.set(point.x, 0.04, point.z + zOff);
+    g.add(arrow);
+  }
+  g.visible = false;
+  return g;
+}
+
+function groundArrow(): THREE.Mesh {
+  const shape = new THREE.Shape();
+  shape.moveTo(0, 0.42);
+  shape.lineTo(-0.28, -0.18);
+  shape.lineTo(-0.12, -0.18);
+  shape.lineTo(-0.12, -0.42);
+  shape.lineTo(0.12, -0.42);
+  shape.lineTo(0.12, -0.18);
+  shape.lineTo(0.28, -0.18);
+  shape.closePath();
+  const mesh = new THREE.Mesh(
+    new THREE.ShapeGeometry(shape),
+    new THREE.MeshBasicMaterial({
+      color: 0x00d4f5,
+      transparent: true,
+      opacity: 0.88,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+      toneMapped: false,
+    }),
+  );
+  mesh.rotation.x = -Math.PI / 2;
+  return mesh;
+}
+
 export function makeWaveIcon(): THREE.Sprite {
   const c = document.createElement("canvas");
   c.width = 320;

@@ -22,6 +22,9 @@ Default `startNight()` lot view (no local build required):
 - [`docs/shots/prompt-pay.png`](docs/shots/prompt-pay.png) — HUD objective and E-prompt both `PAY · PECK`
 - [`docs/shots/after-pay.png`](docs/shots/after-pay.png) — Peck after pay (AutoCharge enrolled)
 - [`docs/shots/after-pay-hud.png`](docs/shots/after-pay-hud.png) — after paying Peck, HUD **AUTO 1**
+- [`docs/shots/wave-stand-target.png`](docs/shots/wave-stand-target.png) — aisle WAVE stand, cyan chevrons, `E WAVE · NG`
+- [`docs/shots/unplug-prompt.png`](docs/shots/unplug-prompt.png) — full car, objective and prompt both `UNPLUG · PECK`
+- [`docs/shots/post-unplug-wave-hud.png`](docs/shots/post-unplug-wave-hud.png) — HUD **ZIP 1** and **WAVE 1** after the loop
 - [`docs/shots/door-interior.png`](docs/shots/door-interior.png) — lounge interior from the south OPEN door
 - [`docs/shots/walkto-lounge.png`](docs/shots/walkto-lounge.png) — right-click walk-to destination inside the lounge (storefront, sofa)
 - [`docs/shots/door-exterior.png`](docs/shots/door-exterior.png) — south storefront door from the lot
@@ -45,15 +48,15 @@ Private-repo Pages also needs a GitHub plan that includes Pages (org GitHub Team
 2. Click once to lock mouse-look. **WASD** walks continuously after lock. **E** uses the on-screen prompt only. Right-click walks to a ground spot (amber puck). There is no left-click-to-destination.
 3. **E TALK** to a driver (amber `!` in the aisle queue).
 4. **E PARK** — pulls them into an open stall (or look at an empty painted bay and press E).
-5. **E WAVE** at the aisle-mouth cream stand (amber **WAVE**) — greets if needed and hustles the next waiter into an open bay. Opening lot: **PAY Peck** stays on E until paid; WAVE / TALK / PARK cannot steal the key. After pay, WAVE parks Ng in bay 6.
+5. **E WAVE** at the aisle-mouth cream stand (east of the queue, cyan chevrons when WAVE is the job) — greets if needed and hustles the next waiter into an open bay. Opening lot: **PAY Peck** stays on E until paid; WAVE / TALK / PARK cannot steal the key. After pay, WAVE is the job (Ng) until a car fills; then **UNPLUG** owns E and the cyan target. After a zip-out, WAVE is the next job even if another car is already full, so the loop can finish. HUD **WAVE** counts hustles; **ZIP** counts unplugs.
 6. **E PLUG** the inlet. AutoCharge cars take power immediately. Paying a kiosk guest enrolls AutoCharge (HUD AUTO increments) so they pull full power and zip sooner.
 7. **How to pay (QA repro):**
    1. Start night. Objective: `PAY · PECK — walk to the car or a PAY stand`. No E prompt until Peck or a PAY stand is in range / aimed.
    2. **At the car:** walk to the dark Tesla on the **right island** (cyan arrow + amber `!`). Objective and prompt both read `PAY · PECK`. Press **E**. Toast `Paid — Peck.`
    3. **At the kiosk (operator path):** after any first-visit **E PLUG**, walk **west** (left of the left canopy) or to the lounge south door. Both stands have a floating **PAY** badge; the lounge stand is a taller totem with a pole flag. When the prompt reads `E PAY · NAME`, **E** pays that guest.
    4. Payment is not gated on a full battery. Paying Peck (car or PAY stand) enrolls AutoCharge — HUD **AUTO** goes to 1 and they zip sooner. Later queue cars: talk → park → plug → same pay, or WAVE from the aisle.
-8. When the battery finishes, `!` returns — **E UNPLUG** to zip them out.
-8. Cyan battery icons mark occupancy. Three walkaways end the night. 04:00 grades the shift.
+8. When the battery finishes, toast `NAME is full — E UNPLUG`. Objective, cyan target, and E all stay on that car. Walk to it (not the WAVE stand) and press **E**. HUD **ZIP** increments.
+9. Cyan battery icons mark occupancy. Three walkaways end the night. 04:00 grades the shift.
 
 Site line: **DRIVE IN. CHARGE UP. ZIP OUT.**
 

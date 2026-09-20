@@ -32,9 +32,9 @@ export interface InteractResult {
 }
 
 export const GUEST_REACH = 4.6;
-export const GUEST_CLOSE = 2.7;
+export const GUEST_CLOSE = 3.2;
 export const KIOSK_CLOSE = 3.4;
-export const WAVE_CLOSE = 3.4;
+export const WAVE_CLOSE = 4.4;
 export const BAY_REACH = 3.8;
 export const BAY_CLOSE = 2.2;
 export const AIM_DOT = 0.58;
@@ -86,13 +86,18 @@ export function nextJob(state: GameState): { need: InteractNeed; name: string; g
   const live = state.guests.filter((g) => state.timeMin >= g.arriveMin && !g.served && !g.walked);
   const auto = live.find((g) => guestAction(g) === "auto");
   if (auto) return { need: "auto", name: auto.name, guestId: auto.id };
-  const unplug = live.find((g) => guestAction(g) === "unplug");
+  const queued = nextQueueGuest(state);
+  const openBay = state.bays.some((b) => !b.guestId);
+  if (state.justUnplugged && queued && openBay) {
+    return { need: "wave", name: queued.name, guestId: queued.id };
+  }
+  const unplugs = live.filter((g) => guestAction(g) === "unplug");
+  const unplug = unplugs.find((g) => g.id === state.fullAlertId) ?? unplugs[0];
   if (unplug) return { need: "unplug", name: unplug.name, guestId: unplug.id };
   const plug = live.find((g) => guestAction(g) === "plug");
   if (plug) return { need: "plug", name: plug.name, guestId: plug.id };
-  const queued = nextQueueGuest(state);
   if (queued) {
-    if (state.bays.some((b) => !b.guestId)) return { need: "wave", name: queued.name, guestId: queued.id };
+    if (openBay) return { need: "wave", name: queued.name, guestId: queued.id };
     return { need: guestAction(queued) || "talk", name: queued.name, guestId: queued.id };
   }
   return null;
@@ -127,6 +132,45 @@ export function payLocked(job: { need: InteractNeed } | null): boolean {
   return job?.need === "pay";
 }
 
+/** PAY / UNPLUG / WAVE own E, the prompt, the objective, and the cyan marker. */
+export function jobNeedLocked(job: { need: InteractNeed } | null): boolean {
+  return job?.need === "pay" || job?.need === "unplug" || job?.need === "wave";
+}
+
+export function matchesJob(
+  c: InteractCandidate,
+  job: { need: InteractNeed; guestId?: string } | null,
+): boolean {
+  if (!job || !jobNeedLocked(job)) return true;
+  if (c.need !== job.need) return false;
+  if (job.need === "unplug" && job.guestId) return c.guestId === job.guestId;
+  return true;
+}
+
+/** Cyan / walk-to marker for the live job. WAVE always marks the aisle stand, not the queue car. */
+export function jobFocusCandidate(
+  job: { need: InteractNeed; guestId?: string } | null,
+  candidates: InteractCandidate[],
+): InteractCandidate | null {
+  if (!job) return null;
+  if (job.need === "wave") return candidates.find((c) => c.need === "wave") ?? null;
+  if (job.need === "pay") {
+    return (
+      candidates.find((c) => c.need === "pay" && c.kind === "guest" && c.guestId === job.guestId) ??
+      candidates.find((c) => c.need === "pay") ??
+      null
+    );
+  }
+  if (job.guestId) {
+    return (
+      candidates.find((c) => c.guestId === job.guestId && c.need === job.need) ??
+      candidates.find((c) => c.guestId === job.guestId) ??
+      null
+    );
+  }
+  return candidates.find((c) => c.need === job.need) ?? null;
+}
+
 /** Near-door affordance. Empty when a ready E prompt (PAY included) already owns the HUD. */
 export function doorApproachHint(eye: Vec3, prompt: string): string {
   if (prompt) return "";
@@ -154,7 +198,7 @@ export function resolveInteract(
 
   const scored = candidates.map((c) => ({ c, ...usable(c, eye, look, aimedId) }));
   const liveAll = scored.filter((s) => s.ok);
-  const live = payLocked(job) ? liveAll.filter((s) => s.c.need === "pay") : liveAll;
+  const live = liveAll.filter((s) => matchesJob(s.c, job));
   const aimedHit = live.find((s) => s.c.id === aimedId) ?? live.filter((s) => s.aimed).sort((a, b) => a.dist - b.dist)[0];
   const nearest = live.slice().sort((a, b) => a.dist - b.dist)[0];
   const pick = aimedHit ?? nearest;
@@ -171,8 +215,8 @@ export function resolveInteract(
     };
   }
 
-  const aimedFar = aimedId ? scored.find((s) => s.c.id === aimedId) : undefined;
-  if (aimedFar && (!payLocked(job) || aimedFar.c.need === "pay")) {
+  const aimedFar = aimedId ? scored.find((s) => s.c.id === aimedId && matchesJob(s.c, job)) : undefined;
+  if (aimedFar) {
     return {
       ready: null,
       focus: aimedFar.c,
@@ -183,10 +227,7 @@ export function resolveInteract(
     };
   }
 
-  const jobFocus =
-    (job && "guestId" in job && job.guestId ? candidates.find((c) => c.guestId === job.guestId) : undefined) ??
-    (job ? candidates.find((c) => c.need === job.need) : undefined) ??
-    null;
+  const jobFocus = jobFocusCandidate(job, candidates);
   return {
     ready: null,
     focus: jobFocus,
@@ -207,15 +248,13 @@ export function collectCandidates(
   bays: readonly { id: number; x: number; z: number; open: boolean }[],
 ): InteractCandidate[] {
   const list: InteractCandidate[] = [];
-  for (const [id, pos] of cars) {
-    const g = state.guests.find((x) => x.id === id);
-    const need = guestAction(g);
-    if (!g || !need) continue;
+  const placed = new Set<string>();
+  const pushGuest = (id: string, pos: Vec3, gName: string, need: InteractNeed) => {
     list.push({
       id: `guest:${id}`,
       kind: "guest",
       need,
-      name: g.name,
+      name: gName,
       guestId: id,
       x: pos.x,
       y: (pos.y ?? 0) + 1.2,
@@ -223,6 +262,23 @@ export function collectCandidates(
       reach: GUEST_REACH,
       close: GUEST_CLOSE,
     });
+    placed.add(id);
+  };
+
+  for (const [id, pos] of cars) {
+    const g = state.guests.find((x) => x.id === id);
+    const need = guestAction(g);
+    if (!g || !need) continue;
+    pushGuest(id, pos, g.name, need);
+  }
+
+  for (const g of state.guests) {
+    if (placed.has(g.id) || state.timeMin < g.arriveMin) continue;
+    const need = guestAction(g);
+    if (!need || g.assignedBay == null) continue;
+    const bay = bays.find((b) => b.id === g.assignedBay);
+    if (!bay) continue;
+    pushGuest(g.id, { x: bay.x, y: 0, z: bay.z }, g.name, need);
   }
 
   const pending = pendingPayGuest(state);
