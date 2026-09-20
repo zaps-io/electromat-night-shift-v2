@@ -108,7 +108,7 @@ export const BAY_SIZE = { w: 2.6, d: CAR_LENGTH + STALL_CLEARANCE + 0.35 };
 /** Lot PAY terminal (west of left canopy) + lounge door. Either completes kiosk pay. */
 export const PAY_POINTS = [
   { x: -15.2, z: -10.4 },
-  { x: -22.6, z: -3.7 },
+  { x: -20.55, z: -4.15 },
 ] as const;
 export const KIOSK = PAY_POINTS[0];
 export const KIOSK_REACH = 7.2;

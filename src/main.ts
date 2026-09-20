@@ -527,6 +527,9 @@ window.__electromat = {
   lookAt(x: number, y: number, z: number) {
     walker.lookAt(x, y, z);
   },
+  get position() {
+    return { x: walker.position.x, y: walker.position.y, z: walker.position.z };
+  },
   capture,
   hullDebug,
   carProbe(w = 1280, h = 800) {
