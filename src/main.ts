@@ -21,6 +21,7 @@ import {
 } from "./game/shift";
 import {
   collectCandidates,
+  doorApproachHint,
   nextJob,
   resolveInteract,
   type InteractCandidate,
@@ -343,7 +344,9 @@ function paintHud(): void {
   });
   station.waveAlert.visible = !!nextQueueGuest(state);
   const resolved = refreshTarget();
-  promptEl.textContent = resolved.prompt;
+  const doorHint = doorApproachHint(walker.position, resolved.prompt);
+  promptEl.textContent = resolved.prompt || doorHint;
+  promptEl.classList.toggle("door-hint", !resolved.prompt && !!doorHint);
   objectiveEl.textContent = resolved.objective;
   toastEl.textContent = live && state.toastUntil > state.timeMin ? state.toast : "";
   crossEl.classList.toggle("ready", !!resolved.prompt);
@@ -360,6 +363,9 @@ function paintHud(): void {
   if (walker.destination) walkPuck.position.set(walker.destination.x, 0.03, walker.destination.z);
 }
 
+const walkPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+const walkHit = new THREE.Vector3();
+
 function groundWalk(clientX: number, clientY: number): void {
   const rect = canvas.getBoundingClientRect();
   const ndc = new THREE.Vector2(
@@ -367,8 +373,7 @@ function groundWalk(clientX: number, clientY: number): void {
     -((clientY - rect.top) / rect.height) * 2 + 1,
   );
   ray.setFromCamera(ndc, walker.camera);
-  const hit = ray.intersectObject(station.ground)[0];
-  if (hit) walker.walkTo(hit.point);
+  if (ray.ray.intersectPlane(walkPlane, walkHit)) walker.walkTo(walkHit);
 }
 
 function loop(now: number): void {
@@ -507,6 +512,13 @@ async function saveShots(): Promise<void> {
   walker.lookAt(DOOR_IN_SHOT.lookAt.x, DOOR_IN_SHOT.lookAt.y, DOOR_IN_SHOT.lookAt.z);
   await new Promise((r) => setTimeout(r, 500));
   await post("/workspace/docs/shots/door-interior.png", capture(1280, 800));
+  await new Promise((r) => setTimeout(r, 400));
+  walker.walkTo(new THREE.Vector3(INTERIOR_SHOT.x, 0, INTERIOR_SHOT.z));
+  for (let i = 0; i < 90; i++) {
+    walker.tick(0.05, station.colliders);
+    pipeline.render();
+  }
+  await post("/workspace/docs/shots/walkto-lounge.png", capture(1280, 800));
 }
 
 if (params.has("saveshots")) void saveShots();
@@ -564,8 +576,14 @@ window.__electromat = {
   walkTo(x: number, z: number) {
     walker.walkTo(new THREE.Vector3(x, 0, z));
   },
+  step(dt = 0.05) {
+    walker.tick(dt, station.colliders);
+  },
   get destination() {
     return walker.destination ? { x: walker.destination.x, z: walker.destination.z } : null;
+  },
+  get doorHint() {
+    return doorApproachHint(walker.position, refreshTarget().prompt);
   },
   inPlayable(x: number, z: number) {
     return inPlayableVolume(x, z);

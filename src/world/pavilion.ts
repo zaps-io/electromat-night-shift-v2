@@ -1,9 +1,9 @@
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { C } from "../brand";
-import { PAVILION, PAVILION_DOOR, pavilionExteriorWalls } from "./layout";
+import { PAVILION, PAVILION_DOOR, pavilionExteriorWalls, pavilionFurniture } from "./layout";
 import { fabric, loungeRug, menuBoard, stucco, woodFloor } from "./tex";
-import { makeOpenSign } from "./icons";
+import { makeDoorChevron, makeOpenSign } from "./icons";
 
 function mat(color: number, extras: THREE.MeshPhysicalMaterialParameters = {}): THREE.MeshPhysicalMaterial {
   return new THREE.MeshPhysicalMaterial({
@@ -341,21 +341,7 @@ function addInterior(g: THREE.Group, W: number, D: number, H: number): THREE.Box
   strip2.position.set(0, H - 0.22, 3.2);
   g.add(strip, strip2);
 
-  const px = PAVILION.x;
-  const pz = PAVILION.z;
-  return [
-    worldBox(px - 2.55, 0.6, pz - 3.15, 2.7, 1.2, 0.95),
-    worldBox(px - 1.35, 0.5, pz - 2.35, 0.85, 1.1, 0.75),
-    worldBox(px - 1.85, 0.45, pz + 0.35, 1.0, 1.0, 1.0),
-    worldBox(px - 4.85, 0.7, pz - 3.4, 0.7, 1.4, 2.6),
-    worldBox(px - 4.9, 0.8, pz + 0.15, 0.65, 1.5, 2.0),
-    worldBox(px + 1.85, 0.5, pz + 3.55, 1.15, 1.0, 2.25),
-    worldBox(px + 2.55, 0.4, pz + 3.2, 1.1, 0.8, 1.1),
-    worldBox(px + 3.55, 0.5, pz - 1.85, 0.9, 1.0, 1.7),
-    worldBox(px + 4.55, 0.5, pz + 1.85, 0.55, 1.05, 2.45),
-    worldBox(px + 3.05, 0.45, pz + 1.85, 0.55, 0.9, 0.55),
-    worldBox(px + 3.15, 0.45, pz + 4.75, 0.55, 0.9, 0.55),
-  ];
+  return pavilionFurniture().map((w) => worldBox(w.cx, w.cy, w.cz, w.w, w.h, w.d));
 }
 
 export function addPavilion(root: THREE.Group): THREE.Box3[] {
@@ -431,14 +417,15 @@ export function addPavilion(root: THREE.Group): THREE.Box3[] {
   g.add(box(doorW + 0.2, 0.06, 0.22, jamb, doorX, 0.04, south + 0.04));
 
   const open = makeOpenSign();
-  open.position.set(doorX, doorH + 0.52, south - 0.12);
+  open.position.set(doorX, doorH + 0.62, south - 0.16);
+  open.scale.set(1.7, 0.72, 1);
   g.add(open);
   const spill = new THREE.Mesh(
-    new THREE.PlaneGeometry(doorW - 0.2, doorH - 0.22),
+    new THREE.PlaneGeometry(doorW - 0.12, doorH - 0.12),
     new THREE.MeshBasicMaterial({
       color: 0xffc878,
       transparent: true,
-      opacity: 0.22,
+      opacity: 0.34,
       toneMapped: false,
       side: THREE.DoubleSide,
       depthWrite: false,
@@ -446,25 +433,39 @@ export function addPavilion(root: THREE.Group): THREE.Box3[] {
   );
   spill.position.set(doorX, doorH * 0.5, south + 0.01);
   const matRun = new THREE.Mesh(
-    new THREE.PlaneGeometry(doorW + 0.15, 1.85),
-    new THREE.MeshStandardMaterial({ color: 0x3a2418, roughness: 0.88, metalness: 0.02 }),
+    new THREE.PlaneGeometry(doorW + 0.55, 2.45),
+    new THREE.MeshStandardMaterial({ color: 0x4a2c1c, roughness: 0.86, metalness: 0.02 }),
   );
   matRun.rotation.x = -Math.PI / 2;
-  matRun.position.set(doorX, 0.025, south - 0.72);
-  const chev = mat(C.amber, { roughness: 0.45, emissive: 0x6a3a08, emissiveIntensity: 0.35 });
-  for (const dz of [-1.55, -1.15, -0.75]) {
-    const arrow = box(0.22, 0.02, 0.1, chev, doorX, 0.03, south + dz);
+  matRun.position.set(doorX, 0.025, south - 0.85);
+  const warmSpill = new THREE.Mesh(
+    new THREE.PlaneGeometry(doorW + 0.35, 2.1),
+    new THREE.MeshBasicMaterial({
+      color: 0xffb060,
+      transparent: true,
+      opacity: 0.16,
+      toneMapped: false,
+      depthWrite: false,
+    }),
+  );
+  warmSpill.rotation.x = -Math.PI / 2;
+  warmSpill.position.set(doorX, 0.03, south - 0.7);
+  const chev = mat(C.amber, { roughness: 0.4, emissive: 0x8a4a08, emissiveIntensity: 0.55 });
+  for (const dz of [-1.85, -1.4, -0.95, -0.55, 0.55, 0.95]) {
+    const arrow = box(0.28, 0.025, 0.12, chev, doorX, 0.032, south + dz);
     arrow.castShadow = false;
     g.add(arrow);
   }
-  const doorLamp = new THREE.PointLight(0xffc070, 0.7, 6.5, 2);
+  const doorLamp = new THREE.PointLight(0xffc070, 1.05, 8.2, 2);
   doorLamp.position.set(doorX, doorH + 0.05, south + 0.35);
-  g.add(spill, matRun, doorLamp);
+  const doorChevron = makeDoorChevron();
+  doorChevron.position.set(doorX, 2.15, south - 0.55);
+  g.add(spill, matRun, warmSpill, doorLamp, doorChevron);
 
   const leaf = new THREE.Group();
   leaf.position.set(doorL + 0.04, 0, south + 0.04);
-  leaf.rotation.y = 1.22;
-  const leafW = doorW - 0.16;
+  leaf.rotation.y = 1.52;
+  const leafW = 0.98;
   const leafH = doorH - 0.16;
   const leafCx = leafW * 0.5;
   const leafCy = doorH * 0.5 + 0.02;

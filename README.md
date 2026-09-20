@@ -21,6 +21,7 @@ Default `startNight()` lot view (no local build required):
 - [`docs/shots/after-pay.png`](docs/shots/after-pay.png) — Peck after pay (AutoCharge enrolled)
 - [`docs/shots/after-pay-hud.png`](docs/shots/after-pay-hud.png) — after paying Peck, HUD **AUTO 1**
 - [`docs/shots/door-interior.png`](docs/shots/door-interior.png) — lounge interior from the south OPEN door
+- [`docs/shots/walkto-lounge.png`](docs/shots/walkto-lounge.png) — right-click walk-to destination inside the lounge (storefront, sofa)
 - [`docs/shots/door-exterior.png`](docs/shots/door-exterior.png) — south storefront door from the lot
 - [`docs/shots/v2b-lot.png`](docs/shots/v2b-lot.png) — wider canopy / pavilion / occupancy
 

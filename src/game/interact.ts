@@ -1,3 +1,4 @@
+import { inLoungeSide, nearDoor } from "../world/layout";
 import type { GuestAction } from "./shift";
 import { guestAction, nextQueueGuest, pendingPayGuest, waitingParker } from "./shift";
 import type { GameState } from "./state";
@@ -124,6 +125,13 @@ function usable(c: InteractCandidate, eye: Vec3, look: Vec3, aimedId: string | n
 /** While PAY is the live job, talk / wave / park cannot steal E, the prompt, or the objective. */
 export function payLocked(job: { need: InteractNeed } | null): boolean {
   return job?.need === "pay";
+}
+
+/** Near-door affordance. Empty when a ready E prompt (PAY included) already owns the HUD. */
+export function doorApproachHint(eye: Vec3, prompt: string): string {
+  if (prompt) return "";
+  if (!nearDoor(eye.x, eye.z)) return "";
+  return inLoungeSide(eye.x, eye.z) ? "WALK OUT" : "WALK IN";
 }
 
 /** Single nearest live target. Prompt only when the action is available and in range / aimed. */

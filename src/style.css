@@ -177,6 +177,11 @@ body {
   text-shadow: 0 1px 6px rgba(8, 12, 16, 0.8);
 }
 
+#prompt.door-hint {
+  color: var(--amber);
+  border-color: rgba(232, 154, 46, 0.55);
+}
+
 #toast {
   position: absolute;
   bottom: 6.35rem;

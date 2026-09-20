@@ -19,7 +19,7 @@ export function beginWalk(fromX: number, fromZ: number, toX: number, toZ: number
   return { x: fromX, z: fromZ, dest: dest ?? null, route, teleported: false };
 }
 
-/** One frame of path follow: clamp every sample, cancel if the remaining path exits the volume. */
+/** One frame of path follow: clamp every sample. Replan through the door if a chord leaves playable. */
 export function stepWalk(step: WalkStep, dt: number, colliders: THREE.Box3[] = []): WalkStep {
   const pos = new THREE.Vector3(step.x, 1.64, step.z);
   let dest = step.dest;
@@ -27,16 +27,28 @@ export function stepWalk(step: WalkStep, dt: number, colliders: THREE.Box3[] = [
 
   const takeNext = (): { x: number; z: number } | null => route.shift() ?? null;
   const destOk = (d: { x: number; z: number } | null): d is { x: number; z: number } =>
-    !!d && inPlayableVolume(d.x, d.z) && segmentPlayable(pos.x, pos.z, d.x, d.z);
+    !!d && inPlayableVolume(d.x, d.z);
+
+  const finish = (): { x: number; z: number } | null => route[route.length - 1] ?? dest;
+  const replan = (): void => {
+    const end = finish();
+    if (!end) return;
+    const planned = playableWalkPath(pos.x, pos.z, end.x, end.z);
+    if (!planned?.length) return;
+    dest = planned[0] ?? null;
+    route.length = 0;
+    route.push(...planned.slice(1));
+  };
 
   if (dest && !destOk(dest)) dest = takeNext();
   while (dest && !destOk(dest)) dest = takeNext();
+  if (dest && !segmentPlayable(pos.x, pos.z, dest.x, dest.z)) replan();
 
   if (dest) {
     const dx = dest.x - pos.x;
     const dz = dest.z - pos.z;
     const dist = Math.hypot(dx, dz);
-    if (dist < 0.12) dest = takeNext();
+    if (dist < 0.16) dest = takeNext();
     else {
       const reach = Math.min(3.8 * dt, dist);
       pos.x += (dx / dist) * reach;
