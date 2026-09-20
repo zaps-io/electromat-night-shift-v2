@@ -167,7 +167,7 @@ const geo = {
 
 const badgeCache = new Map<number, THREE.MeshBasicMaterial>();
 
-export function stallBadgeMat(n: number): THREE.MeshBasicMaterial {
+function stallBadgeMat(n: number): THREE.MeshBasicMaterial {
   let mat = badgeCache.get(n);
   if (mat) return mat;
   const c = document.createElement("canvas");
@@ -304,18 +304,18 @@ export function addZeusCharger(
   }
   const startBezel = new THREE.Mesh(geo.buttonBezel, black);
   startBezel.rotation.x = Math.PI / 2;
-  startBezel.position.set(0, 0.58, -0.236);
+  startBezel.position.set(0, 0.54, -0.236);
   const startBtn = new THREE.Mesh(geo.button, charcoal);
   startBtn.rotation.x = Math.PI / 2;
-  startBtn.position.set(0, 0.58, -0.242);
+  startBtn.position.set(0, 0.54, -0.242);
   g.add(startBezel, startBtn);
 
   if (stallId != null) {
     const disc = new THREE.Mesh(geo.badgeDisc, black);
     disc.rotation.x = Math.PI / 2;
-    disc.position.set(0, STALL_BADGE.y, -0.228);
+    disc.position.set(0, STALL_BADGE.y, -0.242);
     const face = new THREE.Mesh(geo.badge, stallBadgeMat(stallId));
-    face.position.set(0, STALL_BADGE.y, -0.236);
+    face.position.set(0, STALL_BADGE.y, -0.25);
     face.rotation.y = Math.PI;
     face.userData.kind = "stall-badge";
     face.userData.stallId = stallId;

@@ -42,7 +42,7 @@ export const PARK_STOP = {
 } as const;
 
 /** White stall disc on the Slim Zeus face — sized to read at FPV (~2–3 m). */
-export const STALL_BADGE = { diameter: 0.14, y: 0.48 } as const;
+export const STALL_BADGE = { diameter: 0.15, y: 0.46 } as const;
 
 /** Drive aisle between the two canopy islands — parking stops must stay out of it. */
 export const AISLE_WALK = { xmin: -2.2, xmax: 5.4 } as const;
@@ -629,22 +629,22 @@ export const UNPLUG_SHOT = {
 
 /** Empty playable bay 6 — parking stop, stall badge, and holster hang in one FPV frame. */
 export const STALL_DETAIL_SHOT = {
-  x: 8.08,
-  z: 0.14,
-  eyeY: 1.36,
-  yaw: 1.48,
-  pitch: -0.16,
-  lookAt: { x: 11.12, y: 0.48, z: 0.0 },
-  fov: 46,
+  x: 8.55,
+  z: 0.02,
+  eyeY: 1.48,
+  yaw: 1.52,
+  pitch: -0.08,
+  lookAt: { x: 11.25, y: 0.92, z: 0.0 },
+  fov: 44,
 } as const;
 
-/** Right-island charger row under the canopy, matching the staff multi-charger ref. */
+/** Left-island charger row under the canopy, matching the staff multi-charger ref. */
 export const CANOPY_ROW_SHOT = {
-  x: 5.55,
-  z: -9.85,
-  eyeY: 2.72,
-  yaw: 0.42,
-  pitch: -0.18,
-  lookAt: { x: 12.15, y: 1.22, z: 3.55 },
-  fov: 48,
+  x: -5.15,
+  z: -11.65,
+  eyeY: 2.85,
+  yaw: 0.12,
+  pitch: -0.12,
+  lookAt: { x: -8.05, y: 1.18, z: 1.35 },
+  fov: 46,
 } as const;

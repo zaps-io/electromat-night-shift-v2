@@ -9,18 +9,16 @@ import {
   PAY_POINTS,
   PAVILION,
   STALLS,
-  STALL_BADGE,
   WAVE_POINT,
   YARD,
   parkingStopPose,
-  stallAisleSign,
   planterColliders,
   westVoidWalls,
 } from "./layout";
 import { addPavilion } from "./pavilion";
 import { asphaltColor, asphaltNormal, asphaltRough, creamPanels, curbColor, curbRough, gravel, soffitPanels } from "./tex";
 import { makePayIcon, makeWaveGuide, makeWaveIcon } from "./icons";
-import { addZeusCharger, stallBadgeMat } from "./zeus";
+import { addZeusCharger } from "./zeus";
 
 export interface Station {
   root: THREE.Group;
@@ -373,25 +371,6 @@ function addParkingStop(root: THREE.Group, stall: (typeof STALLS)[number]): void
     hole.position.set(0, PARK_STOP.height + 0.002, sz);
     g.add(hole);
   }
-  root.add(g);
-}
-
-function addCurbBadge(root: THREE.Group, stall: (typeof STALLS)[number]): void {
-  const aisle = stallAisleSign(stall);
-  const g = new THREE.Group();
-  g.position.set(stall.zeusX + aisle * 0.28, 0.24, stall.z + 0.5);
-  g.rotation.y = stall.zeusYaw;
-  const plate = new THREE.Mesh(
-    new THREE.CylinderGeometry(STALL_BADGE.diameter * 0.5, STALL_BADGE.diameter * 0.5, 0.016, 22),
-    mat(0x1e1e24, { roughness: 0.55, metalness: 0.08, envMapIntensity: 0.12 }),
-  );
-  plate.rotation.x = Math.PI / 2;
-  const face = new THREE.Mesh(new THREE.CircleGeometry(STALL_BADGE.diameter * 0.46, 22), stallBadgeMat(stall.id));
-  face.position.z = -0.01;
-  face.rotation.y = Math.PI;
-  g.add(plate, face);
-  g.userData.kind = "curb-badge";
-  g.userData.stallId = stall.id;
   root.add(g);
 }
 
@@ -806,7 +785,6 @@ export function buildStation(): Station {
       anchor.userData.bayId = stall.playable;
       bayAnchors.push(anchor);
       addParkingStop(root, stall);
-      addCurbBadge(root, stall);
     }
     addZeusPad(root, stall.zeusX, stall.zeusZ);
     addZeusCharger(root, stall.zeusX, stall.zeusZ, stall.zeusYaw, stall.playable != null ? "full" : "lite", stall.id);
