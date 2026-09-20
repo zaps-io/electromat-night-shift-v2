@@ -16,6 +16,8 @@ Default `startNight()` lot view (no local build required):
 - [`docs/shots/canopy-fascia.png`](docs/shots/canopy-fascia.png) — official red Zaps on the cream canopy fascia
 - [`docs/shots/slim-zeus.png`](docs/shots/slim-zeus.png) — Slim Zeus product face (brushed metal, charcoal recess, CCS holsters)
 - [`docs/shots/interior.png`](docs/shots/interior.png) — walk-in store / lounge looking out the east storefront
+- [`docs/shots/lounge-wide.png`](docs/shots/lounge-wide.png) — cafe, gondolas, coolers, and seating from the south door
+- [`docs/shots/storefront-exterior.png`](docs/shots/storefront-exterior.png) — east glass storefront with merch and night glow
 - [`docs/shots/door-exterior.png`](docs/shots/door-exterior.png) — south store door (red portal + OPEN)
 - [`docs/shots/prompt-pay.png`](docs/shots/prompt-pay.png) — HUD objective and E-prompt both `PAY · PECK`
 - [`docs/shots/after-pay.png`](docs/shots/after-pay.png) — Peck after pay (AutoCharge enrolled)
@@ -57,7 +59,7 @@ Site line: **DRIVE IN. CHARGE UP. ZIP OUT.**
 
 ## Visual bar
 
-Cinematic WebGL lot: ACES Filmic (exposure ~0.78) + one warm dusk `DirectionalLight`, golden-hour `scene.environment` via `PMREMGenerator`, `postprocessing` bloom / vignette / SMAA. Twin cream canopies with a taller cream fascia, thicker red lip, and official red Zaps wordmarks, 24 Slim Zeus (brushed metal that reads at dusk, charcoal recess, cyan base ring, amber PLUG IN, CCS leads from holster to port), enterable glass store/lounge (south door + storefront windows, counter / pastry / merch, lounge rug + sofa + window bar), grit asphalt + two-tone curb islands, dusk neighborhood backdrop (brick / ribbon / glass tower / shop awnings / street trees — no extra Reflectors). Guest cars are the Sketchfab **2018 Tesla Model 3** (Ameer Studio, CC BY 4.0) with paint forced opaque (`MeshPhysicalMaterial` clearcoat, `transmission: 0`) and dark opaque greenhouse glass. Stall X is `Zeus + half hull + 0.28m pedestal + 0.9m bumper gap` so cars do not interpenetrate Slim Zeus. Walker stays inside lot rails (no void) and can walk through the lounge door; furniture AABBs keep the pavilion from being a ghost box. No lofted placeholders, no Taycan helper cages, no see-through paint.
+Cinematic WebGL lot: ACES Filmic (exposure ~0.78) + one warm dusk `DirectionalLight`, golden-hour `scene.environment` via `PMREMGenerator`, `postprocessing` bloom / vignette / SMAA. Twin cream canopies with a taller cream fascia, thicker red lip, and official red Zaps wordmarks, 24 Slim Zeus (brushed metal that reads at dusk, charcoal recess, cyan base ring, amber PLUG IN, CCS leads from holster to port), enterable glass store/lounge (OPEN south door + dusk storefront, warm interior spill, retail gondolas / coolers / robot cafe, L-sofa lounge, status board, wood/crete floor — no extra Reflectors), grit asphalt + two-tone curb islands, dusk neighborhood backdrop (brick / ribbon / glass tower / shop awnings / street trees). Guest cars are the Sketchfab **2018 Tesla Model 3** (Ameer Studio, CC BY 4.0) with paint forced opaque (`MeshPhysicalMaterial` clearcoat, `transmission: 0`) and dark opaque greenhouse glass. Stall X is `Zeus + half hull + 0.28m pedestal + 0.9m bumper gap` so cars do not interpenetrate Slim Zeus. Walker stays inside lot rails (no void) and can walk through the lounge door; furniture AABBs keep the pavilion from being a ghost box. No lofted placeholders, no Taycan helper cages, no see-through paint.
 
 Official cream/red Zaps wordmarks only. Palette: `#E63225` `#1E1E24` `#E89A2E` `#00D4F5` `#F5F0E8`.
 

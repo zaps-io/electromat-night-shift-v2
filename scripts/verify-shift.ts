@@ -31,6 +31,8 @@ import {
   DOOR_SHOT,
   INTERIOR_SHOT,
   KIOSK_REACH,
+  LOUNGE_WIDE_SHOT,
+  loungePatio,
   LOT_ARRIVE,
   LOT_WALK,
   LOUNGE_ARRIVE,
@@ -43,6 +45,7 @@ import {
   QUEUE_GAP,
   SAFE_LOT_SPAWN,
   START_SHOT,
+  STOREFRONT_SHOT,
   STALL_CLEARANCE,
   STALLS,
   WAIT_ORDER,
@@ -381,6 +384,8 @@ if (!inPlayableVolume(PROMPT_SHOT.x, PROMPT_SHOT.z)) throw new Error("Peck promp
 if (!inPlayableVolume(loungePay.x, loungePay.z)) throw new Error("lounge PAY totem off playable volume");
 if (!inPlayableVolume(INTERIOR_SHOT.x, INTERIOR_SHOT.z)) throw new Error("interior shot off lounge volume");
 if (!inPlayableVolume(DOOR_IN_SHOT.x, DOOR_IN_SHOT.z)) throw new Error("door-in shot off playable volume");
+if (!inPlayableVolume(LOUNGE_WIDE_SHOT.x, LOUNGE_WIDE_SHOT.z)) throw new Error("lounge-wide shot off playable volume");
+if (!inPlayableVolume(STOREFRONT_SHOT.x, STOREFRONT_SHOT.z)) throw new Error("storefront shot off playable volume");
 if (!inPlayableVolume(door.x, door.z)) throw new Error("south door center must be walkable");
 if (inPlayableVolume(-28.2, -10.4)) throw new Error("west planter strip must be out of playable volume");
 if (inPlayableVolume(-28.2, 14.8)) throw new Error("northwest void must be out of playable volume");
@@ -430,6 +435,9 @@ const lotBoxes = [
     (w) => new THREE.Box3().setFromCenterAndSize(new THREE.Vector3(w.cx, w.cy, w.cz), new THREE.Vector3(w.w, w.h, w.d)),
   ),
   ...planterColliders().map(
+    (w) => new THREE.Box3().setFromCenterAndSize(new THREE.Vector3(w.cx, w.cy, w.cz), new THREE.Vector3(w.w, w.h, w.d)),
+  ),
+  ...loungePatio().map(
     (w) => new THREE.Box3().setFromCenterAndSize(new THREE.Vector3(w.cx, w.cy, w.cz), new THREE.Vector3(w.w, w.h, w.d)),
   ),
 ];
