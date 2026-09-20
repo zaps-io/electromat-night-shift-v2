@@ -16,6 +16,8 @@ Default `startNight()` lot view (no local build required):
 - [`docs/shots/canopy-fascia.png`](docs/shots/canopy-fascia.png) — official red Zaps on the cream canopy fascia
 - [`docs/shots/slim-zeus.png`](docs/shots/slim-zeus.png) — Slim Zeus product face (brushed metal, charcoal recess, CCS holsters)
 - [`docs/shots/interior.png`](docs/shots/interior.png) — walk-in store / lounge looking out the east storefront
+- [`docs/shots/door-exterior.png`](docs/shots/door-exterior.png) — south store door (red portal + OPEN)
+- [`docs/shots/prompt-pay.png`](docs/shots/prompt-pay.png) — HUD objective and E-prompt both `PAY · PECK`
 - [`docs/shots/door-exterior.png`](docs/shots/door-exterior.png) — south storefront door from the lot
 - [`docs/shots/v2b-lot.png`](docs/shots/v2b-lot.png) — wider canopy / pavilion / occupancy
 
@@ -34,15 +36,15 @@ Private-repo Pages also needs a GitHub plan that includes Pages (org GitHub Team
 ## Loop
 
 1. Click **START NIGHT SHIFT** (or call `window.__electromat.startNight()`).
-2. Walk the wet lot — WASD, pointer-lock look, right-click to walk-to.
+2. Click once to lock mouse-look. **WASD** walks continuously after lock. **E** uses the on-screen prompt only. Right-click walks to a ground spot (amber puck). There is no left-click-to-destination.
 3. **E TALK** to a driver (amber `!` in the aisle queue).
 4. **E PARK** — pulls them into an open stall (or look at an empty painted bay and press E).
 5. **E WAVE** at the aisle-mouth cream stand (amber **WAVE**) — greets if needed and hustles the next waiter into an open bay. Opening lot: bay 6 is free; WAVE parks Ng while Peck is still on PAY.
 6. **E PLUG** the inlet. AutoCharge cars take power immediately. Enrolling AutoCharge after PAY pulls full power so they zip sooner.
 7. **How to pay (QA repro):**
-   1. Start night. Toast: `Peck is plugged — E PAY at the car or the west PAY kiosk.`
-   2. **At the car:** walk to the dark Tesla on the **right island** (amber `!`). Prompt `E PAY · PECK`. Press **E**. Toast `Paid — Peck.`
-   3. **At the kiosk (operator path):** after any first-visit **E PLUG**, walk **west** (left of the left canopy). Look for the cream stand with amber **PAY** and a floating PAY badge. Within ~7m the prompt is `E PAY · NAME` without aiming the mesh. Press **E**. The lounge south door (frame + open glass leaf) has a second PAY stand — walk inside the store/lounge.
+   1. Start night. Objective: `PAY · PECK — walk to the car or a PAY stand`. No E prompt until Peck or a PAY stand is in range / aimed.
+   2. **At the car:** walk to the dark Tesla on the **right island** (cyan arrow + amber `!`). Objective and prompt both read `PAY · PECK`. Press **E**. Toast `Paid — Peck.`
+   3. **At the kiosk (operator path):** after any first-visit **E PLUG**, walk **west** (left of the left canopy) or to the lounge south door. Both stands have a floating **PAY** badge; the lounge stand is a taller totem with a pole flag. When the prompt reads `E PAY · NAME`, **E** pays that guest.
    4. Payment is not gated on a full battery. Then **E AUTOCHARGE** (faster charge). Later queue cars: talk → park → plug → same pay, or WAVE from the aisle.
 8. When the battery finishes, `!` returns — **E UNPLUG** to zip them out.
 8. Cyan battery icons mark occupancy. Three walkaways end the night. 04:00 grades the shift.

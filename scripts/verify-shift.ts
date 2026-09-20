@@ -14,6 +14,13 @@ import {
   waitingParker,
   waveQueue,
 } from "../src/game/shift.ts";
+import {
+  collectCandidates,
+  GUEST_REACH,
+  nextJob,
+  resolveInteract,
+  WAVE_CLOSE,
+} from "../src/game/interact.ts";
 import { assertOpaqueCarMaterials, glassMaterial, paintMaterial } from "../src/cars/opaque.ts";
 import {
   BAYS,
@@ -24,18 +31,24 @@ import {
   PAY_POINTS,
   PAVILION,
   PAVILION_DOOR,
+  PROMPT_SHOT,
   QUEUE_GAP,
   START_SHOT,
   STALL_CLEARANCE,
   STALLS,
+  WAIT_ORDER,
   WAIT_SLOTS,
   WALK_BOUNDS,
   WAVE_POINT,
   WAVE_REACH,
   ZEUS_HALF_DEPTH,
+  pavilionDoorGap,
+  pavilionDoorWorld,
+  pavilionExteriorWalls,
 } from "../src/world/layout.ts";
 import { cableHitsCarBody, ccsLeadPoints, holsterRestPoints } from "../src/world/cables.ts";
 import { OPAQUE_SEDAN_INLET } from "../src/cars/opaque.ts";
+import { resolveColliders, WALK_RADIUS } from "../src/input/walker.ts";
 import * as THREE from "three";
 
 for (const name of [
@@ -60,6 +73,7 @@ if (BAYS.some((b, i) => b.playable !== i + 1)) throw new Error("playable bay ids
 if (STALL_CLEARANCE < 0.85) throw new Error("stall clearance must keep Tesla off Zeus");
 if (KIOSK_REACH < 6) throw new Error("kiosk reach must not require pixel-perfect aim");
 if (WAVE_REACH < 6) throw new Error("WAVE reach must not require pixel-perfect aim");
+if (WAVE_CLOSE > 4) throw new Error("un-aimed WAVE must stay tighter than spawn distance");
 if (PAY_POINTS.length < 2) throw new Error("need lot PAY kiosk and lounge door");
 if (START_SHOT.x < WALK_BOUNDS.xmin || START_SHOT.x > WALK_BOUNDS.xmax) throw new Error("start X outside walk");
 if (START_SHOT.z < WALK_BOUNDS.zmin || START_SHOT.z > WALK_BOUNDS.zmax) throw new Error("start Z outside walk");
@@ -161,5 +175,110 @@ if (DOOR_SHOT.z < WALK_BOUNDS.zmin || DOOR_SHOT.z > WALK_BOUNDS.zmax) throw new 
 const doorCenterX = PAVILION.x + PAVILION_DOOR.localX;
 if (Math.abs(doorCenterX - -22.6) > 0.2) throw new Error("door center drifted");
 if (STALL_CLEARANCE !== 0.9) throw new Error("stall clearance must stay 0.9");
+
+const gap = pavilionDoorGap();
+if (gap.width < WALK_RADIUS * 2 + 0.4) {
+  throw new Error(`door gap ${gap.width.toFixed(2)} too tight for walker`);
+}
+const door = pavilionDoorWorld();
+if (Math.abs(door.x - -22.6) > 0.2) throw new Error("door world center drifted");
+if (PROMPT_SHOT.x < WALK_BOUNDS.xmin || PROMPT_SHOT.x > WALK_BOUNDS.xmax) {
+  throw new Error("prompt shot X outside walk");
+}
+
+const wallBoxes = pavilionExteriorWalls().map(
+  (w) => new THREE.Box3().setFromCenterAndSize(new THREE.Vector3(w.cx, w.cy, w.cz), new THREE.Vector3(w.w, w.h, w.d)),
+);
+const walk = new THREE.Vector3(door.x, 1.64, door.z - 2.2);
+for (let i = 0; i < 28; i++) {
+  walk.z += 0.18;
+  walk.x = door.x;
+  resolveColliders(walk, wallBoxes);
+  if (Math.abs(walk.x - door.x) > 0.35) {
+    throw new Error(`door path pinched at z=${walk.z.toFixed(2)} x=${walk.x.toFixed(2)}`);
+  }
+}
+if (walk.z < door.z + 1.2) throw new Error("door walk did not enter the lounge");
+
+const opening = resetNight();
+seedOpeningLot(opening);
+const peckBay = BAYS.find((b) => b.playable === opening.guests.find((g) => g.id === "peck")?.assignedBay)!;
+const carPos = new Map(
+  opening.guests
+    .filter((g) => opening.timeMin >= g.arriveMin && !g.served && !g.walked)
+    .map((g) => {
+      if (g.assignedBay != null) {
+        const bay = BAYS.find((b) => b.playable === g.assignedBay)!;
+        return [g.id, { x: bay.x, y: 0, z: bay.z }] as const;
+      }
+      const slot = WAIT_SLOTS[Math.max(0, WAIT_ORDER.indexOf(g.id as (typeof WAIT_ORDER)[number]))] ?? WAIT_SLOTS[0];
+      return [g.id, { x: slot.x, y: 0, z: slot.z }] as const;
+    }),
+);
+const bays = BAYS.map((bay) => ({
+  id: bay.playable!,
+  x: bay.x,
+  z: bay.z,
+  open: !opening.bays.find((b) => b.id === bay.playable)?.guestId,
+}));
+const cands = collectCandidates(opening, carPos, PAY_POINTS, KIOSK_REACH, WAVE_POINT, WAVE_REACH, bays);
+const job = nextJob(opening);
+if (job?.need !== "pay" || job.name !== "Peck") throw new Error("opening job must be PAY Peck");
+
+const startLook = {
+  x: START_SHOT.lookAt.x - START_SHOT.x,
+  y: START_SHOT.lookAt.y - START_SHOT.eyeY,
+  z: START_SHOT.lookAt.z - START_SHOT.z,
+};
+const startHit = resolveInteract(START_SHOT, startLook, null, cands, job);
+if (startHit.ready) throw new Error(`spawn must not offer ${startHit.prompt}`);
+if (!startHit.objective.includes("PAY") || !startHit.objective.includes("PECK")) {
+  throw new Error(`spawn objective should send the tester to Peck, got ${startHit.objective}`);
+}
+
+const promptLook = {
+  x: PROMPT_SHOT.lookAt.x - PROMPT_SHOT.x,
+  y: PROMPT_SHOT.lookAt.y - PROMPT_SHOT.eyeY,
+  z: PROMPT_SHOT.lookAt.z - PROMPT_SHOT.z,
+};
+const payHit = resolveInteract(PROMPT_SHOT, promptLook, "guest:peck", cands, job);
+if (!payHit.ready || payHit.ready.guestId !== "peck" || payHit.ready.need !== "pay") {
+  throw new Error("PROMPT_SHOT must resolve PAY Peck");
+}
+if (payHit.prompt !== "E  PAY  ·  PECK") throw new Error(`prompt mismatch ${payHit.prompt}`);
+if (payHit.objective !== "PAY  ·  PECK") throw new Error(`objective mismatch ${payHit.objective}`);
+
+const kimFar = resolveInteract(
+  START_SHOT,
+  startLook,
+  "guest:kim",
+  cands,
+  job,
+);
+if (kimFar.ready?.need === "park" || kimFar.ready?.need === "talk") {
+  throw new Error("spawn must not activate Kim when she is out of range");
+}
+
+const besidePeck = { x: peckBay.x - 2.2, y: 1.56, z: peckBay.z };
+const besideLook = { x: 1, y: 0, z: 0 };
+const closePay = resolveInteract(besidePeck, besideLook, null, cands, job);
+if (!closePay.ready || closePay.ready.need !== "pay") throw new Error("standing beside Peck must offer PAY");
+if (closePay.prompt !== "E  PAY  ·  PECK" || closePay.objective !== "PAY  ·  PECK") {
+  throw new Error(`close Peck HUD disagree ${closePay.prompt} / ${closePay.objective}`);
+}
+
+const aimedWave = resolveInteract(
+  { x: WAVE_POINT.x, y: 1.56, z: WAVE_POINT.z + 2.4 },
+  { x: 0, y: 0, z: -1 },
+  "wave",
+  cands,
+  job,
+);
+if (!aimedWave.ready || aimedWave.ready.need !== "wave") throw new Error("aimed WAVE stand must resolve WAVE");
+if (aimedWave.prompt !== aimedWave.objective.replace(/^/, "E  ")) {
+  throw new Error(`WAVE prompt/objective disagree ${aimedWave.prompt} / ${aimedWave.objective}`);
+}
+
+if (GUEST_REACH > 5.2) throw new Error("guest reach grew too loose");
 
 console.log("verify-shift ok");

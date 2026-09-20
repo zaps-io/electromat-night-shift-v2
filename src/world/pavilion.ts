@@ -1,8 +1,9 @@
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { C } from "../brand";
-import { PAVILION, PAVILION_DOOR } from "./layout";
+import { PAVILION, PAVILION_DOOR, pavilionExteriorWalls } from "./layout";
 import { fabric, loungeRug, menuBoard, stucco, woodFloor } from "./tex";
+import { makeOpenSign } from "./icons";
 
 function mat(color: number, extras: THREE.MeshPhysicalMaterialParameters = {}): THREE.MeshPhysicalMaterial {
   return new THREE.MeshPhysicalMaterial({
@@ -420,10 +421,45 @@ export function addPavilion(root: THREE.Group): THREE.Box3[] {
   g.add(box(T + 0.04, H - 0.12, 0.18, wall, east - T * 0.5, H * 0.5, north - 0.12));
 
   const jamb = mat(C.charcoal, { roughness: 0.4, metalness: 0.18 });
+  const portal = mat(C.red, { roughness: 0.32, metalness: 0.16, emissive: 0x4a100c, emissiveIntensity: 0.22 });
+  g.add(box(0.2, doorH + 0.16, 0.22, portal, doorL, doorH * 0.5 + 0.02, south - 0.04));
+  g.add(box(0.2, doorH + 0.16, 0.22, portal, doorR, doorH * 0.5 + 0.02, south - 0.04));
+  g.add(box(doorW + 0.42, 0.2, 0.24, portal, doorX, doorH + 0.16, south - 0.04));
   g.add(box(0.14, doorH + 0.08, 0.16, jamb, doorL, doorH * 0.5 + 0.02, south + 0.02));
   g.add(box(0.14, doorH + 0.08, 0.16, jamb, doorR, doorH * 0.5 + 0.02, south + 0.02));
   g.add(box(doorW + 0.28, 0.16, 0.18, jamb, doorX, doorH + 0.1, south + 0.02));
   g.add(box(doorW + 0.2, 0.06, 0.22, jamb, doorX, 0.04, south + 0.04));
+
+  const open = makeOpenSign();
+  open.position.set(doorX, doorH + 0.52, south - 0.12);
+  g.add(open);
+  const spill = new THREE.Mesh(
+    new THREE.PlaneGeometry(doorW - 0.2, doorH - 0.22),
+    new THREE.MeshBasicMaterial({
+      color: 0xffc878,
+      transparent: true,
+      opacity: 0.22,
+      toneMapped: false,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    }),
+  );
+  spill.position.set(doorX, doorH * 0.5, south + 0.01);
+  const matRun = new THREE.Mesh(
+    new THREE.PlaneGeometry(doorW + 0.15, 1.85),
+    new THREE.MeshStandardMaterial({ color: 0x3a2418, roughness: 0.88, metalness: 0.02 }),
+  );
+  matRun.rotation.x = -Math.PI / 2;
+  matRun.position.set(doorX, 0.025, south - 0.72);
+  const chev = mat(C.amber, { roughness: 0.45, emissive: 0x6a3a08, emissiveIntensity: 0.35 });
+  for (const dz of [-1.55, -1.15, -0.75]) {
+    const arrow = box(0.22, 0.02, 0.1, chev, doorX, 0.03, south + dz);
+    arrow.castShadow = false;
+    g.add(arrow);
+  }
+  const doorLamp = new THREE.PointLight(0xffc070, 0.7, 6.5, 2);
+  doorLamp.position.set(doorX, doorH + 0.05, south + 0.35);
+  g.add(spill, matRun, doorLamp);
 
   const leaf = new THREE.Group();
   leaf.position.set(doorL + 0.04, 0, south + 0.04);
@@ -485,14 +521,6 @@ export function addPavilion(root: THREE.Group): THREE.Box3[] {
 
   root.add(g);
 
-  const px = PAVILION.x;
-  const pz = PAVILION.z;
-  const walls = [
-    worldBox(px + west + T * 0.5, 1.7, pz, T + 0.12, 3.4, D + 0.3),
-    worldBox(px, 1.7, pz + north - T * 0.5, W + 0.3, 3.4, T + 0.12),
-    worldBox(px + east - T * 0.5, 1.7, pz, T + 0.12, 3.4, D + 0.3),
-    worldBox(px + (west + doorL) * 0.5, 1.7, pz + south + T * 0.5, southLeftW + 0.08, 3.4, T + 0.18),
-    worldBox(px + (doorR + east) * 0.5, 1.7, pz + south + T * 0.5, southRightW + 0.08, 3.4, T + 0.18),
-  ];
+  const walls = pavilionExteriorWalls().map((w) => worldBox(w.cx, w.cy, w.cz, w.w, w.h, w.d));
   return [...walls, ...interiorBoxes];
 }

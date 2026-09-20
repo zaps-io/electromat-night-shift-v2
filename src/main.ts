@@ -6,10 +6,10 @@ import {
   enrollAuto,
   greetDriver,
   guestAction,
-  nextQueueGuest,
   nudgePay,
   parkInBay,
   payKiosk,
+  nextQueueGuest,
   pendingPayGuest,
   plugInlet,
   resetNight,
@@ -19,15 +19,24 @@ import {
   waitingParker,
   waveQueue,
 } from "./game/shift";
+import {
+  collectCandidates,
+  nextJob,
+  resolveInteract,
+  type InteractCandidate,
+  type InteractResult,
+} from "./game/interact";
 import { Walker } from "./input/walker";
 import { configureKeyLight, createDuskEnvironment, createPipeline, createRenderer } from "./render/pipeline";
 import { addLodFillers, hullDebug, loadCarPrototypes, syncCars, trimLodFillers, type CarView } from "./world/cars";
 import {
+  BAYS,
   CANOPY_SHOT,
   DOOR_SHOT,
   INTERIOR_SHOT,
   KIOSK_REACH,
   PAY_POINTS,
+  PROMPT_SHOT,
   REAR_SHOT,
   START_SHOT,
   WAVE_POINT,
@@ -37,6 +46,7 @@ import {
 } from "./world/layout";
 import { addBrandSignage } from "./world/branding";
 import { makeAttendantHand, tickHand } from "./world/hand";
+import { makeTargetMark, makeWalkPuck } from "./world/icons";
 import { buildSkyline } from "./world/skyline";
 import { addLotMirror, buildStation } from "./world/station";
 
@@ -49,6 +59,7 @@ const endEl = document.querySelector("#end")!;
 const clockEl = document.querySelector("#clock")!;
 const autoEl = document.querySelector("#auto")!;
 const promptEl = document.querySelector("#prompt")!;
+const objectiveEl = document.querySelector("#objective")!;
 const toastEl = document.querySelector("#toast")!;
 const gradeEl = document.querySelector("#grade")!;
 const crossEl = document.querySelector("#cross")!;
@@ -76,6 +87,9 @@ const hand = makeAttendantHand();
 walker.camera.add(hand);
 scene.add(walker.camera);
 const brandingReady = addBrandSignage(station.root);
+const targetMark = makeTargetMark();
+const walkPuck = makeWalkPuck();
+scene.add(targetMark, walkPuck);
 
 scene.environment = createDuskEnvironment(renderer);
 const pipeline = createPipeline(renderer, scene, walker.camera);
@@ -88,7 +102,16 @@ let last = performance.now();
 
 const ray = new THREE.Raycaster();
 const pointer = new THREE.Vector2(0, 0);
+const lookDir = new THREE.Vector3();
 const shot = new URLSearchParams(location.search).get("shot");
+let lockedTarget: InteractResult = {
+  ready: null,
+  focus: null,
+  dist: Infinity,
+  aimed: false,
+  prompt: "",
+  objective: "",
+};
 
 function resize(): void {
   if (capturing) return;
@@ -144,82 +167,79 @@ function pickables(): THREE.Object3D[] {
   return list;
 }
 
-function nearKiosk(max = KIOSK_REACH): boolean {
-  return PAY_POINTS.some((p) => walker.position.distanceTo(new THREE.Vector3(p.x, walker.position.y, p.z)) < max);
-}
-
-function nearWave(max = WAVE_REACH): boolean {
-  return walker.position.distanceTo(new THREE.Vector3(WAVE_POINT.x, walker.position.y, WAVE_POINT.z)) < max;
-}
-
 function aim(): THREE.Intersection | null {
   ray.setFromCamera(pointer, walker.camera);
   const hits = ray.intersectObjects(pickables(), true);
   return hits[0] ?? null;
 }
 
-function guestIdOf(obj: THREE.Object3D | undefined): string | null {
+function userDataOf<T>(obj: THREE.Object3D | undefined, key: string): T | undefined {
   let o: THREE.Object3D | undefined = obj;
   while (o) {
-    if (typeof o.userData.guestId === "string") return o.userData.guestId;
+    if (o.userData[key] != null) return o.userData[key] as T;
     o = o.parent ?? undefined;
   }
-  return null;
+  return undefined;
 }
 
-function kindOf(obj: THREE.Object3D | undefined): string {
-  let o: THREE.Object3D | undefined = obj;
-  while (o) {
-    if (typeof o.userData.kind === "string") return o.userData.kind;
-    o = o.parent ?? undefined;
+function aimedCandidateId(hit: THREE.Intersection | null): string | null {
+  if (!hit) return null;
+  const kind = userDataOf<string>(hit.object, "kind") ?? "";
+  if (kind === "kiosk") {
+    const idx = userDataOf<number>(hit.object, "kioskIndex");
+    return `kiosk:${idx ?? 0}`;
   }
-  return "";
+  if (kind === "wave") return "wave";
+  if (kind === "bay") {
+    const bayId = userDataOf<number>(hit.object, "bayId");
+    return bayId != null ? `bay:${bayId}` : null;
+  }
+  const guestId = userDataOf<string>(hit.object, "guestId");
+  return guestId ? `guest:${guestId}` : null;
 }
 
-function guestNeed(id: string | null): ReturnType<typeof guestAction> {
-  if (!id) return "";
-  return guestAction(state.guests.find((x) => x.id === id));
-}
-
-function nearbyGuestId(max = 4.8): string | null {
-  let best: string | null = null;
-  let bestD = max;
-  let bestRank = 99;
-  const rank = (need: ReturnType<typeof guestNeed>) => {
-    if (need === "talk" || need === "park" || need === "plug" || need === "unplug") return 0;
-    if (need === "pay") return 1;
-    if (need === "auto") return 2;
-    return 9;
-  };
+function currentCandidates(): InteractCandidate[] {
+  const carPos = new Map<string, { x: number; y: number; z: number }>();
   for (const [id, view] of cars) {
-    const need = guestNeed(id);
-    if (!need) continue;
-    const d = walker.position.distanceTo(view.root.position);
-    if (d >= max) continue;
-    const r = rank(need);
-    if (r < bestRank || (r === bestRank && d < bestD)) {
-      bestRank = r;
-      bestD = d;
-      best = id;
-    }
+    carPos.set(id, { x: view.root.position.x, y: view.root.position.y, z: view.root.position.z });
   }
-  return best;
+  return collectCandidates(
+    state,
+    carPos,
+    PAY_POINTS,
+    KIOSK_REACH,
+    WAVE_POINT,
+    WAVE_REACH,
+    BAYS.map((bay) => ({
+      id: bay.playable!,
+      x: bay.x,
+      z: bay.z,
+      open: !state.bays.find((b) => b.id === bay.playable)?.guestId,
+    })),
+  );
 }
 
-function promptFor(need: ReturnType<typeof guestNeed>, name = ""): string {
-  const who = name ? `  ·  ${name.toUpperCase()}` : "";
-  if (need === "talk") return `E  TALK${who}`;
-  if (need === "park") return `E  PARK${who}`;
-  if (need === "plug") return `E  PLUG${who}`;
-  if (need === "auto") return `E  AUTOCHARGE${who}`;
-  if (need === "pay") return `E  PAY${who}`;
-  if (need === "unplug") return `E  UNPLUG${who}`;
-  return "";
-}
-
-function guestName(id: string | null): string {
-  if (!id) return "";
-  return state.guests.find((g) => g.id === id)?.name ?? "";
+function refreshTarget(): InteractResult {
+  if (state.phase !== "shift") {
+    lockedTarget = {
+      ready: null,
+      focus: null,
+      dist: Infinity,
+      aimed: false,
+      prompt: "",
+      objective: "",
+    };
+    return lockedTarget;
+  }
+  walker.camera.getWorldDirection(lookDir);
+  lockedTarget = resolveInteract(
+    walker.position,
+    lookDir,
+    aimedCandidateId(aim()),
+    currentCandidates(),
+    nextJob(state),
+  );
+  return lockedTarget;
 }
 
 function tryPay(id?: string): boolean {
@@ -262,13 +282,25 @@ function useGuest(id: string): boolean {
 
 function parkIntoBay(bayId: number): boolean {
   const waiter = waitingParker(state);
-  if (!waiter) {
-    return false;
-  }
+  if (!waiter) return false;
   if (parkInBay(state, waiter.id, bayId)) {
     playTalk();
     return true;
   }
+  return false;
+}
+
+function applyReady(ready: InteractCandidate): boolean {
+  if (ready.need === "wave") {
+    if (waveQueue(state)) {
+      playTalk();
+      return true;
+    }
+    return false;
+  }
+  if (ready.kind === "kiosk") return tryPay(ready.guestId);
+  if (ready.kind === "bay" && ready.bayId != null) return parkIntoBay(ready.bayId);
+  if (ready.guestId) return useGuest(ready.guestId);
   return false;
 }
 
@@ -281,37 +313,15 @@ function act(): void {
     restart();
     return;
   }
-  const hit = aim();
-  const id = guestIdOf(hit?.object);
-  const kind = kindOf(hit?.object);
-  const bayId = typeof hit?.object.userData.bayId === "number" ? hit.object.userData.bayId : bayIdOf(hit?.object);
-  if (kind === "kiosk") {
-    if (!tryPay()) nudgePay(state);
+  const ready = refreshTarget().ready;
+  if (!ready) {
+    if (pendingPayGuest(state)) nudgePay(state);
+    else state.toast = "Walk closer · look at the marker.";
+    state.toastUntil = state.timeMin + 6;
     return;
   }
-  if (kind === "wave") {
-    if (waveQueue(state)) playTalk();
-    return;
-  }
-  if (kind === "bay" && bayId && parkIntoBay(bayId)) return;
-  if (id && useGuest(id)) return;
-  const near = nearbyGuestId();
-  if (near && useGuest(near)) return;
-  if (nearWave() && nextQueueGuest(state) && waveQueue(state)) {
-    playTalk();
-    return;
-  }
-  if (nearKiosk() && tryPay()) return;
-  if (pendingPayGuest(state)) nudgePay(state);
-}
-
-function bayIdOf(obj: THREE.Object3D | undefined): number | undefined {
-  let o: THREE.Object3D | undefined = obj;
-  while (o) {
-    if (typeof o.userData.bayId === "number") return o.userData.bayId;
-    o = o.parent ?? undefined;
-  }
-  return undefined;
+  if (applyReady(ready)) return;
+  if (ready.need === "pay") nudgePay(state);
 }
 
 function paintHud(): void {
@@ -325,27 +335,27 @@ function paintHud(): void {
   clockEl.textContent = clockLabel(state.timeMin);
   autoEl.textContent = `AUTO ${state.autochargeSignups}`;
   pips.forEach((el, i) => el.classList.toggle("off", i < state.walkaways));
-  const hit = live ? aim() : null;
-  const kind = kindOf(hit?.object);
-  const id = guestIdOf(hit?.object);
-  const bayId = bayIdOf(hit?.object);
   const pending = pendingPayGuest(state);
-  const queued = nextQueueGuest(state);
-  const bayOpen = bayId != null && !state.bays.find((b) => b.id === bayId)?.guestId;
-  let prompt = "";
-  for (const spr of station.kioskAlerts) spr.visible = !!pending;
-  station.waveAlert.visible = !!queued;
-  if (kind === "kiosk") prompt = pending ? promptFor("pay", pending.name) : "";
-  else if (kind === "wave" && queued) prompt = `E  WAVE  ·  ${queued.name.toUpperCase()}`;
-  else if (kind === "bay" && bayOpen && waitingParker(state)) prompt = promptFor("park", waitingParker(state)?.name);
-  else if (kind === "inlet" && guestNeed(id) === "plug") prompt = promptFor("plug", guestName(id));
-  else if (id) prompt = promptFor(guestNeed(id), guestName(id));
-  if (!prompt) prompt = promptFor(guestNeed(nearbyGuestId()), guestName(nearbyGuestId()));
-  if (!prompt && queued && nearWave()) prompt = `E  WAVE  ·  ${queued.name.toUpperCase()}`;
-  if (!prompt && pending && nearKiosk()) prompt = promptFor("pay", pending.name);
-  promptEl.textContent = prompt;
+  station.kioskAlerts.forEach((spr, i) => {
+    spr.visible = i === 1 || !!pending;
+  });
+  station.waveAlert.visible = !!nextQueueGuest(state);
+  const resolved = refreshTarget();
+  promptEl.textContent = resolved.prompt;
+  objectiveEl.textContent = resolved.objective;
   toastEl.textContent = live && state.toastUntil > state.timeMin ? state.toast : "";
-  crossEl.classList.toggle("ready", !!prompt);
+  crossEl.classList.toggle("ready", !!resolved.prompt);
+  const markAt = resolved.focus;
+  targetMark.visible = live && !!markAt;
+  if (markAt) {
+    targetMark.position.set(markAt.x, 0, markAt.z);
+    targetMark.scale.setScalar(resolved.ready ? 1 : 0.82);
+    const ring = targetMark.children[0] as THREE.Mesh;
+    const mat = ring.material as THREE.MeshBasicMaterial;
+    mat.color.setHex(resolved.ready ? 0x00d4f5 : 0xe89a2e);
+  }
+  walkPuck.visible = live && walker.destination != null;
+  if (walker.destination) walkPuck.position.set(walker.destination.x, 0.03, walker.destination.z);
 }
 
 function groundWalk(clientX: number, clientY: number): void {
@@ -479,6 +489,12 @@ async function saveShots(): Promise<void> {
   walker.lookAt(DOOR_SHOT.lookAt.x, DOOR_SHOT.lookAt.y, DOOR_SHOT.lookAt.z);
   await new Promise((r) => setTimeout(r, 500));
   await post("/workspace/docs/shots/door-exterior.png", capture(1280, 800));
+  await new Promise((r) => setTimeout(r, 400));
+  walker.setFov(PROMPT_SHOT.fov);
+  walker.place(PROMPT_SHOT.x, PROMPT_SHOT.z, PROMPT_SHOT.yaw, PROMPT_SHOT.pitch, PROMPT_SHOT.eyeY);
+  walker.lookAt(PROMPT_SHOT.lookAt.x, PROMPT_SHOT.lookAt.y, PROMPT_SHOT.lookAt.z);
+  await new Promise((r) => setTimeout(r, 500));
+  await post("/workspace/docs/shots/prompt-pay.png", capture(1280, 800));
 }
 
 if (params.has("saveshots")) void saveShots();
@@ -529,6 +545,9 @@ window.__electromat = {
   },
   get position() {
     return { x: walker.position.x, y: walker.position.y, z: walker.position.z };
+  },
+  get target() {
+    return refreshTarget();
   },
   capture,
   hullDebug,
