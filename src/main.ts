@@ -564,6 +564,9 @@ window.__electromat = {
   walkTo(x: number, z: number) {
     walker.walkTo(new THREE.Vector3(x, 0, z));
   },
+  get destination() {
+    return walker.destination ? { x: walker.destination.x, z: walker.destination.z } : null;
+  },
   inPlayable(x: number, z: number) {
     return inPlayableVolume(x, z);
   },

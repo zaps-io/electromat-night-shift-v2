@@ -83,6 +83,8 @@ export function nextJob(state: GameState): { need: InteractNeed; name: string; g
   const pay = pendingPayGuest(state);
   if (pay) return { need: "pay", name: pay.name, guestId: pay.id };
   const live = state.guests.filter((g) => state.timeMin >= g.arriveMin && !g.served && !g.walked);
+  const auto = live.find((g) => guestAction(g) === "auto");
+  if (auto) return { need: "auto", name: auto.name, guestId: auto.id };
   const unplug = live.find((g) => guestAction(g) === "unplug");
   if (unplug) return { need: "unplug", name: unplug.name, guestId: unplug.id };
   const plug = live.find((g) => guestAction(g) === "plug");
@@ -92,8 +94,6 @@ export function nextJob(state: GameState): { need: InteractNeed; name: string; g
     if (state.bays.some((b) => !b.guestId)) return { need: "wave", name: queued.name, guestId: queued.id };
     return { need: guestAction(queued) || "talk", name: queued.name, guestId: queued.id };
   }
-  const auto = live.find((g) => guestAction(g) === "auto");
-  if (auto) return { need: "auto", name: auto.name, guestId: auto.id };
   return null;
 }
 

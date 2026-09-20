@@ -1,7 +1,18 @@
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { C } from "../brand";
-import { BAY_SIZE, CANOPIES, LOT_RAILS, PAY_POINTS, PAVILION, STALLS, WAVE_POINT, YARD, westVoidWalls } from "./layout";
+import {
+  BAY_SIZE,
+  CANOPIES,
+  LOT_RAILS,
+  PAY_POINTS,
+  PAVILION,
+  STALLS,
+  WAVE_POINT,
+  YARD,
+  planterColliders,
+  westVoidWalls,
+} from "./layout";
 import { addPavilion } from "./pavilion";
 import { asphaltColor, asphaltNormal, asphaltRough, creamPanels, curbColor, curbRough, gravel, soffitPanels } from "./tex";
 import { makePayIcon, makeWaveIcon } from "./icons";
@@ -696,6 +707,9 @@ export function buildStation(): Station {
   const westLot = westVoidWalls().map(
     (w) => new THREE.Box3().setFromCenterAndSize(new THREE.Vector3(w.cx, w.cy, w.cz), new THREE.Vector3(w.w, w.h, w.d)),
   );
+  const planters = planterColliders().map(
+    (w) => new THREE.Box3().setFromCenterAndSize(new THREE.Vector3(w.cx, w.cy, w.cz), new THREE.Vector3(w.w, w.h, w.d)),
+  );
 
   return {
     root,
@@ -706,6 +720,6 @@ export function buildStation(): Station {
     waveKiosk: wave.kiosk,
     waveAlert: wave.alert,
     bayAnchors,
-    colliders: [...pavilionBoxes, ...westLot],
+    colliders: [...pavilionBoxes, ...westLot, ...planters],
   };
 }

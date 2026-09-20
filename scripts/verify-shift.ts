@@ -1,6 +1,5 @@
 import { readFileSync } from "node:fs";
 import {
-  enrollAuto,
   greetDriver,
   guestAction,
   parkInBay,
@@ -25,6 +24,7 @@ import { assertOpaqueCarMaterials, glassMaterial, paintMaterial } from "../src/c
 import {
   BAYS,
   CAR_LENGTH,
+  DOOR_CORRIDOR,
   DOOR_IN_SHOT,
   DOOR_SHOT,
   INTERIOR_SHOT,
@@ -51,12 +51,15 @@ import {
   pavilionDoorGap,
   pavilionDoorWorld,
   pavilionExteriorWalls,
+  planterColliders,
+  playableWalkPath,
   playableWalkTarget,
+  segmentPlayable,
   westVoidWalls,
 } from "../src/world/layout.ts";
 import { cableHitsCarBody, ccsLeadPoints, holsterRestPoints } from "../src/world/cables.ts";
 import { OPAQUE_SEDAN_INLET } from "../src/cars/opaque.ts";
-import { resolveColliders, WALK_RADIUS } from "../src/input/walker.ts";
+import { beginWalk, resolveColliders, stepWalk, WALK_RADIUS } from "../src/input/walker.ts";
 import * as THREE from "three";
 
 for (const name of [
@@ -114,8 +117,9 @@ if (guestAction(ng) !== "plug") throw new Error("waved Ng should need plug");
 
 if (!payKiosk(s, "peck")) throw new Error("kiosk pay failed");
 if (!peck.authorized) throw new Error("Peck should be authorized");
-if (guestAction(peck) !== "auto") throw new Error("Peck should offer AutoCharge after pay");
-if (!enrollAuto(s, "peck")) throw new Error("AutoCharge enroll failed");
+if (!peck.enrolled) throw new Error("pay must auto-enroll Peck");
+if (s.autochargeSignups < 1) throw new Error("AUTO must increment after the pay path completes");
+if (guestAction(peck) !== "") throw new Error("Peck should be charging after pay");
 if (unplugInlet(s, "peck")) throw new Error("unplug should wait until full");
 tick(s, 20);
 if (peck.delivered < peck.targetKwh) throw new Error("Peck should finish charging in 20 game minutes");
@@ -321,17 +325,14 @@ if (atLoungePay.prompt !== "E  PAY  ·  PECK" || atLoungePay.objective !== "PAY 
 }
 
 if (!payKiosk(opening, "peck")) throw new Error("verify pay Peck failed");
+if (opening.autochargeSignups < 1) throw new Error("AUTO must increment after the pay path completes");
+if (!opening.guests.find((g) => g.id === "peck")?.enrolled) throw new Error("Peck must be enrolled after pay");
 const paidCands = collectCandidates(opening, carPos, PAY_POINTS, KIOSK_REACH, WAVE_POINT, WAVE_REACH, bays);
 const paidJob = nextJob(opening);
-const autoHit = resolveInteract(besidePeck, besideLook, "guest:peck", paidCands, paidJob);
-if (!autoHit.ready || autoHit.ready.need !== "auto" || autoHit.ready.guestId !== "peck") {
-  throw new Error("after pay, Peck must offer AUTOCHARGE");
-}
-if (autoHit.prompt !== "E  AUTOCHARGE  ·  PECK" || autoHit.objective !== "AUTOCHARGE  ·  PECK") {
-  throw new Error(`after-pay HUD disagree ${autoHit.prompt} / ${autoHit.objective}`);
-}
-if (!enrollAuto(opening, "peck")) throw new Error("verify AutoCharge enroll failed");
-if (opening.autochargeSignups < 1) throw new Error("AUTO must increment after Peck enrolls");
+if (paidJob?.need === "pay") throw new Error("after pay, job must leave PAY Peck");
+if (paidJob?.need === "auto") throw new Error("pay already enrolled AutoCharge; AUTOCHARGE must not block the loop");
+const afterPayPeck = resolveInteract(besidePeck, besideLook, "guest:peck", paidCands, paidJob);
+if (afterPayPeck.ready?.need === "pay") throw new Error("after pay, Peck must not still ask for PAY");
 
 const waveAfter = resolveInteract(
   { x: WAVE_POINT.x, y: 1.56, z: WAVE_POINT.z + 2.4 },
@@ -357,8 +358,14 @@ if (!inPlayableVolume(DOOR_IN_SHOT.x, DOOR_IN_SHOT.z)) throw new Error("door-in 
 if (!inPlayableVolume(door.x, door.z)) throw new Error("south door center must be walkable");
 if (inPlayableVolume(-28.2, -10.4)) throw new Error("west planter strip must be out of playable volume");
 if (inPlayableVolume(-28.2, 14.8)) throw new Error("northwest void must be out of playable volume");
+if (inPlayableVolume(-28.2, -3.55)) throw new Error("west lip south of lounge must not be playable");
+if (inPlayableVolume(-26.0, -10.4)) throw new Error("west planter lip on the old rail must not be playable");
 if (playableWalkTarget(-28.2, -10.4) != null) throw new Error("walk-to must reject the west void");
+if (playableWalkTarget(-26.0, -10.4) != null) throw new Error("walk-to must reject the west planter lip");
 if (playableWalkTarget(START_SHOT.x, START_SHOT.z) == null) throw new Error("walk-to must accept spawn");
+if (!inPlayableVolume(DOOR_CORRIDOR.xmin + 0.1, (DOOR_CORRIDOR.zmin + DOOR_CORRIDOR.zmax) * 0.5)) {
+  throw new Error("door corridor must be playable");
+}
 
 const scrape = clampPlayable(-27.1, -10.4);
 if (scrape.teleported) throw new Error("near-rail scrape should clamp, not teleport");
@@ -383,6 +390,9 @@ const lotBoxes = [
     (w) => new THREE.Box3().setFromCenterAndSize(new THREE.Vector3(w.cx, w.cy, w.cz), new THREE.Vector3(w.w, w.h, w.d)),
   ),
   ...westVoidWalls().map(
+    (w) => new THREE.Box3().setFromCenterAndSize(new THREE.Vector3(w.cx, w.cy, w.cz), new THREE.Vector3(w.w, w.h, w.d)),
+  ),
+  ...planterColliders().map(
     (w) => new THREE.Box3().setFromCenterAndSize(new THREE.Vector3(w.cx, w.cy, w.cz), new THREE.Vector3(w.w, w.h, w.d)),
   ),
 ];
@@ -414,6 +424,59 @@ for (let i = 0; i < 36; i++) {
   if (!inPlayableVolume(outWalk.x, outWalk.z)) throw new Error(`door exit left playable at z=${outWalk.z.toFixed(2)}`);
 }
 if (outWalk.z > door.z - 1.1) throw new Error("door walk did not return to the lot");
+
+if (playableWalkPath(START_SHOT.x, START_SHOT.z, -28.2, -10.4) != null) {
+  throw new Error("walk-to path must cancel for the west planter void");
+}
+if (playableWalkPath(START_SHOT.x, START_SHOT.z, -26.0, -10.4) != null) {
+  throw new Error("walk-to path must cancel for the west planter lip");
+}
+if (segmentPlayable(-10, -12, -27, -3.4)) {
+  throw new Error("straight lot→lounge chord must not cut the west void");
+}
+const loungeRoute = playableWalkPath(START_SHOT.x, START_SHOT.z, INTERIOR_SHOT.x, INTERIOR_SHOT.z);
+if (!loungeRoute) throw new Error("walk-to lounge interior must route through the south door");
+if (!loungeRoute.some((p) => Math.abs(p.x - door.x) < 0.35 && Math.abs(p.z - door.z) < 1.6)) {
+  throw new Error("lounge walk-to must use a south-door waypoint");
+}
+for (let i = 0; i < loungeRoute.length; i++) {
+  const a = i === 0 ? { x: START_SHOT.x, z: START_SHOT.z } : loungeRoute[i - 1]!;
+  const b = loungeRoute[i]!;
+  if (!segmentPlayable(a.x, a.z, b.x, b.z)) {
+    throw new Error(`lounge walk-to segment ${i} left playable volume`);
+  }
+}
+
+function followTo(fromX: number, fromZ: number, toX: number, toZ: number, frames = 520): { x: number; z: number; dest: boolean } {
+  let step = beginWalk(fromX, fromZ, toX, toZ);
+  for (let i = 0; i < frames; i++) {
+    step = stepWalk(step, 0.05, lotBoxes);
+    if (!inPlayableVolume(step.x, step.z)) {
+      throw new Error(`walk-to left playable at ${step.x.toFixed(2)},${step.z.toFixed(2)}`);
+    }
+    if (!step.dest && step.route.length === 0) break;
+  }
+  return { x: step.x, z: step.z, dest: step.dest != null || step.route.length > 0 };
+}
+
+const voidFollow = beginWalk(START_SHOT.x, START_SHOT.z, -28.2, -10.4);
+if (voidFollow.dest) throw new Error("beginWalk must cancel a west-planter click");
+const lipFollow = followTo(START_SHOT.x, START_SHOT.z, -26.0, -10.4, 80);
+if (lipFollow.dest) throw new Error("west planter lip walk-to must not keep a destination");
+if (!inPlayableVolume(lipFollow.x, lipFollow.z)) throw new Error("cancelled lip walk left playable volume");
+
+const intoLounge = followTo(DOOR_SHOT.x, DOOR_SHOT.z, INTERIOR_SHOT.x, INTERIOR_SHOT.z);
+if (intoLounge.dest) throw new Error("door walk-to did not finish");
+if (intoLounge.z < door.z + 1.3) throw new Error("walk-to did not enter the lounge");
+if (!inPlayableVolume(intoLounge.x, intoLounge.z)) throw new Error("lounge walk-to ended off playable");
+
+const outLounge = followTo(intoLounge.x, intoLounge.z, DOOR_SHOT.x, DOOR_SHOT.z);
+if (outLounge.dest) throw new Error("lounge exit walk-to did not finish");
+if (outLounge.z > door.z - 1.0) throw new Error("walk-to did not return to the lot");
+
+const edgeFollow = followTo(4.2, -6.2, LOT_WALK.xmin + 0.15, -10.4);
+if (!inPlayableVolume(edgeFollow.x, edgeFollow.z)) throw new Error("west-edge walk-to left playable volume");
+if (edgeFollow.x < LOT_WALK.xmin - 1e-6) throw new Error("west-edge walk-to crossed the lot inset");
 
 const slide = new THREE.Vector3(door.x, 1.64, door.z - 0.55);
 for (let i = 0; i < 22; i++) {

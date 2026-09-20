@@ -123,28 +123,48 @@ export const LOT_RAILS = { xmin: -26.2, xmax: 23.2, zmin: -21.6, zmax: 17.4 };
 
 export const PAVILION = { x: -23.4, z: 3.4, yaw: 0, w: 11.6, d: 13.4, h: 3.35 };
 /** South storefront door, local X toward the lounge PAY stand. Wide enough for the walker. */
-export const PAVILION_DOOR = { localX: 0.8, width: 2.16, height: 2.38 };
+export const PAVILION_DOOR = { localX: 0.8, width: 2.36, height: 2.38 };
 
 export type XZRect = { xmin: number; xmax: number; zmin: number; zmax: number };
-
-/** Asphalt apron inside the lot rails. */
-export const LOT_WALK: XZRect = { ...LOT_RAILS };
+export type XZ = { x: number; z: number };
 
 const LOUNGE_WALL = 0.28;
-/** Lounge interior plus a short south-door threshold onto the lot. */
+const DOOR_WORLD_X = PAVILION.x + PAVILION_DOOR.localX;
+const DOOR_WORLD_Z = PAVILION.z - PAVILION.d * 0.5;
+
+/**
+ * Asphalt apron inside the lot rails. Inset on the west so walk-to cannot
+ * stand on the west planter lip and look into the unlit void.
+ */
+export const LOT_WALK: XZRect = {
+  xmin: LOT_RAILS.xmin + 1.55,
+  xmax: LOT_RAILS.xmax - 0.4,
+  zmin: LOT_RAILS.zmin + 0.4,
+  zmax: LOT_RAILS.zmax - 0.4,
+};
+
+/** Lounge interior only — not the west outdoor strip south of the building. */
 export const LOUNGE_WALK: XZRect = {
   xmin: PAVILION.x - PAVILION.w * 0.5 + LOUNGE_WALL,
   xmax: PAVILION.x + PAVILION.w * 0.5 - LOUNGE_WALL,
-  zmin: PAVILION.z - PAVILION.d * 0.5 - 0.45,
+  zmin: PAVILION.z - PAVILION.d * 0.5 + 0.12,
   zmax: PAVILION.z + PAVILION.d * 0.5 - LOUNGE_WALL,
+};
+
+/** Narrow south-door throat connecting lot ↔ lounge. */
+export const DOOR_CORRIDOR: XZRect = {
+  xmin: DOOR_WORLD_X - PAVILION_DOOR.width * 0.5 + 0.16,
+  xmax: DOOR_WORLD_X + PAVILION_DOOR.width * 0.5 - 0.16,
+  zmin: DOOR_WORLD_Z - 1.95,
+  zmax: DOOR_WORLD_Z + 1.9,
 };
 
 /** Outer envelope of lot ∪ lounge — not the playable shape. */
 export const WALK_BOUNDS: XZRect = {
-  xmin: Math.min(LOT_WALK.xmin, LOUNGE_WALK.xmin),
-  xmax: Math.max(LOT_WALK.xmax, LOUNGE_WALK.xmax),
-  zmin: Math.min(LOT_WALK.zmin, LOUNGE_WALK.zmin),
-  zmax: Math.max(LOT_WALK.zmax, LOUNGE_WALK.zmax),
+  xmin: Math.min(LOT_WALK.xmin, LOUNGE_WALK.xmin, DOOR_CORRIDOR.xmin),
+  xmax: Math.max(LOT_WALK.xmax, LOUNGE_WALK.xmax, DOOR_CORRIDOR.xmax),
+  zmin: Math.min(LOT_WALK.zmin, LOUNGE_WALK.zmin, DOOR_CORRIDOR.zmin),
+  zmax: Math.max(LOT_WALK.zmax, LOUNGE_WALK.zmax, DOOR_CORRIDOR.zmax),
 };
 
 export const SAFE_LOT_SPAWN = { x: -3.2, z: -20.4 };
@@ -156,7 +176,7 @@ export function inRect(x: number, z: number, r: XZRect): boolean {
 }
 
 export function inPlayableVolume(x: number, z: number): boolean {
-  return inRect(x, z, LOT_WALK) || inRect(x, z, LOUNGE_WALK);
+  return inRect(x, z, LOT_WALK) || inRect(x, z, LOUNGE_WALK) || inRect(x, z, DOOR_CORRIDOR);
 }
 
 export function closestOnRect(x: number, z: number, r: XZRect): { x: number; z: number } {
@@ -168,26 +188,85 @@ export function closestOnRect(x: number, z: number, r: XZRect): { x: number; z: 
 
 export function clampPlayable(x: number, z: number): { x: number; z: number; teleported: boolean } {
   if (inPlayableVolume(x, z)) return { x, z, teleported: false };
-  const lot = closestOnRect(x, z, LOT_WALK);
-  const lounge = closestOnRect(x, z, LOUNGE_WALK);
-  const lotD = Math.hypot(x - lot.x, z - lot.z);
-  const loungeD = Math.hypot(x - lounge.x, z - lounge.z);
-  const pick = lotD <= loungeD ? lot : lounge;
-  if (Math.min(lotD, loungeD) > VOID_TELEPORT_M) {
+  const picks = [LOT_WALK, LOUNGE_WALK, DOOR_CORRIDOR].map((r) => closestOnRect(x, z, r));
+  let pick = picks[0]!;
+  let best = Math.hypot(x - pick.x, z - pick.z);
+  for (const cand of picks.slice(1)) {
+    const d = Math.hypot(x - cand.x, z - cand.z);
+    if (d < best) {
+      pick = cand;
+      best = d;
+    }
+  }
+  if (best > VOID_TELEPORT_M) {
     return { x: SAFE_LOT_SPAWN.x, z: SAFE_LOT_SPAWN.z, teleported: true };
   }
   return { x: pick.x, z: pick.z, teleported: false };
 }
 
-/** Right-click walk-to only keeps destinations on asphalt or in the lounge. */
+/** Right-click walk-to only keeps destinations on asphalt, the door throat, or the lounge. */
 export function playableWalkTarget(x: number, z: number): { x: number; z: number } | null {
   return inPlayableVolume(x, z) ? { x, z } : null;
 }
 
-/** Invisible walls filling the west void strip south/north of the lounge. */
+/** Straight-line samples must stay on asphalt ∪ door ∪ lounge. */
+export function segmentPlayable(ax: number, az: number, bx: number, bz: number, step = 0.2): boolean {
+  const dist = Math.hypot(bx - ax, bz - az);
+  const n = Math.max(1, Math.ceil(dist / step));
+  for (let i = 0; i <= n; i++) {
+    const t = i / n;
+    if (!inPlayableVolume(ax + (bx - ax) * t, az + (bz - az) * t)) return false;
+  }
+  return true;
+}
+
+export function doorWaypoints(): { outside: XZ; center: XZ; inside: XZ } {
+  return {
+    outside: { x: DOOR_WORLD_X, z: DOOR_WORLD_Z - 1.25 },
+    center: { x: DOOR_WORLD_X, z: DOOR_WORLD_Z },
+    inside: { x: DOOR_WORLD_X, z: DOOR_WORLD_Z + 1.45 },
+  };
+}
+
+/**
+ * Walk-to route. Straight if the segment stays playable; otherwise lot ↔ lounge
+ * via the south door. Null cancels the click (target or path left the volume).
+ */
+export function playableWalkPath(fromX: number, fromZ: number, toX: number, toZ: number): XZ[] | null {
+  if (!inPlayableVolume(toX, toZ)) return null;
+  if (!inPlayableVolume(fromX, fromZ)) {
+    const held = clampPlayable(fromX, fromZ);
+    if (held.teleported || !inPlayableVolume(held.x, held.z)) return null;
+    fromX = held.x;
+    fromZ = held.z;
+  }
+  const fromLounge = inRect(fromX, fromZ, LOUNGE_WALK);
+  const toLounge = inRect(toX, toZ, LOUNGE_WALK);
+  // Same side and a playable chord: walk straight. Crossing lot ↔ lounge
+  // always uses the south door so the path cannot cut glass or the west void.
+  if (fromLounge === toLounge && segmentPlayable(fromX, fromZ, toX, toZ)) {
+    return [{ x: toX, z: toZ }];
+  }
+
+  const { outside, center, inside } = doorWaypoints();
+  const hops = fromLounge ? [inside, center, outside, { x: toX, z: toZ }] : [outside, center, inside, { x: toX, z: toZ }];
+  const path: XZ[] = [];
+  let cx = fromX;
+  let cz = fromZ;
+  for (const hop of hops) {
+    if (Math.hypot(hop.x - cx, hop.z - cz) < 0.14) continue;
+    if (!inPlayableVolume(hop.x, hop.z) || !segmentPlayable(cx, cz, hop.x, hop.z)) return null;
+    path.push(hop);
+    cx = hop.x;
+    cz = hop.z;
+  }
+  return path.length ? path : null;
+}
+
+/** Invisible walls filling the west void / planter strip south and north of the lounge. */
 export function westVoidWalls(): { cx: number; cy: number; cz: number; w: number; h: number; d: number }[] {
-  const railX = LOT_RAILS.xmin;
-  const west = WALK_BOUNDS.xmin - 0.15;
+  const railX = LOT_WALK.xmin;
+  const west = Math.min(WALK_BOUNDS.xmin, LOT_RAILS.xmin) - 0.2;
   const pavSouth = PAVILION.z - PAVILION.d * 0.5;
   const pavNorth = PAVILION.z + PAVILION.d * 0.5;
   return [
@@ -207,6 +286,15 @@ export function westVoidWalls(): { cx: number; cy: number; cz: number; w: number
       h: 2.4,
       d: Math.max(0.4, LOT_RAILS.zmax - pavNorth),
     },
+  ];
+}
+
+/** Planter beds that sit on or beside the apron — walk around, not through. */
+export function planterColliders(): { cx: number; cy: number; cz: number; w: number; h: number; d: number }[] {
+  return [
+    { cx: -27.0, cy: 0.55, cz: -10.2, w: 4.5, h: 1.2, d: 8.7 },
+    { cx: -12.4, cy: 0.5, cz: -16.5, w: 10.8, h: 1.0, d: 2.7 },
+    { cx: 12.8, cy: 0.5, cz: -16.5, w: 10.8, h: 1.0, d: 2.7 },
   ];
 }
 
