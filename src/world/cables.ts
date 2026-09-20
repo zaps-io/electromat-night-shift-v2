@@ -11,19 +11,19 @@ export function ccsLeadPoints(inlet: { x: number; y: number; z: number }): THREE
   const s = Math.sign(inlet.x) || 1;
   return [
     new THREE.Vector3(s * ZEUS_CABLE_EXIT.x, ZEUS_CABLE_EXIT.y, -3.3),
-    new THREE.Vector3(s * 0.55, 0.38, -2.88),
-    new THREE.Vector3(s * 1.05, 0.24, -2.15),
-    new THREE.Vector3(s * 1.2, 0.38, -1.42),
+    new THREE.Vector3(s * 0.42, 0.54, -2.7),
+    new THREE.Vector3(s * 0.86, 0.36, -1.92),
+    new THREE.Vector3(s * 1.12, 0.58, -1.22),
     new THREE.Vector3(inlet.x, inlet.y, inlet.z),
   ];
 }
 
-/** Neat J-loop from the holster grip into a well on the Zeus front face — never through the body. */
+/** Tight U-hang from the holster grip into the front well — no outward spaghetti. */
 export function holsterRestPoints(side: -1 | 1): THREE.Vector3[] {
   return [
     new THREE.Vector3(ZEUS_CABLE_EXIT.x * side, 0.7, -0.22),
-    new THREE.Vector3(0.13 * side, 0.42, -0.33),
-    new THREE.Vector3(0.11 * side, 0.2, -0.3),
+    new THREE.Vector3(0.1 * side, 0.46, -0.285),
+    new THREE.Vector3(0.096 * side, 0.24, -0.272),
     new THREE.Vector3(0.09 * side, 0.12, -0.25),
   ];
 }

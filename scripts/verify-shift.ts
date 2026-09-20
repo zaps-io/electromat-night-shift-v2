@@ -41,10 +41,18 @@ import {
   PAY_POINTS,
   PAVILION,
   PAVILION_DOOR,
+  PARK_STOP,
   PAVILION_FOOTPRINT,
+  playableParkingStops,
   PROMPT_SHOT,
   QUEUE_GAP,
   SAFE_LOT_SPAWN,
+  STALL_BADGE,
+  STALL_DETAIL_SHOT,
+  CANOPY_ROW_SHOT,
+  AISLE_WALK,
+  parkingStopPose,
+  stallBadgeLabel,
   START_SHOT,
   STOREFRONT_SHOT,
   STALL_CLEARANCE,
@@ -181,9 +189,14 @@ const lead = ccsLeadPoints(OPAQUE_SEDAN_INLET);
 if (lead[0].z > -3) throw new Error("CCS lead must start at the Slim Zeus holster, not the bumper");
 if (Math.abs(lead[lead.length - 1].x - OPAQUE_SEDAN_INLET.x) > 0.02) throw new Error("CCS lead must end at the inlet");
 if (cableHitsCarBody(lead)) throw new Error("CCS lead threads the car hull");
+for (const p of lead.slice(0, -1)) {
+  if (p.y < 0.3) throw new Error("CCS lead sags onto the deck");
+}
+if (Math.abs(lead[1]!.x) > 0.55) throw new Error("CCS hang too wide at the holster");
 for (const side of [-1, 1] as const) {
   for (const p of holsterRestPoints(side)) {
     if (p.z > -0.22) throw new Error("holster rest cable clips into the Zeus body");
+    if (p.z < -0.3) throw new Error("holster rest hangs too far out (spaghetti)");
   }
 }
 
@@ -689,5 +702,44 @@ for (let i = 0; i < 22; i++) {
   slide.z = held.z;
   if (!inPlayableVolume(slide.x, slide.z)) throw new Error("west slide along the lounge fell into the void");
 }
+
+if (PARK_STOP.length < 1.5 || PARK_STOP.length > 2.2) throw new Error("parking stop length should read as a stall wheel stop");
+if (PARK_STOP.height > 0.18) throw new Error("parking stop too tall for walk-over");
+if (STALL_BADGE.diameter < 0.12) throw new Error("stall badge too small for FPV");
+const stops = playableParkingStops();
+if (stops.length !== 6) throw new Error(`expected 6 playable parking stops, got ${stops.length}`);
+if (new Set(stops.map((s) => s.bayId)).size !== 6) throw new Error("parking stops must cover bays 1..6");
+for (const stop of stops) {
+  const stall = STALLS.find((s) => s.playable === stop.bayId);
+  if (!stall) throw new Error(`stop for missing bay ${stop.bayId}`);
+  if (stop.x >= AISLE_WALK.xmin && stop.x <= AISLE_WALK.xmax) {
+    throw new Error(`parking stop ${stop.bayId} sits in the drive aisle`);
+  }
+  if (Math.abs(stop.z - stall.z) > 0.02) throw new Error(`parking stop ${stop.bayId} left its stall`);
+  const gap = Math.abs(stop.x - stall.zeusX);
+  if (gap < 0.6 || gap > 1.15) throw new Error(`parking stop ${stop.bayId} not in the Zeus–bumper gap`);
+  if (stallBadgeLabel(stall) !== String(stall.id)) throw new Error("stall badge label drifted");
+  const pose = parkingStopPose(stall);
+  if (pose.x !== stop.x || pose.z !== stop.z) throw new Error("parking stop pose helper drifted");
+  if (!inPlayableVolume(stop.x, stop.z)) throw new Error(`parking stop ${stop.bayId} left playable asphalt`);
+  const onStop = new THREE.Vector3(stop.x, 1.64, stop.z);
+  resolveColliders(onStop, lotBoxes);
+  if (Math.hypot(onStop.x - stop.x, onStop.z - stop.z) > 0.05) {
+    throw new Error(`parking stop ${stop.bayId} acts as a walk collider`);
+  }
+}
+
+if (!inPlayableVolume(STALL_DETAIL_SHOT.x, STALL_DETAIL_SHOT.z)) {
+  throw new Error("stall-detail shot must stay on the lot");
+}
+const aisleWalk = followTo(START_SHOT.x, START_SHOT.z, WAVE_POINT.x, WAVE_POINT.z);
+if (aisleWalk.dest) throw new Error("aisle walk to WAVE did not finish");
+const peckStop = stops.find((s) => s.bayId === 4)!;
+const besidePeckStop = followTo(START_SHOT.x, START_SHOT.z, peckStop.x - 1.35, peckStop.z, 640);
+if (!inPlayableVolume(besidePeckStop.x, besidePeckStop.z)) {
+  throw new Error("walk beside Peck's parking stop left playable volume");
+}
+
+void CANOPY_ROW_SHOT;
 
 console.log("verify-shift ok");

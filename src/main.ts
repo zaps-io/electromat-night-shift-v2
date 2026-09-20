@@ -32,6 +32,7 @@ import { configureKeyLight, createDuskEnvironment, createPipeline, createRendere
 import { addLodFillers, hullDebug, loadCarPrototypes, syncCars, trimLodFillers, type CarView } from "./world/cars";
 import {
   BAYS,
+  CANOPY_ROW_SHOT,
   CANOPY_SHOT,
   DOOR_IN_SHOT,
   DOOR_SHOT,
@@ -41,6 +42,7 @@ import {
   PAY_POINTS,
   PROMPT_SHOT,
   REAR_SHOT,
+  STALL_DETAIL_SHOT,
   START_SHOT,
   STOREFRONT_SHOT,
   UNPLUG_SHOT,
@@ -494,6 +496,18 @@ async function saveShots(): Promise<void> {
   walker.lookAt(WIDE_SHOT.lookAt.x, WIDE_SHOT.lookAt.y, WIDE_SHOT.lookAt.z);
   await new Promise((r) => setTimeout(r, 500));
   await post("/workspace/docs/shots/lot-wide.png", capture(1280, 800));
+  await new Promise((r) => setTimeout(r, 400));
+  walker.setFov(STALL_DETAIL_SHOT.fov);
+  walker.place(STALL_DETAIL_SHOT.x, STALL_DETAIL_SHOT.z, STALL_DETAIL_SHOT.yaw, STALL_DETAIL_SHOT.pitch, STALL_DETAIL_SHOT.eyeY);
+  walker.lookAt(STALL_DETAIL_SHOT.lookAt.x, STALL_DETAIL_SHOT.lookAt.y, STALL_DETAIL_SHOT.lookAt.z);
+  await new Promise((r) => setTimeout(r, 500));
+  await post("/workspace/docs/shots/stall-detail.png", capture(1280, 800));
+  await new Promise((r) => setTimeout(r, 400));
+  walker.setFov(CANOPY_ROW_SHOT.fov);
+  walker.place(CANOPY_ROW_SHOT.x, CANOPY_ROW_SHOT.z, CANOPY_ROW_SHOT.yaw, CANOPY_ROW_SHOT.pitch, CANOPY_ROW_SHOT.eyeY);
+  walker.lookAt(CANOPY_ROW_SHOT.lookAt.x, CANOPY_ROW_SHOT.lookAt.y, CANOPY_ROW_SHOT.lookAt.z);
+  await new Promise((r) => setTimeout(r, 500));
+  await post("/workspace/docs/shots/canopy-row.png", capture(1280, 800));
   await new Promise((r) => setTimeout(r, 400));
   walker.setFov(CANOPY_SHOT.fov);
   walker.place(CANOPY_SHOT.x, CANOPY_SHOT.z, CANOPY_SHOT.yaw, CANOPY_SHOT.pitch, CANOPY_SHOT.eyeY);

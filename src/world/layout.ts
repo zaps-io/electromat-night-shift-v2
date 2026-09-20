@@ -33,6 +33,20 @@ export const ZEUS_HALF_DEPTH = 0.28;
 /** Bumper-to-Zeus face. Live playtest stills showed ~0 gap at 1.5m centers. */
 export const STALL_CLEARANCE = 0.9;
 
+/** Rubber wheel stop in the Zeus–bumper gap. Visual only — never a walk collider. */
+export const PARK_STOP = {
+  length: 1.78,
+  height: 0.12,
+  depth: 0.16,
+  fromZeusFace: 0.62,
+} as const;
+
+/** White stall disc on the Slim Zeus face — sized to read at FPV (~2–3 m). */
+export const STALL_BADGE = { diameter: 0.15, y: 0.46 } as const;
+
+/** Drive aisle between the two canopy islands — parking stops must stay out of it. */
+export const AISLE_WALK = { xmin: -2.2, xmax: 5.4 } as const;
+
 function stallCarX(zeusX: number, aisleSign: 1 | -1): number {
   return zeusX + aisleSign * (CAR_LENGTH * 0.5 + ZEUS_HALF_DEPTH + STALL_CLEARANCE);
 }
@@ -91,6 +105,31 @@ export const STALLS: Stall[] = [
 
 /** Six playable Night Shift bays (opening lot + Peck). */
 export const BAYS = STALLS.filter((s) => s.playable != null).sort((a, b) => a.playable! - b.playable!) as Stall[];
+
+export function stallAisleSign(stall: Stall): 1 | -1 {
+  return (Math.sign(stall.x - stall.zeusX) || 1) as 1 | -1;
+}
+
+/** World XZ of the rubber stop for a stall. Long axis stays along the island (world Z). */
+export function parkingStopPose(stall: Stall): { x: number; z: number } {
+  const aisle = stallAisleSign(stall);
+  return {
+    x: stall.zeusX + aisle * (ZEUS_HALF_DEPTH + PARK_STOP.fromZeusFace),
+    z: stall.z,
+  };
+}
+
+export function playableParkingStops(): { bayId: number; stallId: number; x: number; z: number }[] {
+  return BAYS.map((stall) => ({
+    bayId: stall.playable!,
+    stallId: stall.id,
+    ...parkingStopPose(stall),
+  }));
+}
+
+export function stallBadgeLabel(stall: Stall): string {
+  return String(stall.id);
+}
 
 /** Nose-to-tail aisle queue. Cars face +Z (into the lot). Spacing > sedan length. */
 export const WAIT_SLOTS = [
@@ -586,4 +625,26 @@ export const UNPLUG_SHOT = {
   pitch: 0.02,
   lookAt: { x: RIGHT_WEST_CAR_X, y: 1.15, z: -5.4 },
   fov: 52,
+} as const;
+
+/** Empty playable bay 6 — parking stop, stall badge, and holster hang in one FPV frame. */
+export const STALL_DETAIL_SHOT = {
+  x: 8.55,
+  z: 0.02,
+  eyeY: 1.48,
+  yaw: 1.52,
+  pitch: -0.08,
+  lookAt: { x: 11.25, y: 0.92, z: 0.0 },
+  fov: 44,
+} as const;
+
+/** Left-island charger row under the canopy, matching the staff multi-charger ref. */
+export const CANOPY_ROW_SHOT = {
+  x: -5.15,
+  z: -11.65,
+  eyeY: 2.85,
+  yaw: 0.12,
+  pitch: -0.12,
+  lookAt: { x: -8.05, y: 1.18, z: 1.35 },
+  fov: 46,
 } as const;
