@@ -5,18 +5,22 @@ import {
   BAY_SIZE,
   CANOPIES,
   LOT_RAILS,
+  PARK_STOP,
   PAY_POINTS,
   PAVILION,
   STALLS,
+  STALL_BADGE,
   WAVE_POINT,
   YARD,
+  parkingStopPose,
+  stallAisleSign,
   planterColliders,
   westVoidWalls,
 } from "./layout";
 import { addPavilion } from "./pavilion";
 import { asphaltColor, asphaltNormal, asphaltRough, creamPanels, curbColor, curbRough, gravel, soffitPanels } from "./tex";
 import { makePayIcon, makeWaveGuide, makeWaveIcon } from "./icons";
-import { addZeusCharger } from "./zeus";
+import { addZeusCharger, stallBadgeMat } from "./zeus";
 
 export interface Station {
   root: THREE.Group;
@@ -236,15 +240,27 @@ function addCanopyAt(root: THREE.Group, cx: number, cz: number, w: number, d: nu
   root.add(edge);
 
   const col = mat(0xf2eee6, { metalness: 0.18, roughness: 0.4, envMapIntensity: 0.38 });
+  const boltSteel = mat(0x6a7076, { metalness: 0.62, roughness: 0.36, envMapIntensity: 0.28 });
   const insetZ = d * 0.5 - 0.55;
   for (const sx of [-1, 1]) {
     const aisle = (cx < 0 && sx > 0) || (cx > 0 && sx < 0);
     const insetX = w * 0.5 + (aisle ? 0.22 : -0.4);
     for (const sz of [-1, 1]) {
+      const px = cx + sx * insetX;
+      const pz = cz + sz * insetZ;
       const post = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.13, y - 0.12, 14), col);
-      post.position.set(cx + sx * insetX, (y - 0.12) * 0.5, cz + sz * insetZ);
+      post.position.set(px, (y - 0.12) * 0.5, pz);
       post.castShadow = true;
-      root.add(post);
+      const plate = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.24, 0.03, 16), col);
+      plate.position.set(px, 0.02, pz);
+      plate.receiveShadow = true;
+      root.add(post, plate);
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2;
+        const bolt = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.018, 6), boltSteel);
+        bolt.position.set(px + Math.cos(a) * 0.165, 0.038, pz + Math.sin(a) * 0.165);
+        root.add(bolt);
+      }
     }
   }
 
@@ -302,6 +318,81 @@ function addCanopyAt(root: THREE.Group, cx: number, cz: number, w: number, d: nu
     nose.position.set(cx + sx * (w * 0.42), 0.175, cz - (d - 2.6) * 0.48);
     root.add(island, riser, nose);
   }
+  const joint = mat(0x8c8678, { roughness: 0.92, metalness: 0.02, envMapIntensity: 0.06 });
+  const medianSeam = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.01, d - 3.35), joint);
+  medianSeam.position.set(cx, 0.175, cz);
+  root.add(medianSeam);
+  const stallZs = [...new Set(STALLS.filter((s) => Math.abs(s.zeusX - cx) < 1.6).map((s) => s.z))];
+  for (const sz of stallZs) {
+    const cross = new THREE.Mesh(new THREE.BoxGeometry(1.38, 0.01, 0.028), joint);
+    cross.position.set(cx, 0.175, sz);
+    root.add(cross);
+  }
+}
+
+function addZeusPad(root: THREE.Group, x: number, z: number): void {
+  const slab = mat(0xddd6c8, {
+    roughness: 0.78,
+    metalness: 0.02,
+    map: curbColor(),
+    roughnessMap: curbRough(),
+    envMapIntensity: 0.12,
+  });
+  const joint = mat(0x8a8478, { roughness: 0.92, metalness: 0.02, envMapIntensity: 0.05 });
+  const pad = new THREE.Mesh(new RoundedBoxGeometry(1.02, 0.03, 0.92, 2, 0.04), slab);
+  pad.position.set(x, 0.176, z);
+  pad.receiveShadow = true;
+  const jx = new THREE.Mesh(new THREE.BoxGeometry(0.96, 0.008, 0.02), joint);
+  jx.position.set(x, 0.194, z);
+  const jz = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.008, 0.86), joint);
+  jz.position.set(x, 0.194, z);
+  root.add(pad, jx, jz);
+}
+
+function addParkingStop(root: THREE.Group, stall: (typeof STALLS)[number]): void {
+  const pose = parkingStopPose(stall);
+  const g = new THREE.Group();
+  g.position.set(pose.x, 0, pose.z);
+  g.userData.kind = "parking-stop";
+  if (stall.playable != null) g.userData.bayId = stall.playable;
+  const rubber = mat(0x141518, { roughness: 0.84, metalness: 0.03, envMapIntensity: 0.08 });
+  const steel = mat(0x3a3e44, { metalness: 0.55, roughness: 0.42, envMapIntensity: 0.2 });
+  const bar = new THREE.Mesh(new RoundedBoxGeometry(PARK_STOP.depth, PARK_STOP.height, PARK_STOP.length, 3, 0.045), rubber);
+  bar.position.y = PARK_STOP.height * 0.5;
+  bar.castShadow = true;
+  bar.receiveShadow = true;
+  g.add(bar);
+  for (const sz of [-1, 1] as const) {
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(PARK_STOP.height * 0.52, 10, 8), rubber);
+    cap.scale.set(0.85, 1, 1);
+    cap.position.set(0, PARK_STOP.height * 0.5, sz * (PARK_STOP.length * 0.5 - 0.02));
+    g.add(cap);
+  }
+  for (const sz of [-0.44, 0.44] as const) {
+    const hole = new THREE.Mesh(new THREE.CylinderGeometry(0.026, 0.026, 0.018, 10), steel);
+    hole.position.set(0, PARK_STOP.height + 0.002, sz);
+    g.add(hole);
+  }
+  root.add(g);
+}
+
+function addCurbBadge(root: THREE.Group, stall: (typeof STALLS)[number]): void {
+  const aisle = stallAisleSign(stall);
+  const g = new THREE.Group();
+  g.position.set(stall.zeusX + aisle * 0.28, 0.24, stall.z + 0.5);
+  g.rotation.y = stall.zeusYaw;
+  const plate = new THREE.Mesh(
+    new THREE.CylinderGeometry(STALL_BADGE.diameter * 0.5, STALL_BADGE.diameter * 0.5, 0.016, 22),
+    mat(0x1e1e24, { roughness: 0.55, metalness: 0.08, envMapIntensity: 0.12 }),
+  );
+  plate.rotation.x = Math.PI / 2;
+  const face = new THREE.Mesh(new THREE.CircleGeometry(STALL_BADGE.diameter * 0.46, 22), stallBadgeMat(stall.id));
+  face.position.z = -0.01;
+  face.rotation.y = Math.PI;
+  g.add(plate, face);
+  g.userData.kind = "curb-badge";
+  g.userData.stallId = stall.id;
+  root.add(g);
 }
 
 function addCanopies(root: THREE.Group): void {
@@ -714,7 +805,10 @@ export function buildStation(): Station {
     if (stall.playable != null) {
       anchor.userData.bayId = stall.playable;
       bayAnchors.push(anchor);
+      addParkingStop(root, stall);
+      addCurbBadge(root, stall);
     }
+    addZeusPad(root, stall.zeusX, stall.zeusZ);
     addZeusCharger(root, stall.zeusX, stall.zeusZ, stall.zeusYaw, stall.playable != null ? "full" : "lite", stall.id);
   }
   bayAnchors.sort((a, b) => (a.userData.bayId as number) - (b.userData.bayId as number));

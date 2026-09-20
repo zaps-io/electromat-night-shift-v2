@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { C } from "../brand";
 import { holsterRestPoints, tubeFromPoints } from "./cables";
+import { STALL_BADGE } from "./layout";
 import { brushMetal } from "./tex";
 
 const brush = brushMetal();
@@ -158,7 +159,46 @@ const geo = {
   barrel: new THREE.CylinderGeometry(0.02, 0.022, 0.15, 10),
   grip: new THREE.CylinderGeometry(0.018, 0.02, 0.1, 10),
   nose: new THREE.CylinderGeometry(0.014, 0.018, 0.036, 8),
+  button: new THREE.CylinderGeometry(0.012, 0.012, 0.01, 12),
+  buttonBezel: new THREE.CylinderGeometry(0.016, 0.016, 0.006, 12),
+  badge: new THREE.CircleGeometry(STALL_BADGE.diameter * 0.5, 24),
+  badgeDisc: new THREE.CylinderGeometry(STALL_BADGE.diameter * 0.52, STALL_BADGE.diameter * 0.52, 0.012, 24),
 };
+
+const badgeCache = new Map<number, THREE.MeshBasicMaterial>();
+
+export function stallBadgeMat(n: number): THREE.MeshBasicMaterial {
+  let mat = badgeCache.get(n);
+  if (mat) return mat;
+  const c = document.createElement("canvas");
+  c.width = 160;
+  c.height = 160;
+  const ctx = c.getContext("2d")!;
+  ctx.clearRect(0, 0, 160, 160);
+  ctx.fillStyle = "#F5F0E8";
+  ctx.beginPath();
+  ctx.arc(80, 80, 74, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.lineWidth = 8;
+  ctx.strokeStyle = "#1E1E24";
+  ctx.stroke();
+  ctx.fillStyle = "#1E1E24";
+  ctx.font = n > 9 ? "900 70px sans-serif" : "900 84px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(String(n), 80, 86);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 8;
+  tex.needsUpdate = true;
+  mat = new THREE.MeshBasicMaterial({
+    map: tex,
+    toneMapped: false,
+    side: THREE.DoubleSide,
+  });
+  badgeCache.set(n, mat);
+  return mat;
+}
 
 const cableGeoL = tubeFromPoints(holsterRestPoints(-1), 0.01, 12);
 const cableGeoR = tubeFromPoints(holsterRestPoints(1), 0.01, 12);
@@ -252,6 +292,35 @@ export function addZeusCharger(
   const left = addFrontHolster(g, -1);
   const right = addFrontHolster(g, 1);
   if (stallId != null) holstersByStall.set(stallId, [left, right]);
+
+  for (const side of [-1, 1] as const) {
+    const bezelBtn = new THREE.Mesh(geo.buttonBezel, black);
+    bezelBtn.rotation.x = Math.PI / 2;
+    bezelBtn.position.set(0.07 * side, 0.68, -0.236);
+    const btn = new THREE.Mesh(geo.button, charcoal);
+    btn.rotation.x = Math.PI / 2;
+    btn.position.set(0.07 * side, 0.68, -0.242);
+    g.add(bezelBtn, btn);
+  }
+  const startBezel = new THREE.Mesh(geo.buttonBezel, black);
+  startBezel.rotation.x = Math.PI / 2;
+  startBezel.position.set(0, 0.58, -0.236);
+  const startBtn = new THREE.Mesh(geo.button, charcoal);
+  startBtn.rotation.x = Math.PI / 2;
+  startBtn.position.set(0, 0.58, -0.242);
+  g.add(startBezel, startBtn);
+
+  if (stallId != null) {
+    const disc = new THREE.Mesh(geo.badgeDisc, black);
+    disc.rotation.x = Math.PI / 2;
+    disc.position.set(0, STALL_BADGE.y, -0.228);
+    const face = new THREE.Mesh(geo.badge, stallBadgeMat(stallId));
+    face.position.set(0, STALL_BADGE.y, -0.236);
+    face.rotation.y = Math.PI;
+    face.userData.kind = "stall-badge";
+    face.userData.stallId = stallId;
+    g.add(disc, face);
+  }
 
   g.add(base, body, cap, seam, seamHalo, ring, recess, well, screen, bezel, display);
   root.add(g);
