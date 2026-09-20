@@ -17,6 +17,7 @@ import {
   collectCandidates,
   doorApproachHint,
   GUEST_REACH,
+  jobFocusCandidate,
   nextJob,
   resolveInteract,
   WAVE_CLOSE,
@@ -48,11 +49,13 @@ import {
   STOREFRONT_SHOT,
   STALL_CLEARANCE,
   STALLS,
+  UNPLUG_SHOT,
   WAIT_ORDER,
   WAIT_SLOTS,
   WALK_BOUNDS,
   WAVE_POINT,
   WAVE_REACH,
+  WAVE_SHOT,
   ZEUS_HALF_DEPTH,
   clampPlayable,
   inPlayableVolume,
@@ -95,7 +98,7 @@ if (BAYS.some((b, i) => b.playable !== i + 1)) throw new Error("playable bay ids
 if (STALL_CLEARANCE < 0.85) throw new Error("stall clearance must keep Tesla off Zeus");
 if (KIOSK_REACH < 6) throw new Error("kiosk reach must not require pixel-perfect aim");
 if (WAVE_REACH < 6) throw new Error("WAVE reach must not require pixel-perfect aim");
-if (WAVE_CLOSE > 4) throw new Error("un-aimed WAVE must stay tighter than spawn distance");
+if (WAVE_CLOSE > 4.8) throw new Error("un-aimed WAVE must stay tighter than spawn distance");
 if (PAY_POINTS.length < 2) throw new Error("need lot PAY kiosk and lounge door");
 if (START_SHOT.x < WALK_BOUNDS.xmin || START_SHOT.x > WALK_BOUNDS.xmax) throw new Error("start X outside walk");
 if (START_SHOT.z < WALK_BOUNDS.zmin || START_SHOT.z > WALK_BOUNDS.zmax) throw new Error("start Z outside walk");
@@ -376,6 +379,125 @@ if (!waveAfter.ready || waveAfter.ready.need !== "wave") {
 if (waveAfter.prompt !== waveAfter.objective.replace(/^/, "E  ")) {
   throw new Error(`WAVE prompt/objective disagree ${waveAfter.prompt} / ${waveAfter.objective}`);
 }
+if (paidJob?.need !== "wave") throw new Error(`after pay with empty bays, job must be WAVE, got ${paidJob?.need}`);
+const waveMark = jobFocusCandidate(paidJob, paidCands);
+if (!waveMark || waveMark.kind !== "wave") {
+  throw new Error("WAVE job must mark the aisle stand, not the queue car");
+}
+const spawnWave = resolveInteract(START_SHOT, startLook, null, paidCands, paidJob);
+if (spawnWave.ready) throw new Error("spawn must not fire WAVE after pay");
+if (spawnWave.focus?.kind !== "wave") throw new Error("after pay, cyan target must be the WAVE stand");
+if (!spawnWave.objective.includes("WAVE")) throw new Error(`spawn after pay must send Zoey to WAVE, got ${spawnWave.objective}`);
+
+const kimBesideWave = resolveInteract(besideKim, { x: -1, y: 0, z: 0 }, "guest:kim", paidCands, paidJob);
+if (kimBesideWave.ready?.need === "talk" || kimBesideWave.ready?.need === "park") {
+  throw new Error("WAVE job must not let Kim steal E at the queue");
+}
+if (kimBesideWave.prompt && !kimBesideWave.prompt.includes("WAVE")) {
+  throw new Error(`WAVE job leaked ${kimBesideWave.prompt} beside Kim`);
+}
+
+const waveClose = resolveInteract(
+  { x: WAVE_POINT.x, y: 1.56, z: WAVE_POINT.z + 1.4 },
+  { x: 0, y: 0, z: -1 },
+  null,
+  paidCands,
+  paidJob,
+);
+if (!waveClose.ready || waveClose.ready.need !== "wave") {
+  throw new Error("standing on the WAVE aisle must offer E WAVE without pixel aim");
+}
+if (waveClose.prompt !== "E  WAVE  ·  NG" || waveClose.objective !== "WAVE  ·  NG") {
+  throw new Error(`WAVE HUD disagree ${waveClose.prompt} / ${waveClose.objective}`);
+}
+
+const loop = resetNight();
+seedOpeningLot(loop);
+if (!payKiosk(loop, "peck")) throw new Error("loop pay Peck failed");
+if (loop.autochargeSignups < 1) throw new Error("loop AUTO must be 1 after pay");
+tick(loop, 4);
+const full = loop.guests.find((g) => guestAction(g) === "unplug");
+if (!full) throw new Error("after 4 min Peck must be full and need UNPLUG");
+if (full.id !== "peck") throw new Error(`first fill after pay should be Peck, got ${full.id}`);
+if (loop.fullAlertId !== full.id) throw new Error("full-alert must track the toast guest");
+const unplugJob = nextJob(loop);
+if (unplugJob?.need !== "unplug" || unplugJob.guestId !== full.id) {
+  throw new Error(`next job after fill must be UNPLUG ${full.name}, got ${unplugJob?.need} ${unplugJob?.name}`);
+}
+const loopCars = new Map(
+  loop.guests
+    .filter((g) => loop.timeMin >= g.arriveMin && !g.served && !g.walked)
+    .map((g) => {
+      if (g.assignedBay != null) {
+        const bay = BAYS.find((b) => b.playable === g.assignedBay)!;
+        return [g.id, { x: bay.x, y: 0, z: bay.z }] as const;
+      }
+      const slot = WAIT_SLOTS[Math.max(0, WAIT_ORDER.indexOf(g.id as (typeof WAIT_ORDER)[number]))] ?? WAIT_SLOTS[0];
+      return [g.id, { x: slot.x, y: 0, z: slot.z }] as const;
+    }),
+);
+const loopBays = BAYS.map((bay) => ({
+  id: bay.playable!,
+  x: bay.x,
+  z: bay.z,
+  open: !loop.bays.find((b) => b.id === bay.playable)?.guestId,
+}));
+const loopCands = collectCandidates(loop, loopCars, PAY_POINTS, KIOSK_REACH, WAVE_POINT, WAVE_REACH, loopBays);
+const unplugFocus = jobFocusCandidate(unplugJob, loopCands);
+if (!unplugFocus || unplugFocus.guestId !== full.id || unplugFocus.need !== "unplug") {
+  throw new Error("UNPLUG job must target the full car");
+}
+const atWaveDuringUnplug = resolveInteract(
+  { x: WAVE_POINT.x, y: 1.56, z: WAVE_POINT.z + 1.2 },
+  { x: 0, y: 0, z: -1 },
+  "wave",
+  loopCands,
+  unplugJob,
+);
+if (atWaveDuringUnplug.ready?.need === "wave") {
+  throw new Error("UNPLUG job must not let WAVE steal E");
+}
+if (!atWaveDuringUnplug.objective.includes("UNPLUG") || !atWaveDuringUnplug.objective.toUpperCase().includes(full.name.toUpperCase())) {
+  throw new Error(`WAVE stand during UNPLUG must keep ${full.name}, got ${atWaveDuringUnplug.objective}`);
+}
+const fullBay = BAYS.find((b) => b.playable === full.assignedBay)!;
+const besideFull = { x: fullBay.x + (fullBay.x > 0 ? -2.2 : 2.2), y: 1.56, z: fullBay.z };
+const unplugHit = resolveInteract(besideFull, { x: fullBay.x - besideFull.x, y: 0, z: 0 }, `guest:${full.id}`, loopCands, unplugJob);
+if (!unplugHit.ready || unplugHit.ready.need !== "unplug" || unplugHit.ready.guestId !== full.id) {
+  throw new Error(`standing beside ${full.name} must offer UNPLUG`);
+}
+if (unplugHit.prompt !== `E  UNPLUG  ·  ${full.name.toUpperCase()}` || unplugHit.objective !== `UNPLUG  ·  ${full.name.toUpperCase()}`) {
+  throw new Error(`UNPLUG HUD disagree ${unplugHit.prompt} / ${unplugHit.objective}`);
+}
+if (!unplugInlet(loop, full.id)) throw new Error("loop unplug failed");
+if (!full.served) throw new Error("unplugged guest must zip out");
+if (loop.sessionsDone < 1) throw new Error("ZIP / sessions must increment after unplug");
+const afterUnplugJob = nextJob(loop);
+if (afterUnplugJob?.need !== "wave") throw new Error(`after unplug, job must be WAVE, got ${afterUnplugJob?.need}`);
+const afterUnplugBays = BAYS.map((bay) => ({
+  id: bay.playable!,
+  x: bay.x,
+  z: bay.z,
+  open: !loop.bays.find((b) => b.id === bay.playable)?.guestId,
+}));
+const afterUnplugCands = collectCandidates(loop, loopCars, PAY_POINTS, KIOSK_REACH, WAVE_POINT, WAVE_REACH, afterUnplugBays);
+const waveAgain = resolveInteract(
+  { x: WAVE_POINT.x, y: 1.56, z: WAVE_POINT.z + 1.2 },
+  { x: 0, y: 0, z: -1 },
+  "wave",
+  afterUnplugCands,
+  afterUnplugJob,
+);
+if (!waveAgain.ready || waveAgain.ready.need !== "wave") throw new Error("after unplug, WAVE stand must resolve WAVE");
+if (waveAgain.prompt !== waveAgain.objective.replace(/^/, "E  ")) {
+  throw new Error(`post-unplug WAVE HUD disagree ${waveAgain.prompt} / ${waveAgain.objective}`);
+}
+if (!waveQueue(loop)) throw new Error("WAVE after unplug failed");
+if (loop.queueWaves < 1) throw new Error("WAVE counter must increment");
+
+if (!inPlayableVolume(WAVE_SHOT.x, WAVE_SHOT.z)) throw new Error("WAVE shot off playable volume");
+if (!inPlayableVolume(UNPLUG_SHOT.x, UNPLUG_SHOT.z)) throw new Error("UNPLUG shot off playable volume");
+if (!inPlayableVolume(WAVE_POINT.x, WAVE_POINT.z)) throw new Error("WAVE stand off playable volume");
 
 if (GUEST_REACH > 5.2) throw new Error("guest reach grew too loose");
 

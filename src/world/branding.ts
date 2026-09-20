@@ -102,7 +102,7 @@ export async function addBrandSignage(root: THREE.Group): Promise<void> {
   }
 
   const waveMark = signPlate(0.42, 0.1, red);
-  waveMark.position.set(WAVE_POINT.x, 1.72, WAVE_POINT.z - 0.2);
+  waveMark.position.set(WAVE_POINT.x, 2.08, WAVE_POINT.z - 0.12);
   root.add(waveMark);
 
   const monument = signPlate(0.82, 0.3, red);

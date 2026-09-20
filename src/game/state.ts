@@ -48,6 +48,8 @@ export interface GameState {
   toast: string;
   toastUntil: number;
   gradeLine: string;
+  /** Guest who just hit full — next UNPLUG job / cyan target follows the toast. */
+  fullAlertId: string | null;
 }
 
 export function clockLabel(timeMin: number): string {

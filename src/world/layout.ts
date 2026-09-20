@@ -113,10 +113,10 @@ export const PAY_POINTS = [
 export const KIOSK = PAY_POINTS[0];
 export const KIOSK_REACH = 7.2;
 
-/** Aisle-mouth WAVE stand — hustle the next waiter into an open bay. */
-export const WAVE_POINT = { x: 2.85, z: -15.2 };
+/** Aisle-mouth WAVE stand — east of the queue so Kim's Tesla does not bury it. */
+export const WAVE_POINT = { x: 4.55, z: -17.55 };
 /** Aimed reach. Un-aimed close range lives in interact.ts so spawn does not steal PAY. */
-export const WAVE_REACH = 6.4;
+export const WAVE_REACH = 7.2;
 
 /** Lot rails stay on the asphalt apron. Playable walk is lot ∪ lounge, not one fat AABB. */
 export const LOT_RAILS = { xmin: -26.2, xmax: 23.2, zmin: -21.6, zmax: 17.4 };
@@ -557,6 +557,28 @@ export const LOUNGE_WIDE_SHOT = {
 
 /** Aisle face of Peck's opening bay — prompt and objective both read PAY. */
 export const PROMPT_SHOT = {
+  x: 4.15,
+  z: -5.35,
+  eyeY: 1.56,
+  yaw: -1.12,
+  pitch: 0.02,
+  lookAt: { x: RIGHT_WEST_CAR_X, y: 1.15, z: -5.4 },
+  fov: 52,
+} as const;
+
+/** Aisle WAVE stand — cyan target + E WAVE after pay. */
+export const WAVE_SHOT = {
+  x: 4.55,
+  z: -14.35,
+  eyeY: 1.58,
+  yaw: 0.04,
+  pitch: 0.12,
+  lookAt: { x: WAVE_POINT.x, y: 1.55, z: WAVE_POINT.z },
+  fov: 52,
+} as const;
+
+/** Aisle face of Peck — first car to fill after pay, UNPLUG prompt matches HUD. */
+export const UNPLUG_SHOT = {
   x: 4.15,
   z: -5.35,
   eyeY: 1.56,

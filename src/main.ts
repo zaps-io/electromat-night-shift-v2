@@ -43,8 +43,10 @@ import {
   REAR_SHOT,
   START_SHOT,
   STOREFRONT_SHOT,
+  UNPLUG_SHOT,
   WAVE_POINT,
   WAVE_REACH,
+  WAVE_SHOT,
   WIDE_SHOT,
   ZEUS_SHOT,
   inPlayableVolume,
@@ -63,6 +65,8 @@ const hudMark = document.querySelector("#hud-mark");
 const endEl = document.querySelector("#end")!;
 const clockEl = document.querySelector("#clock")!;
 const autoEl = document.querySelector("#auto")!;
+const wavesEl = document.querySelector("#waves")!;
+const zipsEl = document.querySelector("#zips")!;
 const promptEl = document.querySelector("#prompt")!;
 const objectiveEl = document.querySelector("#objective")!;
 const toastEl = document.querySelector("#toast")!;
@@ -318,11 +322,21 @@ function act(): void {
     restart();
     return;
   }
-  const ready = refreshTarget().ready;
+  const resolved = refreshTarget();
+  const ready = resolved.ready;
   if (!ready) {
+    const job = nextJob(state);
     if (pendingPayGuest(state)) nudgePay(state);
-    else state.toast = "Walk closer · look at the marker.";
-    state.toastUntil = state.timeMin + 6;
+    else if (job?.need === "unplug") {
+      state.toast = `${job.name} is full — walk to the car.`;
+      state.toastUntil = state.timeMin + 6;
+    } else if (job?.need === "wave") {
+      state.toast = `Walk to the aisle WAVE stand — ${job.name}.`;
+      state.toastUntil = state.timeMin + 6;
+    } else {
+      state.toast = "Walk closer · look at the marker.";
+      state.toastUntil = state.timeMin + 6;
+    }
     return;
   }
   if (applyReady(ready)) return;
@@ -339,12 +353,18 @@ function paintHud(): void {
   if (state.phase === "grade" || state.phase === "lose") gradeEl.textContent = state.gradeLine;
   clockEl.textContent = clockLabel(state.timeMin);
   autoEl.textContent = `AUTO ${state.autochargeSignups}`;
+  wavesEl.textContent = `WAVE ${state.queueWaves}`;
+  zipsEl.textContent = `ZIP ${state.sessionsDone}`;
   pips.forEach((el, i) => el.classList.toggle("off", i < state.walkaways));
   const pending = pendingPayGuest(state);
   station.kioskAlerts.forEach((spr, i) => {
     spr.visible = i === 1 || !!pending;
   });
-  station.waveAlert.visible = !!nextQueueGuest(state);
+  const job = nextJob(state);
+  const waveLive = job?.need === "wave";
+  station.waveAlert.visible = waveLive || (!!nextQueueGuest(state) && state.bays.some((b) => !b.guestId));
+  station.waveAlert.scale.set(waveLive ? 1.7 : 1.05, waveLive ? 0.64 : 0.4, 1);
+  station.waveGuide.visible = waveLive;
   const resolved = refreshTarget();
   const doorHint = doorApproachHint(walker.position, resolved.prompt);
   promptEl.textContent = resolved.prompt || doorHint;
@@ -520,6 +540,29 @@ async function saveShots(): Promise<void> {
   act();
   await new Promise((r) => setTimeout(r, 200));
   await post("/workspace/docs/shots/after-pay.png", capture(1280, 800));
+  await post("/workspace/docs/shots/after-pay-hud.png", capture(1280, 800));
+  await new Promise((r) => setTimeout(r, 400));
+  walker.setFov(WAVE_SHOT.fov);
+  walker.place(WAVE_SHOT.x, WAVE_SHOT.z, WAVE_SHOT.yaw, WAVE_SHOT.pitch, WAVE_SHOT.eyeY);
+  walker.lookAt(WAVE_SHOT.lookAt.x, WAVE_SHOT.lookAt.y, WAVE_SHOT.lookAt.z);
+  await new Promise((r) => setTimeout(r, 400));
+  await post("/workspace/docs/shots/wave-stand-target.png", capture(1280, 800));
+  tick(state, 4);
+  if (ready) syncCars(cars, scene, state, performance.now() / 1000);
+  walker.setFov(UNPLUG_SHOT.fov);
+  walker.place(UNPLUG_SHOT.x, UNPLUG_SHOT.z, UNPLUG_SHOT.yaw, UNPLUG_SHOT.pitch, UNPLUG_SHOT.eyeY);
+  walker.lookAt(UNPLUG_SHOT.lookAt.x, UNPLUG_SHOT.lookAt.y, UNPLUG_SHOT.lookAt.z);
+  await new Promise((r) => setTimeout(r, 400));
+  await post("/workspace/docs/shots/unplug-prompt.png", capture(1280, 800));
+  act();
+  await new Promise((r) => setTimeout(r, 200));
+  walker.setFov(WAVE_SHOT.fov);
+  walker.place(WAVE_SHOT.x, WAVE_SHOT.z, WAVE_SHOT.yaw, WAVE_SHOT.pitch, WAVE_SHOT.eyeY);
+  walker.lookAt(WAVE_SHOT.lookAt.x, WAVE_SHOT.lookAt.y, WAVE_SHOT.lookAt.z);
+  await new Promise((r) => setTimeout(r, 200));
+  act();
+  await new Promise((r) => setTimeout(r, 200));
+  await post("/workspace/docs/shots/post-unplug-wave-hud.png", capture(1280, 800));
   await new Promise((r) => setTimeout(r, 400));
   walker.setFov(DOOR_IN_SHOT.fov);
   walker.place(DOOR_IN_SHOT.x, DOOR_IN_SHOT.z, DOOR_IN_SHOT.yaw, DOOR_IN_SHOT.pitch, DOOR_IN_SHOT.eyeY);
@@ -592,6 +635,14 @@ window.__electromat = {
   },
   step(dt = 0.05) {
     walker.tick(dt, station.colliders);
+  },
+  advance(dtMin: number) {
+    if (state.phase === "shift") tick(state, dtMin);
+    if (ready) syncCars(cars, scene, state, performance.now() / 1000);
+    paintHud();
+  },
+  get ready() {
+    return ready;
   },
   get destination() {
     return walker.destination ? { x: walker.destination.x, z: walker.destination.z } : null;
