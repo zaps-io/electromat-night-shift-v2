@@ -154,8 +154,15 @@ body {
   bottom: 2.4rem;
   left: 50%;
   transform: translateX(-50%);
-  letter-spacing: 0.2em;
+  letter-spacing: 0.18em;
   color: var(--cyan);
+}
+
+#prompt:not(:empty) {
+  background: rgba(30, 30, 36, 0.78);
+  padding: 0.42rem 1.05rem;
+  border: 1px solid rgba(0, 212, 245, 0.42);
+  text-shadow: 0 1px 6px rgba(8, 12, 16, 0.8);
 }
 
 #toast {

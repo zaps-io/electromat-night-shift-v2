@@ -8,16 +8,18 @@ const brush = brushMetal();
 
 const alum = new THREE.MeshPhysicalMaterial({
   name: "ZeusAlum",
-  color: 0xd2d6dc,
+  color: 0xe8ebf0,
   map: brush.map,
   roughnessMap: brush.rough,
   normalMap: brush.normal,
-  normalScale: new THREE.Vector2(0.85, 2.1),
-  metalness: 0.98,
-  roughness: 0.28,
-  anisotropy: 1,
+  normalScale: new THREE.Vector2(1.15, 2.8),
+  metalness: 0.72,
+  roughness: 0.34,
+  anisotropy: 0.88,
   anisotropyRotation: Math.PI / 2,
-  envMapIntensity: 1.35,
+  envMapIntensity: 0.7,
+  emissive: 0x1a2228,
+  emissiveIntensity: 0.14,
 });
 
 const charcoal = new THREE.MeshStandardMaterial({
@@ -56,16 +58,24 @@ const cableMat = new THREE.MeshStandardMaterial({
 const cyanSeam = new THREE.MeshStandardMaterial({
   color: C.cyan,
   emissive: C.cyan,
-  emissiveIntensity: 3.4,
-  roughness: 0.22,
+  emissiveIntensity: 4.6,
+  roughness: 0.16,
   metalness: 0.05,
   toneMapped: false,
 });
 
 const cyanGlow = new THREE.MeshBasicMaterial({
-  color: 0x7ef6ff,
+  color: 0x9af8ff,
   transparent: true,
-  opacity: 0.42,
+  opacity: 0.55,
+  toneMapped: false,
+  depthWrite: false,
+});
+
+const cyanRing = new THREE.MeshBasicMaterial({
+  color: 0x5eefff,
+  transparent: true,
+  opacity: 0.34,
   toneMapped: false,
   depthWrite: false,
 });
@@ -91,30 +101,34 @@ const GLYPHS: Record<string, string[]> = {
 
 function plugInMatrix(): THREE.CanvasTexture {
   const c = document.createElement("canvas");
-  c.width = 384;
-  c.height = 96;
+  c.width = 512;
+  c.height = 128;
   const ctx = c.getContext("2d")!;
-  ctx.fillStyle = "#0A0C10";
-  ctx.fillRect(0, 0, 384, 96);
-  ctx.fillStyle = "#16181E";
-  for (let y = 6; y < 90; y += 4) {
-    for (let x = 6; x < 378; x += 4) ctx.fillRect(x, y, 1, 1);
+  ctx.fillStyle = "#05060A";
+  ctx.fillRect(0, 0, 512, 128);
+  ctx.fillStyle = "#101218";
+  for (let y = 8; y < 120; y += 5) {
+    for (let x = 8; x < 504; x += 5) ctx.fillRect(x, y, 1, 1);
   }
-  ctx.fillStyle = "#E89A2E";
-  let x = 28;
+  ctx.shadowColor = "#E89A2E";
+  ctx.shadowBlur = 6;
+  ctx.fillStyle = "#F0A83A";
+  let x = 36;
   for (const ch of "PLUG IN") {
     const g = GLYPHS[ch] ?? GLYPHS[" "];
     for (let row = 0; row < 5; row++) {
       for (let col = 0; col < 5; col++) {
-        ctx.globalAlpha = g[row][col] === "1" ? 1 : 0.07;
-        ctx.fillRect(x + col * 7, 24 + row * 10, 6, 8);
+        ctx.globalAlpha = g[row][col] === "1" ? 1 : 0.05;
+        ctx.fillRect(x + col * 9, 28 + row * 14, 7, 11);
       }
     }
-    x += 48;
+    x += 62;
   }
   ctx.globalAlpha = 1;
+  ctx.shadowBlur = 0;
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 8;
   tex.needsUpdate = true;
   return tex;
 }
@@ -131,13 +145,14 @@ const geo = {
   foot: new THREE.CylinderGeometry(0.018, 0.02, 0.02, 8),
   body: new RoundedBoxGeometry(0.5, 2.08, 0.44, 4, 0.034),
   cap: new RoundedBoxGeometry(0.51, 0.05, 0.45, 3, 0.016),
-  seam: new THREE.BoxGeometry(0.535, 0.022, 0.475),
-  seamGlow: new THREE.BoxGeometry(0.56, 0.04, 0.5),
+  seam: new THREE.BoxGeometry(0.538, 0.016, 0.478),
+  seamGlow: new THREE.BoxGeometry(0.57, 0.036, 0.51),
+  ring: new THREE.RingGeometry(0.3, 0.4, 28),
   recess: new THREE.BoxGeometry(0.32, 1.48, 0.055),
   well: new THREE.BoxGeometry(0.27, 1.32, 0.02),
   screen: new THREE.BoxGeometry(0.15, 0.15, 0.012),
-  bezel: new THREE.BoxGeometry(0.24, 0.07, 0.01),
-  display: new THREE.PlaneGeometry(0.228, 0.06),
+  bezel: new THREE.BoxGeometry(0.28, 0.08, 0.01),
+  display: new THREE.PlaneGeometry(0.264, 0.07),
   pocket: new RoundedBoxGeometry(0.088, 0.34, 0.07, 2, 0.014),
   lip: new THREE.BoxGeometry(0.092, 0.02, 0.074),
   barrel: new THREE.CylinderGeometry(0.02, 0.022, 0.15, 10),
@@ -215,6 +230,9 @@ export function addZeusCharger(
   seam.position.y = 0.148;
   const seamHalo = new THREE.Mesh(geo.seamGlow, cyanGlow);
   seamHalo.position.y = 0.148;
+  const ring = new THREE.Mesh(geo.ring, cyanRing);
+  ring.rotation.x = -Math.PI / 2;
+  ring.position.y = 0.012;
 
   const recess = new THREE.Mesh(geo.recess, charcoal);
   recess.position.set(0, 1.28, -0.212);
@@ -235,7 +253,7 @@ export function addZeusCharger(
   const right = addFrontHolster(g, 1);
   if (stallId != null) holstersByStall.set(stallId, [left, right]);
 
-  g.add(base, body, cap, seam, seamHalo, recess, well, screen, bezel, display);
+  g.add(base, body, cap, seam, seamHalo, ring, recess, well, screen, bezel, display);
   root.add(g);
 }
 

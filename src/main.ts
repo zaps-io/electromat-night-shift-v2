@@ -24,6 +24,7 @@ import { configureKeyLight, createDuskEnvironment, createPipeline, createRendere
 import { addLodFillers, hullDebug, loadCarPrototypes, syncCars, trimLodFillers, type CarView } from "./world/cars";
 import {
   CANOPY_SHOT,
+  DOOR_SHOT,
   INTERIOR_SHOT,
   KIOSK_REACH,
   PAY_POINTS,
@@ -472,6 +473,12 @@ async function saveShots(): Promise<void> {
   walker.lookAt(INTERIOR_SHOT.lookAt.x, INTERIOR_SHOT.lookAt.y, INTERIOR_SHOT.lookAt.z);
   await new Promise((r) => setTimeout(r, 500));
   await post("/workspace/docs/shots/interior.png", capture(1280, 800));
+  await new Promise((r) => setTimeout(r, 400));
+  walker.setFov(DOOR_SHOT.fov);
+  walker.place(DOOR_SHOT.x, DOOR_SHOT.z, DOOR_SHOT.yaw, DOOR_SHOT.pitch, DOOR_SHOT.eyeY);
+  walker.lookAt(DOOR_SHOT.lookAt.x, DOOR_SHOT.lookAt.y, DOOR_SHOT.lookAt.z);
+  await new Promise((r) => setTimeout(r, 500));
+  await post("/workspace/docs/shots/door-exterior.png", capture(1280, 800));
 }
 
 if (params.has("saveshots")) void saveShots();

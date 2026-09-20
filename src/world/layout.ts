@@ -170,12 +170,12 @@ export const CANOPY_SHOT = {
 } as const;
 
 export const ZEUS_SHOT = {
-  x: -2.35,
-  z: -3.45,
-  eyeY: 1.32,
-  yaw: 0.62,
-  pitch: 0.02,
-  lookAt: { x: -6.9, y: 0.88, z: -1.15 },
+  x: -6.12,
+  z: -3.08,
+  eyeY: 1.26,
+  yaw: 0.48,
+  pitch: 0.06,
+  lookAt: { x: -7.62, y: 0.92, z: -1.08 },
   fov: 42,
 } as const;
 
@@ -188,4 +188,15 @@ export const INTERIOR_SHOT = {
   pitch: 0.02,
   lookAt: { x: -17.55, y: 1.28, z: 3.55 },
   fov: 62,
+} as const;
+
+/** South storefront door from the lot, next to the lounge PAY stand. */
+export const DOOR_SHOT = {
+  x: -21.35,
+  z: -6.45,
+  eyeY: 1.56,
+  yaw: 0.18,
+  pitch: 0.04,
+  lookAt: { x: -22.55, y: 1.35, z: -3.15 },
+  fov: 50,
 } as const;
