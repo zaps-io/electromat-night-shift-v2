@@ -52,6 +52,7 @@ import {
   WIDE_SHOT,
   ZEUS_SHOT,
   inPlayableVolume,
+  pickWalkDestination,
 } from "./world/layout";
 import { addBrandSignage } from "./world/branding";
 import { makeAttendantHand, tickHand } from "./world/hand";
@@ -397,7 +398,25 @@ function groundWalk(clientX: number, clientY: number): void {
     -((clientY - rect.top) / rect.height) * 2 + 1,
   );
   ray.setFromCamera(ndc, walker.camera);
-  if (ray.ray.intersectPlane(walkPlane, walkHit)) walker.walkTo(walkHit);
+  const dirY = ray.ray.direction.y;
+  const meshHit = ray.intersectObjects(station.walkGrounds, true)[0];
+  let hitX = 0;
+  let hitZ = 0;
+  let hitDist = Infinity;
+  if (meshHit?.object.userData.walkGround) {
+    hitX = meshHit.point.x;
+    hitZ = meshHit.point.z;
+    hitDist = meshHit.distance;
+  } else if (dirY < 0 && ray.ray.intersectPlane(walkPlane, walkHit)) {
+    hitX = walkHit.x;
+    hitZ = walkHit.z;
+    hitDist = walker.position.distanceTo(walkHit);
+  } else {
+    return;
+  }
+  const dest = pickWalkDestination(walker.position.x, walker.position.z, hitX, hitZ, dirY, hitDist);
+  if (!dest) return;
+  walker.walkTo(new THREE.Vector3(dest.x, 0, dest.z));
 }
 
 function loop(now: number): void {
@@ -647,8 +666,42 @@ window.__electromat = {
   walkTo(x: number, z: number) {
     walker.walkTo(new THREE.Vector3(x, 0, z));
   },
+  clickWalk(clientX: number, clientY: number) {
+    groundWalk(clientX, clientY);
+  },
+  hold(code: string) {
+    document.dispatchEvent(new KeyboardEvent("keydown", { code, key: code.replace("Key", "").toLowerCase(), bubbles: true }));
+  },
+  release(code: string) {
+    document.dispatchEvent(new KeyboardEvent("keyup", { code, key: code.replace("Key", "").toLowerCase(), bubbles: true }));
+  },
   step(dt = 0.05) {
     walker.tick(dt, station.colliders);
+  },
+  async runFpvSmoke() {
+    while (!ready) await new Promise((r) => setTimeout(r, 40));
+    if (state.phase === "title") dropIn();
+    const peckBay = BAYS.find((b) => b.playable === 4)!;
+    const dest = { x: peckBay.x - 3.35, z: peckBay.z + 0.85 };
+    walker.walkTo(new THREE.Vector3(dest.x, 0, dest.z));
+    for (let i = 0; i < 480; i++) {
+      walker.tick(0.05, station.colliders);
+      if (!walker.destination) break;
+    }
+    walker.lookAt(peckBay.x - 1.1, 0.18, peckBay.z - 0.35);
+    paintHud();
+    const before = refreshTarget();
+    const key = new KeyboardEvent("keydown", { code: "KeyE", key: "e", bubbles: true });
+    window.dispatchEvent(key);
+    paintHud();
+    return {
+      prompt: before.prompt,
+      objective: before.objective,
+      auto: state.autochargeSignups,
+      x: walker.position.x,
+      z: walker.position.z,
+      playable: inPlayableVolume(walker.position.x, walker.position.z),
+    };
   },
   advance(dtMin: number) {
     if (state.phase === "shift") tick(state, dtMin);

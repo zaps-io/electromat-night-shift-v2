@@ -160,6 +160,12 @@ export const WAVE_REACH = 7.2;
 /** Lot rails stay on the asphalt apron. Playable walk is lot ∪ lounge, not one fat AABB. */
 export const LOT_RAILS = { xmin: -26.2, xmax: 23.2, zmin: -21.6, zmax: 17.4 };
 
+/**
+ * West of this X, south of the door yard, is planter / sidewalk / unlit void.
+ * PAY stand stays east of the cut so the apron still reaches the kiosk.
+ */
+export const WEST_APRON_X = -16.55;
+
 export const PAVILION = { x: -23.4, z: 3.4, yaw: 0, w: 11.6, d: 13.4, h: 3.35 };
 /** South storefront door, local X toward the lounge PAY stand. Wide enough for WASD + walk-to. */
 export const PAVILION_DOOR = { localX: 0.8, width: 3.08, height: 2.38 };
@@ -172,11 +178,11 @@ const DOOR_WORLD_X = PAVILION.x + PAVILION_DOOR.localX;
 const DOOR_WORLD_Z = PAVILION.z - PAVILION.d * 0.5;
 
 /**
- * Asphalt apron inside the lot rails. Inset on the west so walk-to cannot
- * stand on the west planter lip and look into the unlit void.
+ * Asphalt apron inside the lot rails. West edge stops short of the planter
+ * sidewalk so walk-to / WASD cannot stand on the lip and stare into void.
  */
 export const LOT_WALK: XZRect = {
-  xmin: LOT_RAILS.xmin + 1.55,
+  xmin: WEST_APRON_X,
   xmax: LOT_RAILS.xmax - 0.4,
   zmin: LOT_RAILS.zmin + 0.4,
   zmax: LOT_RAILS.zmax - 0.4,
@@ -196,6 +202,17 @@ export const DOOR_CORRIDOR: XZRect = {
   xmax: DOOR_WORLD_X + PAVILION_DOOR.width * 0.5 + 0.1,
   zmin: DOOR_WORLD_Z - 2.55,
   zmax: DOOR_WORLD_Z + 2.45,
+};
+
+/**
+ * Lot-side yard from the apron to the south door. Keeps DOOR_SHOT walkable
+ * without opening the west sidewalk at z ≈ -10.
+ */
+export const DOOR_YARD: XZRect = {
+  xmin: Math.min(DOOR_CORRIDOR.xmin, -22.9),
+  xmax: WEST_APRON_X,
+  zmin: -8.55,
+  zmax: DOOR_CORRIDOR.zmax,
 };
 
 /** Lot-side mat + threshold. Clicks here commit to walking through the portal. */
@@ -220,11 +237,20 @@ export const DOOR_HINT_RANGE = 6.2;
 
 /** Outer envelope of lot ∪ lounge — not the playable shape. */
 export const WALK_BOUNDS: XZRect = {
-  xmin: Math.min(LOT_WALK.xmin, LOUNGE_WALK.xmin, DOOR_CORRIDOR.xmin),
-  xmax: Math.max(LOT_WALK.xmax, LOUNGE_WALK.xmax, DOOR_CORRIDOR.xmax),
-  zmin: Math.min(LOT_WALK.zmin, LOUNGE_WALK.zmin, DOOR_CORRIDOR.zmin),
-  zmax: Math.max(LOT_WALK.zmax, LOUNGE_WALK.zmax, DOOR_CORRIDOR.zmax),
+  xmin: Math.min(LOT_WALK.xmin, LOUNGE_WALK.xmin, DOOR_CORRIDOR.xmin, DOOR_YARD.xmin),
+  xmax: Math.max(LOT_WALK.xmax, LOUNGE_WALK.xmax, DOOR_CORRIDOR.xmax, DOOR_YARD.xmax),
+  zmin: Math.min(LOT_WALK.zmin, LOUNGE_WALK.zmin, DOOR_CORRIDOR.zmin, DOOR_YARD.zmin),
+  zmax: Math.max(LOT_WALK.zmax, LOUNGE_WALK.zmax, DOOR_CORRIDOR.zmax, DOOR_YARD.zmax),
 };
+
+export function playableRects(): XZRect[] {
+  return [LOT_WALK, LOUNGE_WALK, DOOR_CORRIDOR, DOOR_YARD];
+}
+
+/** West planter / sidewalk south of the door yard — visual asphalt, unlit void. */
+export function inWestSidewalk(x: number, z: number): boolean {
+  return x < WEST_APRON_X && z < DOOR_YARD.zmin;
+}
 
 export const SAFE_LOT_SPAWN = { x: -3.2, z: -20.4 };
 /** Deeper than a rail scrape — recover to spawn instead of sliding along a void. */
@@ -235,7 +261,7 @@ export function inRect(x: number, z: number, r: XZRect): boolean {
 }
 
 export function inPlayableVolume(x: number, z: number): boolean {
-  return inRect(x, z, LOT_WALK) || inRect(x, z, LOUNGE_WALK) || inRect(x, z, DOOR_CORRIDOR);
+  return playableRects().some((r) => inRect(x, z, r));
 }
 
 export function closestOnRect(x: number, z: number, r: XZRect): { x: number; z: number } {
@@ -247,7 +273,15 @@ export function closestOnRect(x: number, z: number, r: XZRect): { x: number; z: 
 
 export function clampPlayable(x: number, z: number): { x: number; z: number; teleported: boolean } {
   if (inPlayableVolume(x, z)) return { x, z, teleported: false };
-  const picks = [LOT_WALK, LOUNGE_WALK, DOOR_CORRIDOR].map((r) => closestOnRect(x, z, r));
+  if (inWestSidewalk(x, z)) {
+    const apron = closestOnRect(x, z, LOT_WALK);
+    const d = Math.hypot(x - apron.x, z - apron.z);
+    if (d > VOID_TELEPORT_M) {
+      return { x: SAFE_LOT_SPAWN.x, z: SAFE_LOT_SPAWN.z, teleported: true };
+    }
+    return { x: apron.x, z: apron.z, teleported: false };
+  }
+  const picks = playableRects().map((r) => closestOnRect(x, z, r));
   let pick = picks[0]!;
   let best = Math.hypot(x - pick.x, z - pick.z);
   for (const cand of picks.slice(1)) {
@@ -297,6 +331,25 @@ export function resolveWalkDestination(fromX: number, fromZ: number, toX: number
   return snapped;
 }
 
+/** Horizon / sky / canopy clicks must not become a walk-to. */
+export const WALK_CLICK_MAX_M = 26;
+export const WALK_RAY_MAX_Y = -0.03;
+
+export function pickWalkDestination(
+  fromX: number,
+  fromZ: number,
+  hitX: number,
+  hitZ: number,
+  rayDirY: number,
+  hitDist: number,
+): XZ | null {
+  if (!Number.isFinite(hitX) || !Number.isFinite(hitZ) || !Number.isFinite(hitDist)) return null;
+  if (rayDirY > WALK_RAY_MAX_Y) return null;
+  if (hitDist > WALK_CLICK_MAX_M || hitDist < 0.35) return null;
+  if (inWestSidewalk(hitX, hitZ)) return null;
+  return resolveWalkDestination(fromX, fromZ, hitX, hitZ);
+}
+
 /** Straight-line samples must stay on asphalt ∪ door ∪ lounge. */
 export function segmentPlayable(ax: number, az: number, bx: number, bz: number, step = 0.2): boolean {
   const dist = Math.hypot(bx - ax, bz - az);
@@ -324,6 +377,15 @@ function loungeAisleToward(z: number): XZ {
   };
 }
 
+/** Apron mouth of the door yard — lot ↔ lounge chords must not cut the west sidewalk. */
+function doorYardCorner(fromZ: number, toZ: number): XZ {
+  const along = fromZ < toZ ? Math.max(fromZ, DOOR_YARD.zmin + 0.35) : Math.min(fromZ, DOOR_YARD.zmax - 0.35);
+  return {
+    x: WEST_APRON_X + 0.45,
+    z: Math.min(DOOR_YARD.zmax - 0.25, Math.max(DOOR_YARD.zmin + 0.25, along)),
+  };
+}
+
 /**
  * Walk-to route. Straight if the segment stays playable; otherwise lot ↔ lounge
  * via the south door. Null cancels the click (target or path left the volume).
@@ -346,6 +408,16 @@ export function playableWalkPath(fromX: number, fromZ: number, toX: number, toZ:
   if (fromLounge === toLounge && segmentPlayable(fromX, fromZ, toX, toZ)) {
     return [{ x: toX, z: toZ }];
   }
+  if (fromLounge === toLounge) {
+    const corner = doorYardCorner(fromZ, toZ);
+    if (
+      segmentPlayable(fromX, fromZ, corner.x, corner.z) &&
+      segmentPlayable(corner.x, corner.z, toX, toZ)
+    ) {
+      return [corner, { x: toX, z: toZ }];
+    }
+    return null;
+  }
 
   const { outside, center, inside } = doorWaypoints();
   const aisle = loungeAisleToward(fromLounge ? fromZ : toZ);
@@ -357,7 +429,22 @@ export function playableWalkPath(fromX: number, fromZ: number, toX: number, toZ:
   let cz = fromZ;
   for (const hop of hops) {
     if (Math.hypot(hop.x - cx, hop.z - cz) < 0.14) continue;
-    if (!inPlayableVolume(hop.x, hop.z) || !segmentPlayable(cx, cz, hop.x, hop.z)) return null;
+    if (!inPlayableVolume(hop.x, hop.z)) return null;
+    if (!segmentPlayable(cx, cz, hop.x, hop.z)) {
+      const corner = doorYardCorner(cz, hop.z);
+      if (
+        Math.hypot(corner.x - cx, corner.z - cz) >= 0.14 &&
+        inPlayableVolume(corner.x, corner.z) &&
+        segmentPlayable(cx, cz, corner.x, corner.z) &&
+        segmentPlayable(corner.x, corner.z, hop.x, hop.z)
+      ) {
+        path.push(corner);
+        cx = corner.x;
+        cz = corner.z;
+      } else {
+        return null;
+      }
+    }
     path.push(hop);
     cx = hop.x;
     cz = hop.z;
@@ -367,24 +454,34 @@ export function playableWalkPath(fromX: number, fromZ: number, toX: number, toZ:
 
 /** Invisible walls filling the west void / planter strip south and north of the lounge. */
 export function westVoidWalls(): { cx: number; cy: number; cz: number; w: number; h: number; d: number }[] {
-  const railX = LOT_WALK.xmin;
   const west = Math.min(WALK_BOUNDS.xmin, LOT_RAILS.xmin) - 0.2;
   const pavSouth = PAVILION.z - PAVILION.d * 0.5;
   const pavNorth = PAVILION.z + PAVILION.d * 0.5;
+  const sidewalkEast = WEST_APRON_X;
+  const sidewalkNorth = DOOR_YARD.zmin;
+  const yardWest = DOOR_YARD.xmin;
   return [
     {
-      cx: (west + railX) * 0.5,
+      cx: (west + sidewalkEast) * 0.5,
       cy: 1.2,
-      cz: (LOT_RAILS.zmin + pavSouth) * 0.5,
-      w: railX - west + 0.2,
+      cz: (LOT_RAILS.zmin + sidewalkNorth) * 0.5,
+      w: sidewalkEast - west + 0.2,
       h: 2.4,
-      d: Math.max(0.4, pavSouth - LOT_RAILS.zmin),
+      d: Math.max(0.4, sidewalkNorth - LOT_RAILS.zmin),
     },
     {
-      cx: (west + railX) * 0.5,
+      cx: (west + yardWest) * 0.5,
+      cy: 1.2,
+      cz: (sidewalkNorth + pavSouth) * 0.5,
+      w: Math.max(0.4, yardWest - west),
+      h: 2.4,
+      d: Math.max(0.4, pavSouth - sidewalkNorth),
+    },
+    {
+      cx: (west + Math.min(LOUNGE_WALK.xmin, LOT_RAILS.xmin)) * 0.5,
       cy: 1.2,
       cz: (pavNorth + LOT_RAILS.zmax) * 0.5,
-      w: railX - west + 0.2,
+      w: Math.min(LOUNGE_WALK.xmin, LOT_RAILS.xmin) - west + 0.2,
       h: 2.4,
       d: Math.max(0.4, LOT_RAILS.zmax - pavNorth),
     },

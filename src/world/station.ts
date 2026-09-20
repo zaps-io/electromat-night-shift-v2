@@ -31,6 +31,7 @@ export interface Station {
   waveGuide: THREE.Group;
   bayAnchors: THREE.Object3D[];
   colliders: THREE.Box3[];
+  walkGrounds: THREE.Object3D[];
 }
 
 function mat(color: number, extras: THREE.MeshPhysicalMaterialParameters = {}): THREE.MeshPhysicalMaterial {
@@ -75,6 +76,7 @@ function makeAsphalt(root: THREE.Group): THREE.Mesh {
   ground.rotation.x = -Math.PI / 2;
   ground.position.y = 0.004;
   ground.receiveShadow = true;
+  ground.userData.walkGround = true;
   root.add(ground);
   return ground;
 }
@@ -809,5 +811,14 @@ export function buildStation(): Station {
     waveGuide: wave.guide,
     bayAnchors,
     colliders: [...pavilionBoxes, ...westLot, ...planters],
+    walkGrounds: collectWalkGrounds(root),
   };
+}
+
+function collectWalkGrounds(root: THREE.Object3D): THREE.Object3D[] {
+  const list: THREE.Object3D[] = [];
+  root.traverse((o) => {
+    if (o.userData.walkGround) list.push(o);
+  });
+  return list;
 }

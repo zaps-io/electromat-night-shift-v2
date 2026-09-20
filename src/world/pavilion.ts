@@ -272,6 +272,7 @@ function addInterior(g: THREE.Group, W: number, D: number, H: number): THREE.Box
   crete.rotation.x = -Math.PI / 2;
   crete.position.y = 0.028;
   crete.receiveShadow = true;
+  crete.userData.walkGround = true;
   const wood = new THREE.Mesh(
     new THREE.PlaneGeometry(5.6, 7.4),
     new THREE.MeshStandardMaterial({
@@ -285,12 +286,14 @@ function addInterior(g: THREE.Group, W: number, D: number, H: number): THREE.Box
   wood.rotation.x = -Math.PI / 2;
   wood.position.set(2.35, 0.032, 1.85);
   wood.receiveShadow = true;
+  wood.userData.walkGround = true;
   const runner = new THREE.Mesh(
     new THREE.PlaneGeometry(1.55, 5.4),
     new THREE.MeshStandardMaterial({ color: 0x3a2a24, roughness: 0.82, metalness: 0.03 }),
   );
   runner.rotation.x = -Math.PI / 2;
   runner.position.set(0.8, 0.034, -2.15);
+  runner.userData.walkGround = true;
   const ceiling = new THREE.Mesh(
     new THREE.PlaneGeometry(W - 0.28, D - 0.28),
     new THREE.MeshStandardMaterial({

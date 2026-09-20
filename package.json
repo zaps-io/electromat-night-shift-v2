@@ -10,7 +10,8 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "export:sedan": "tsx scripts/export-sedan.ts",
-    "test": "tsx scripts/verify-shift.ts"
+    "test": "tsx scripts/verify-shift.ts",
+    "test:fpv": "tsx scripts/fpv-smoke.ts"
   },
   "dependencies": {
     "postprocessing": "^6.36.6",

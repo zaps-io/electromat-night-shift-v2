@@ -8,6 +8,17 @@ interface ElectromatApi {
   position: { x: number; y: number; z: number };
   target: import("./game/interact").InteractResult;
   walkTo: (x: number, z: number) => void;
+  clickWalk: (clientX: number, clientY: number) => void;
+  hold: (code: string) => void;
+  release: (code: string) => void;
+  runFpvSmoke: () => Promise<{
+    prompt: string;
+    objective: string;
+    auto: number;
+    x: number;
+    z: number;
+    playable: boolean;
+  }>;
   step: (dt?: number) => void;
   advance: (dtMin: number) => void;
   ready: boolean;

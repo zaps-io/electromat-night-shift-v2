@@ -250,11 +250,15 @@ export class Walker {
         this.destination.y = this.position.y;
         const dx = this.position.x - beforeX;
         const dz = this.position.z - beforeZ;
-        if (dx * dx + dz * dz > 1e-8) this.yaw = Math.atan2(-dx, -dz);
+        if (!this.locked && dx * dx + dz * dz > 1e-8) this.yaw = Math.atan2(-dx, -dz);
       } else {
         this.destination = null;
+        this.keepLookSafe();
       }
-      if (stepped.teleported) this.clearWalk();
+      if (stepped.teleported) {
+        this.clearWalk();
+        this.lookAtLot();
+      }
     } else {
       this.confine(colliders);
     }
@@ -273,7 +277,27 @@ export class Walker {
     const held = clampPlayable(this.position.x, this.position.z);
     this.position.x = held.x;
     this.position.z = held.z;
-    if (held.teleported) this.clearWalk();
+    if (held.teleported) {
+      this.clearWalk();
+      this.lookAtLot();
+    }
+  }
+
+  /** Soft-recover look when a walk ends facing the west void or a canopy slab. */
+  keepLookSafe(): void {
+    if (this.position.y > 3.2) return;
+    const lookX = -Math.sin(this.yaw);
+    const westVoid = this.position.x < -13.2 && lookX < -0.42;
+    if (westVoid) {
+      this.lookAtLot();
+      return;
+    }
+    if (!this.locked && this.pitch > 0.14) this.lookAtLot();
+  }
+
+  lookAtLot(): void {
+    if (this.position.y > 3.2) return;
+    this.lookAt(1.6, 1.05, -3.2);
   }
 
   private sync(): void {
