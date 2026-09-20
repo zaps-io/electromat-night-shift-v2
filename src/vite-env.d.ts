@@ -15,9 +15,14 @@ interface ElectromatApi {
     prompt: string;
     objective: string;
     auto: number;
+    wave: number;
+    zip: number;
+    wavePrompt: string;
+    unplugPrompt: string;
     x: number;
     z: number;
     playable: boolean;
+    westCancelled: boolean;
   }>;
   step: (dt?: number) => void;
   advance: (dtMin: number) => void;

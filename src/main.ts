@@ -679,7 +679,8 @@ window.__electromat = {
     walker.tick(dt, station.colliders);
   },
   async runFpvSmoke() {
-    while (!ready) await new Promise((r) => setTimeout(r, 40));
+    const deadline = performance.now() + 8000;
+    while (!ready && performance.now() < deadline) await new Promise((r) => setTimeout(r, 40));
     if (state.phase === "title") dropIn();
     const peckBay = BAYS.find((b) => b.playable === 4)!;
     const dest = { x: peckBay.x - 3.35, z: peckBay.z + 0.85 };
@@ -690,17 +691,50 @@ window.__electromat = {
     }
     walker.lookAt(peckBay.x - 1.1, 0.18, peckBay.z - 0.35);
     paintHud();
-    const before = refreshTarget();
-    const key = new KeyboardEvent("keydown", { code: "KeyE", key: "e", bubbles: true });
-    window.dispatchEvent(key);
+    const payPrompt = refreshTarget();
+    window.dispatchEvent(new KeyboardEvent("keydown", { code: "KeyE", key: "e", bubbles: true }));
     paintHud();
-    return {
-      prompt: before.prompt,
-      objective: before.objective,
+    const afterPay = {
+      prompt: payPrompt.prompt,
       auto: state.autochargeSignups,
       x: walker.position.x,
       z: walker.position.z,
+    };
+    walker.walkTo(new THREE.Vector3(WAVE_POINT.x + 0.35, 0, WAVE_POINT.z + 1.8));
+    for (let i = 0; i < 480; i++) {
+      walker.tick(0.05, station.colliders);
+      if (!walker.destination) break;
+    }
+    walker.lookAt(WAVE_POINT.x, 0.2, WAVE_POINT.z);
+    paintHud();
+    const wavePrompt = refreshTarget();
+    window.dispatchEvent(new KeyboardEvent("keydown", { code: "KeyE", key: "e", bubbles: true }));
+    paintHud();
+    if (state.phase === "shift") tick(state, 4);
+    walker.walkTo(new THREE.Vector3(peckBay.x - 3.3, 0, peckBay.z + 0.7));
+    for (let i = 0; i < 480; i++) {
+      walker.tick(0.05, station.colliders);
+      if (!walker.destination) break;
+    }
+    walker.lookAt(peckBay.x - 1.0, 0.18, peckBay.z);
+    paintHud();
+    const unplugPrompt = refreshTarget();
+    window.dispatchEvent(new KeyboardEvent("keydown", { code: "KeyE", key: "e", bubbles: true }));
+    paintHud();
+    walker.walkTo(new THREE.Vector3(-24.0, 0, -10.4));
+    const westCancelled = walker.destination == null;
+    return {
+      prompt: afterPay.prompt,
+      objective: payPrompt.objective,
+      auto: state.autochargeSignups,
+      wave: state.queueWaves,
+      zip: state.sessionsDone,
+      wavePrompt: wavePrompt.prompt,
+      unplugPrompt: unplugPrompt.prompt,
+      x: afterPay.x,
+      z: afterPay.z,
       playable: inPlayableVolume(walker.position.x, walker.position.z),
+      westCancelled,
     };
   },
   advance(dtMin: number) {

@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "export:sedan": "tsx scripts/export-sedan.ts",
     "test": "tsx scripts/verify-shift.ts",
-    "test:fpv": "tsx scripts/fpv-smoke.ts"
+    "test:fpv": "tsx scripts/fpv-smoke.ts",
+    "test:fpv-shots": "tsx scripts/fpv-shots.ts"
   },
   "dependencies": {
     "postprocessing": "^6.36.6",
@@ -19,6 +20,7 @@
   },
   "devDependencies": {
     "@types/three": "^0.170.0",
+    "puppeteer-core": "^25.11.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
     "vite": "^6.0.7"
