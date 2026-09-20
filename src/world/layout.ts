@@ -412,22 +412,37 @@ export function pavilionExteriorWalls(): { cx: number; cy: number; cz: number; w
   ];
 }
 
-/** Furniture AABBs inside the lounge — walk around, not through. */
+/**
+ * Furniture AABBs inside the lounge — walk around, not through.
+ * Keep the south-door aisle (world x ≈ door center) and the sofa-shot
+ * corridor at INTERIOR_SHOT.z clear.
+ */
 export function pavilionFurniture(): { cx: number; cy: number; cz: number; w: number; h: number; d: number }[] {
   const px = PAVILION.x;
   const pz = PAVILION.z;
   return [
-    { cx: px - 2.55, cy: 0.6, cz: pz - 3.15, w: 2.7, h: 1.2, d: 0.95 },
-    { cx: px - 1.35, cy: 0.5, cz: pz - 2.35, w: 0.85, h: 1.1, d: 0.75 },
-    { cx: px - 1.85, cy: 0.45, cz: pz + 0.35, w: 1.0, h: 1.0, d: 1.0 },
-    { cx: px - 4.85, cy: 0.7, cz: pz - 3.4, w: 0.7, h: 1.4, d: 2.6 },
-    { cx: px - 4.9, cy: 0.8, cz: pz + 0.15, w: 0.65, h: 1.5, d: 2.0 },
-    { cx: px + 1.85, cy: 0.5, cz: pz + 3.55, w: 1.15, h: 1.0, d: 2.25 },
-    { cx: px + 2.55, cy: 0.4, cz: pz + 3.2, w: 1.1, h: 0.8, d: 1.1 },
-    { cx: px + 3.55, cy: 0.5, cz: pz - 1.85, w: 0.9, h: 1.0, d: 1.7 },
-    { cx: px + 4.55, cy: 0.5, cz: pz + 1.85, w: 0.55, h: 1.05, d: 2.45 },
-    { cx: px + 3.05, cy: 0.45, cz: pz + 1.85, w: 0.55, h: 0.9, d: 0.55 },
-    { cx: px + 3.15, cy: 0.45, cz: pz + 4.75, w: 0.55, h: 0.9, d: 0.55 },
+    { cx: px - 3.25, cy: 0.6, cz: pz - 5.72, w: 3.15, h: 1.2, d: 0.86 },
+    { cx: px - 3.95, cy: 0.55, cz: pz - 4.15, w: 1.05, h: 1.15, d: 0.92 },
+    { cx: px - 5.12, cy: 0.75, cz: pz - 3.55, w: 0.72, h: 1.55, d: 2.55 },
+    { cx: px - 5.12, cy: 0.75, cz: pz - 0.15, w: 0.68, h: 1.5, d: 2.15 },
+    { cx: px - 5.12, cy: 0.75, cz: pz + 4.55, w: 0.68, h: 1.5, d: 1.85 },
+    { cx: px - 2.55, cy: 0.5, cz: pz - 0.95, w: 1.08, h: 1.15, d: 1.85 },
+    { cx: px - 4.05, cy: 0.7, cz: pz + 5.85, w: 2.55, h: 1.4, d: 1.28 },
+    { cx: px + 3.45, cy: 0.5, cz: pz + 4.65, w: 2.35, h: 1.0, d: 0.92 },
+    { cx: px + 4.45, cy: 0.5, cz: pz + 3.55, w: 0.92, h: 1.0, d: 1.55 },
+    { cx: px + 2.55, cy: 0.4, cz: pz + 3.45, w: 0.95, h: 0.8, d: 0.95 },
+    { cx: px + 3.95, cy: 0.5, cz: pz - 3.45, w: 1.18, h: 1.15, d: 2.05 },
+    { cx: px + 5.18, cy: 0.5, cz: pz + 1.45, w: 0.5, h: 1.05, d: 3.55 },
+    { cx: px + 2.15, cy: 0.45, cz: pz + 2.05, w: 0.55, h: 0.9, d: 0.55 },
+    { cx: px + 3.55, cy: 0.45, cz: pz + 5.55, w: 0.55, h: 0.9, d: 0.55 },
+  ];
+}
+
+/** Courtyard patio east/north of the lounge — lot-side, walk around. */
+export function loungePatio(): { cx: number; cy: number; cz: number; w: number; h: number; d: number }[] {
+  return [
+    { cx: -18.55, cy: 0.4, cz: 10.55, w: 1.15, h: 0.85, d: 1.15 },
+    { cx: -16.85, cy: 0.4, cz: 9.35, w: 1.15, h: 0.85, d: 1.15 },
   ];
 }
 
@@ -516,6 +531,28 @@ export const DOOR_IN_SHOT = {
   pitch: 0.04,
   lookAt: { x: -24.4, y: 1.25, z: 3.35 },
   fov: 58,
+} as const;
+
+/** East storefront from the lot — merch and lounge readable through dusk glass. */
+export const STOREFRONT_SHOT = {
+  x: -13.85,
+  z: 1.85,
+  eyeY: 1.62,
+  yaw: 1.42,
+  pitch: 0.06,
+  lookAt: { x: -20.15, y: 1.38, z: 3.15 },
+  fov: 50,
+} as const;
+
+/** Wide lounge interior: cafe, gondola, coolers, seating, east glass. */
+export const LOUNGE_WIDE_SHOT = {
+  x: -22.55,
+  z: -1.35,
+  eyeY: 1.6,
+  yaw: 0.42,
+  pitch: 0.02,
+  lookAt: { x: -25.15, y: 1.22, z: 3.85 },
+  fov: 66,
 } as const;
 
 /** Aisle face of Peck's opening bay — prompt and objective both read PAY. */

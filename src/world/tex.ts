@@ -537,6 +537,89 @@ export function woodFloor(): THREE.CanvasTexture {
   }, { repeatX: 3, repeatY: 4, aniso: 6 });
 }
 
+/** Polished cream concrete for the retail aisle. */
+export function creteFloor(): THREE.CanvasTexture {
+  return canvasTex(512, 512, (ctx, w, h) => {
+    ctx.fillStyle = "#D8D0C2";
+    ctx.fillRect(0, 0, w, h);
+    for (let i = 0; i < 9000; i++) {
+      const n = 168 + Math.random() * 52;
+      ctx.fillStyle = `rgba(${n},${n - 8},${n - 18},${0.28 + Math.random() * 0.28})`;
+      ctx.fillRect(Math.random() * w, Math.random() * h, 1 + (i % 3), 1);
+    }
+    ctx.strokeStyle = "rgba(120,110,96,0.28)";
+    ctx.lineWidth = 2;
+    for (let y = 0; y < h; y += 128) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(w, y);
+      ctx.stroke();
+    }
+    for (let x = 0; x < w; x += 128) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, h);
+      ctx.stroke();
+    }
+  }, { repeatX: 4, repeatY: 5, aniso: 6 });
+}
+
+export function coolerFace(): THREE.CanvasTexture {
+  return canvasTex(256, 512, (ctx, w, h) => {
+    ctx.fillStyle = "#101418";
+    ctx.fillRect(0, 0, w, h);
+    const pack = ["#E63225", "#00D4F5", "#F5F0E8", "#E89A2E", "#3cb371", "#E63225", "#1E1E24"];
+    for (let row = 0; row < 6; row++) {
+      for (let col = 0; col < 4; col++) {
+        const x = 16 + col * 58;
+        const y = 18 + row * 80;
+        ctx.fillStyle = pack[(row + col) % pack.length];
+        ctx.fillRect(x, y, 46, 68);
+        ctx.fillStyle = "rgba(255,255,255,0.22)";
+        ctx.fillRect(x + 8, y + 8, 30, 10);
+        ctx.fillStyle = "rgba(0,0,0,0.18)";
+        ctx.fillRect(x + 6, y + 48, 34, 12);
+      }
+    }
+  }, { wrap: false, aniso: 4 });
+}
+
+export function statusBoard(): THREE.CanvasTexture {
+  return canvasTex(512, 256, (ctx, w, h) => {
+    ctx.fillStyle = "#14161C";
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = "#E63225";
+    ctx.font = "800 28px Arial";
+    ctx.textAlign = "left";
+    ctx.fillText("ELECTROMAT", 22, 38);
+    ctx.fillStyle = "#F5F0E8";
+    ctx.font = "600 16px Arial";
+    ctx.fillText("BAY STATUS  ·  LIVE", 22, 62);
+    const rows = [
+      ["01  HALE", "#00D4F5", "88%"],
+      ["04  PECK", "#E89A2E", "PAY"],
+      ["05  —", "#6a6e74", "OPEN"],
+      ["06  —", "#6a6e74", "OPEN"],
+    ];
+    rows.forEach((row, i) => {
+      const y = 96 + i * 36;
+      ctx.fillStyle = "#2a2e34";
+      ctx.fillRect(18, y - 20, w - 36, 30);
+      ctx.fillStyle = row[1];
+      ctx.beginPath();
+      ctx.arc(36, y - 5, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#F5F0E8";
+      ctx.font = "600 16px Arial";
+      ctx.textAlign = "left";
+      ctx.fillText(row[0], 52, y);
+      ctx.textAlign = "right";
+      ctx.fillStyle = row[1];
+      ctx.fillText(row[2], w - 28, y);
+    });
+  }, { wrap: false });
+}
+
 export function loungeRug(): THREE.CanvasTexture {
   return canvasTex(256, 256, (ctx, w, h) => {
     ctx.fillStyle = "#2a2420";

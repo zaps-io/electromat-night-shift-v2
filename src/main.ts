@@ -37,10 +37,12 @@ import {
   DOOR_SHOT,
   INTERIOR_SHOT,
   KIOSK_REACH,
+  LOUNGE_WIDE_SHOT,
   PAY_POINTS,
   PROMPT_SHOT,
   REAR_SHOT,
   START_SHOT,
+  STOREFRONT_SHOT,
   WAVE_POINT,
   WAVE_REACH,
   WIDE_SHOT,
@@ -490,6 +492,18 @@ async function saveShots(): Promise<void> {
   walker.lookAt(INTERIOR_SHOT.lookAt.x, INTERIOR_SHOT.lookAt.y, INTERIOR_SHOT.lookAt.z);
   await new Promise((r) => setTimeout(r, 500));
   await post("/workspace/docs/shots/interior.png", capture(1280, 800));
+  await new Promise((r) => setTimeout(r, 400));
+  walker.setFov(LOUNGE_WIDE_SHOT.fov);
+  walker.place(LOUNGE_WIDE_SHOT.x, LOUNGE_WIDE_SHOT.z, LOUNGE_WIDE_SHOT.yaw, LOUNGE_WIDE_SHOT.pitch, LOUNGE_WIDE_SHOT.eyeY);
+  walker.lookAt(LOUNGE_WIDE_SHOT.lookAt.x, LOUNGE_WIDE_SHOT.lookAt.y, LOUNGE_WIDE_SHOT.lookAt.z);
+  await new Promise((r) => setTimeout(r, 500));
+  await post("/workspace/docs/shots/lounge-wide.png", capture(1280, 800));
+  await new Promise((r) => setTimeout(r, 400));
+  walker.setFov(STOREFRONT_SHOT.fov);
+  walker.place(STOREFRONT_SHOT.x, STOREFRONT_SHOT.z, STOREFRONT_SHOT.yaw, STOREFRONT_SHOT.pitch, STOREFRONT_SHOT.eyeY);
+  walker.lookAt(STOREFRONT_SHOT.lookAt.x, STOREFRONT_SHOT.lookAt.y, STOREFRONT_SHOT.lookAt.z);
+  await new Promise((r) => setTimeout(r, 500));
+  await post("/workspace/docs/shots/storefront-exterior.png", capture(1280, 800));
   await new Promise((r) => setTimeout(r, 400));
   walker.setFov(DOOR_SHOT.fov);
   walker.place(DOOR_SHOT.x, DOOR_SHOT.z, DOOR_SHOT.yaw, DOOR_SHOT.pitch, DOOR_SHOT.eyeY);
