@@ -177,7 +177,7 @@ export const PAVILION_FOOTPRINT: XZRect = {
 
 export const LOUNGE_ARRIVE: XZ = { x: DOOR_WORLD_X, z: DOOR_WORLD_Z + 2.15 };
 export const LOT_ARRIVE: XZ = { x: DOOR_WORLD_X, z: DOOR_WORLD_Z - 2.15 };
-export const DOOR_HINT_RANGE = 4.5;
+export const DOOR_HINT_RANGE = 6.2;
 
 /** Outer envelope of lot ∪ lounge — not the playable shape. */
 export const WALK_BOUNDS: XZRect = {

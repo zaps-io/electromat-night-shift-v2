@@ -576,6 +576,9 @@ window.__electromat = {
   walkTo(x: number, z: number) {
     walker.walkTo(new THREE.Vector3(x, 0, z));
   },
+  step(dt = 0.05) {
+    walker.tick(dt, station.colliders);
+  },
   get destination() {
     return walker.destination ? { x: walker.destination.x, z: walker.destination.z } : null;
   },

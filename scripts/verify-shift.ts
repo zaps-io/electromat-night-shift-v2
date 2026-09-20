@@ -331,6 +331,9 @@ if (doorApproachHint({ x: door.x, y: 1.56, z: door.z - 1.6 }, "") !== "WALK IN")
 if (doorApproachHint({ x: door.x, y: 1.56, z: door.z + 1.8 }, "") !== "WALK OUT") {
   throw new Error("inside the lounge door, HUD must hint WALK OUT when E is free");
 }
+if (doorApproachHint(DOOR_SHOT, "") !== "WALK IN") {
+  throw new Error("DOOR_SHOT must be in walk-in hint range");
+}
 
 const loungePay = PAY_POINTS[1];
 const atLoungePay = resolveInteract(
