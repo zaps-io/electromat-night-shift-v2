@@ -5,6 +5,7 @@ interface ElectromatApi {
   act: () => void;
   place: (x: number, z: number, yaw?: number, pitch?: number, eyeY?: number) => void;
   lookAt: (x: number, y: number, z: number) => void;
+  position: { x: number; y: number; z: number };
   capture: (w?: number, h?: number) => string;
   carProbe: (w?: number, h?: number) => string;
   hullDebug: () => {
