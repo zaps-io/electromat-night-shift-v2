@@ -589,12 +589,12 @@ export function statusBoard(): THREE.CanvasTexture {
     ctx.fillStyle = "#14161C";
     ctx.fillRect(0, 0, w, h);
     ctx.fillStyle = "#E63225";
-    ctx.font = "800 28px Arial";
+    ctx.font = "800 26px Arial";
     ctx.textAlign = "left";
-    ctx.fillText("ELECTROMAT", 22, 38);
+    ctx.fillText("ELECTROMAT", 22, 36);
     ctx.fillStyle = "#F5F0E8";
-    ctx.font = "600 16px Arial";
-    ctx.fillText("BAY STATUS  ·  LIVE", 22, 62);
+    ctx.font = "600 15px Arial";
+    ctx.fillText("BAY STATUS", 22, 58);
     const rows = [
       ["01  HALE", "#00D4F5", "88%"],
       ["04  PECK", "#E89A2E", "PAY"],

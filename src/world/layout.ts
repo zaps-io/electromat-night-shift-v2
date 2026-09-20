@@ -511,48 +511,48 @@ export const INTERIOR_SHOT = {
   fov: 64,
 } as const;
 
-/** South storefront door from the lot, framing the OPEN portal and lounge PAY totem. */
+/** South storefront door from the lot — OPEN portal, glass merch, lounge PAY. */
 export const DOOR_SHOT = {
-  x: -20.15,
-  z: -7.35,
-  eyeY: 1.58,
-  yaw: 0.22,
-  pitch: 0.08,
-  lookAt: { x: -21.55, y: 1.55, z: -3.55 },
-  fov: 54,
+  x: -19.45,
+  z: -7.95,
+  eyeY: 1.62,
+  yaw: 0.26,
+  pitch: 0.1,
+  lookAt: { x: -22.25, y: 1.58, z: -3.35 },
+  fov: 52,
 } as const;
 
-/** Just inside the south OPEN door, looking into the lounge. */
+/** Just inside the south OPEN door, looking into store + lounge. */
 export const DOOR_IN_SHOT = {
-  x: -22.6,
-  z: -1.55,
+  x: -23.05,
+  z: -0.85,
   eyeY: 1.58,
-  yaw: 0.18,
+  yaw: -0.35,
   pitch: 0.04,
-  lookAt: { x: -24.4, y: 1.25, z: 3.35 },
-  fov: 58,
+  lookAt: { x: -20.55, y: 1.22, z: 3.55 },
+  fov: 62,
 } as const;
 
 /** East storefront from the lot — merch and lounge readable through dusk glass. */
 export const STOREFRONT_SHOT = {
-  x: -13.85,
-  z: 1.85,
-  eyeY: 1.62,
-  yaw: 1.42,
-  pitch: 0.06,
-  lookAt: { x: -20.15, y: 1.38, z: 3.15 },
-  fov: 50,
+  x: -12.45,
+  z: 0.35,
+  eyeY: 1.64,
+  yaw: 1.28,
+  pitch: 0.08,
+  lookAt: { x: -18.85, y: 1.42, z: 2.85 },
+  fov: 48,
 } as const;
 
 /** Wide lounge interior: cafe, gondola, coolers, seating, east glass. */
 export const LOUNGE_WIDE_SHOT = {
-  x: -22.55,
-  z: -1.35,
+  x: -25.85,
+  z: -0.55,
   eyeY: 1.6,
-  yaw: 0.42,
+  yaw: -0.85,
   pitch: 0.02,
-  lookAt: { x: -25.15, y: 1.22, z: 3.85 },
-  fov: 66,
+  lookAt: { x: -20.25, y: 1.2, z: 3.45 },
+  fov: 68,
 } as const;
 
 /** Aisle face of Peck's opening bay — prompt and objective both read PAY. */

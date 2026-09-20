@@ -402,8 +402,8 @@ function addInterior(g: THREE.Group, W: number, D: number, H: number): THREE.Box
   }
 
   const board = new THREE.Mesh(new THREE.PlaneGeometry(1.55, 0.78), status);
-  board.position.set(4.4, 2.22, -0.15);
-  board.rotation.y = -Math.PI / 2;
+  board.position.set(4.55, 2.18, 0.35);
+  board.rotation.y = Math.PI / 2;
   const menuWall = new THREE.Mesh(new THREE.PlaneGeometry(0.72, 0.9), menu);
   menuWall.position.set(-3.15, 1.95, -5.95);
   g.add(board, menuWall);
