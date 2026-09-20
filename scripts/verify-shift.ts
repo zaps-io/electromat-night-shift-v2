@@ -16,11 +16,14 @@ import {
 import {
   collectCandidates,
   doorApproachHint,
+  GUEST_HULL_R,
   GUEST_REACH,
   jobFocusCandidate,
   nextJob,
+  planarDist,
   resolveInteract,
   WAVE_CLOSE,
+  xzLookDot,
 } from "../src/game/interact.ts";
 import { assertOpaqueCarMaterials, glassMaterial, paintMaterial } from "../src/cars/opaque.ts";
 import {
@@ -66,17 +69,21 @@ import {
   WAVE_SHOT,
   ZEUS_HALF_DEPTH,
   clampPlayable,
+  DOOR_YARD,
   inPlayableVolume,
   inRect,
+  inWestSidewalk,
   pavilionDoorGap,
   pavilionDoorWorld,
   pavilionExteriorWalls,
   pavilionFurniture,
+  pickWalkDestination,
   planterColliders,
   playableWalkPath,
   playableWalkTarget,
   resolveWalkDestination,
   segmentPlayable,
+  WEST_APRON_X,
   westVoidWalls,
 } from "../src/world/layout.ts";
 import { cableHitsCarBody, ccsLeadPoints, holsterRestPoints } from "../src/world/cables.ts";
@@ -524,7 +531,8 @@ if (!inPlayableVolume(WAVE_SHOT.x, WAVE_SHOT.z)) throw new Error("WAVE shot off 
 if (!inPlayableVolume(UNPLUG_SHOT.x, UNPLUG_SHOT.z)) throw new Error("UNPLUG shot off playable volume");
 if (!inPlayableVolume(WAVE_POINT.x, WAVE_POINT.z)) throw new Error("WAVE stand off playable volume");
 
-if (GUEST_REACH > 5.2) throw new Error("guest reach grew too loose");
+if (GUEST_REACH > 5.6) throw new Error("guest reach grew too loose");
+if (GUEST_HULL_R < 2.2) throw new Error("guest hull radius must cover a Tesla bumper");
 
 if (!inPlayableVolume(START_SHOT.x, START_SHOT.z)) throw new Error("spawn must be on the lot");
 if (!inPlayableVolume(PROMPT_SHOT.x, PROMPT_SHOT.z)) throw new Error("Peck prompt shot off playable volume");
@@ -538,8 +546,13 @@ if (inPlayableVolume(-28.2, -10.4)) throw new Error("west planter strip must be 
 if (inPlayableVolume(-28.2, 14.8)) throw new Error("northwest void must be out of playable volume");
 if (inPlayableVolume(-28.2, -3.55)) throw new Error("west lip south of lounge must not be playable");
 if (inPlayableVolume(-26.0, -10.4)) throw new Error("west planter lip on the old rail must not be playable");
+if (inPlayableVolume(-24.0, -10.4)) throw new Error("west sidewalk must be out of playable volume");
+if (inWestSidewalk(-24.0, -10.4) !== true) throw new Error("west sidewalk helper missed the planter strip");
+if (inPlayableVolume(DOOR_SHOT.x, DOOR_SHOT.z) !== true) throw new Error("DOOR_SHOT must stay on the door yard");
+if (inPlayableVolume(PAY_POINTS[0].x, PAY_POINTS[0].z) !== true) throw new Error("lot PAY stand must stay on the apron");
 if (playableWalkTarget(-28.2, -10.4) != null) throw new Error("walk-to must reject the west void");
 if (playableWalkTarget(-26.0, -10.4) != null) throw new Error("walk-to must reject the west planter lip");
+if (playableWalkTarget(-24.0, -10.4) != null) throw new Error("walk-to must reject the west sidewalk");
 if (playableWalkTarget(START_SHOT.x, START_SHOT.z) == null) throw new Error("walk-to must accept spawn");
 if (playableWalkTarget(INTERIOR_SHOT.x, INTERIOR_SHOT.z) == null) {
   throw new Error("walk-to must accept the lounge interior AABB");
@@ -553,7 +566,7 @@ if (!inPlayableVolume(DOOR_CORRIDOR.xmin + 0.1, (DOOR_CORRIDOR.zmin + DOOR_CORRI
   throw new Error("door corridor must be playable");
 }
 
-const scrape = clampPlayable(-27.1, -10.4);
+const scrape = clampPlayable(WEST_APRON_X - 0.55, -10.4);
 if (scrape.teleported) throw new Error("near-rail scrape should clamp, not teleport");
 if (!inPlayableVolume(scrape.x, scrape.z)) throw new Error("clamped scrape left playable volume");
 if (scrape.x + 1e-6 < LOT_WALK.xmin) throw new Error("west scrape must stay on the lot apron");
@@ -656,6 +669,25 @@ if (voidFollow.dest) throw new Error("beginWalk must cancel a west-planter click
 const lipFollow = followTo(START_SHOT.x, START_SHOT.z, -26.0, -10.4, 80);
 if (lipFollow.dest) throw new Error("west planter lip walk-to must not keep a destination");
 if (!inPlayableVolume(lipFollow.x, lipFollow.z)) throw new Error("cancelled lip walk left playable volume");
+const sidewalkFollow = beginWalk(START_SHOT.x, START_SHOT.z, -24.0, -10.4);
+if (sidewalkFollow.dest) throw new Error("beginWalk must cancel a west-sidewalk click");
+if (pickWalkDestination(START_SHOT.x, START_SHOT.z, -24.0, -10.4, -0.2, 18) != null) {
+  throw new Error("ground pick must reject the west sidewalk");
+}
+if (pickWalkDestination(START_SHOT.x, START_SHOT.z, 4.2, -6.2, 0.12, 10) != null) {
+  throw new Error("ground pick must reject sky / canopy clicks");
+}
+if (pickWalkDestination(START_SHOT.x, START_SHOT.z, 4.2, -6.2, -0.01, 40) != null) {
+  throw new Error("ground pick must reject horizon clicks");
+}
+const peckClick = pickWalkDestination(START_SHOT.x, START_SHOT.z, peckBay.x - 3.2, peckBay.z + 0.6, -0.18, 14);
+if (!peckClick) throw new Error("ground pick must accept asphalt near Peck");
+
+const westDump = clampPlayable(-24.0, -10.4);
+if (!westDump.teleported) throw new Error("west sidewalk must soft-teleport off the void lip");
+if (westDump.x !== SAFE_LOT_SPAWN.x || westDump.z !== SAFE_LOT_SPAWN.z) {
+  throw new Error("west sidewalk teleport must recover to lot spawn");
+}
 
 const intoLounge = followTo(DOOR_SHOT.x, DOOR_SHOT.z, INTERIOR_SHOT.x, INTERIOR_SHOT.z);
 if (intoLounge.dest) throw new Error("door walk-to did not finish");
@@ -741,5 +773,116 @@ if (!inPlayableVolume(besidePeckStop.x, besidePeckStop.z)) {
 }
 
 void CANOPY_ROW_SHOT;
+
+const fpvOpening = resetNight();
+seedOpeningLot(fpvOpening);
+const fpvCars = new Map(
+  fpvOpening.guests
+    .filter((g) => fpvOpening.timeMin >= g.arriveMin && !g.served && !g.walked)
+    .map((g) => {
+      if (g.assignedBay != null) {
+        const bay = BAYS.find((b) => b.playable === g.assignedBay)!;
+        return [g.id, { x: bay.x, y: 0, z: bay.z }] as const;
+      }
+      const slot = WAIT_SLOTS[Math.max(0, WAIT_ORDER.indexOf(g.id as (typeof WAIT_ORDER)[number]))] ?? WAIT_SLOTS[0];
+      return [g.id, { x: slot.x, y: 0, z: slot.z }] as const;
+    }),
+);
+const fpvBays = BAYS.map((bay) => ({
+  id: bay.playable!,
+  x: bay.x,
+  z: bay.z,
+  open: !fpvOpening.bays.find((b) => b.id === bay.playable)?.guestId,
+}));
+const fpvCands = collectCandidates(fpvOpening, fpvCars, PAY_POINTS, KIOSK_REACH, WAVE_POINT, WAVE_REACH, fpvBays);
+const fpvJob = nextJob(fpvOpening);
+if (fpvJob?.need !== "pay") throw new Error("FPV opening job must be PAY");
+
+const spawnFpv = resolveInteract(START_SHOT, startLook, null, fpvCands, fpvJob);
+if (spawnFpv.ready) throw new Error("spawn must still not offer E PAY");
+
+const behindPeck = followTo(START_SHOT.x, START_SHOT.z, peckBay.x - 3.4, peckBay.z + 0.9, 720);
+if (behindPeck.dest) throw new Error("FPV walk from spawn to Peck did not finish");
+if (!inPlayableVolume(behindPeck.x, behindPeck.z)) throw new Error("FPV Peck approach left playable");
+const groundLook = { x: peckBay.x - behindPeck.x, y: -1.35, z: peckBay.z - behindPeck.z };
+if (xzLookDot(behindPeck, groundLook, peckBay) < 0.12) {
+  throw new Error("test look must still face Peck in XZ");
+}
+const hullD = planarDist({ x: behindPeck.x, z: behindPeck.z }, { x: peckBay.x, z: peckBay.z, kind: "guest" });
+if (hullD > GUEST_REACH) throw new Error(`FPV Peck approach too far from hull ${hullD.toFixed(2)}`);
+const fpvPay = resolveInteract(
+  { x: behindPeck.x, y: 1.58, z: behindPeck.z },
+  groundLook,
+  null,
+  fpvCands,
+  fpvJob,
+);
+if (!fpvPay.ready || fpvPay.ready.need !== "pay" || fpvPay.ready.guestId !== "peck") {
+  throw new Error(`FPV ground-look at Peck must offer E PAY, got ${fpvPay.prompt || fpvPay.objective}`);
+}
+if (fpvPay.prompt !== "E  PAY  ·  PECK") throw new Error(`FPV PAY prompt ${fpvPay.prompt}`);
+
+const offCone = resolveInteract(
+  { x: behindPeck.x, y: 1.58, z: behindPeck.z },
+  { x: peckBay.x - behindPeck.x + 2.8, y: -1.6, z: peckBay.z - behindPeck.z - 1.4 },
+  null,
+  fpvCands,
+  fpvJob,
+);
+if (!offCone.ready || offCone.ready.need !== "pay") {
+  throw new Error("FPV aim cone must still offer PAY when looking at the asphalt beside Peck");
+}
+
+if (!payKiosk(fpvOpening, "peck")) throw new Error("FPV pay Peck failed");
+if (fpvOpening.autochargeSignups < 1) throw new Error("FPV AUTO must be 1 after walking to Peck and paying");
+
+const fpvPaidCands = collectCandidates(fpvOpening, fpvCars, PAY_POINTS, KIOSK_REACH, WAVE_POINT, WAVE_REACH, fpvBays);
+const fpvPaidJob = nextJob(fpvOpening);
+if (fpvPaidJob?.need !== "wave") throw new Error(`after FPV pay, job must be WAVE, got ${fpvPaidJob?.need}`);
+const atWave = followTo(behindPeck.x, behindPeck.z, WAVE_POINT.x + 0.4, WAVE_POINT.z + 2.1, 720);
+if (atWave.dest) throw new Error("FPV walk to WAVE did not finish");
+const waveFpv = resolveInteract(
+  { x: atWave.x, y: 1.58, z: atWave.z },
+  { x: WAVE_POINT.x - atWave.x, y: -1.2, z: WAVE_POINT.z - atWave.z },
+  null,
+  fpvPaidCands,
+  fpvPaidJob,
+);
+if (!waveFpv.ready || waveFpv.ready.need !== "wave") {
+  throw new Error(`FPV ground-look at WAVE must offer E WAVE, got ${waveFpv.prompt || waveFpv.objective}`);
+}
+if (!waveQueue(fpvOpening)) throw new Error("FPV WAVE failed");
+if (fpvOpening.queueWaves < 1) throw new Error("FPV WAVE counter must increment");
+
+tick(fpvOpening, 4);
+const fpvFull = fpvOpening.guests.find((g) => guestAction(g) === "unplug");
+if (!fpvFull || fpvFull.id !== "peck") throw new Error("FPV Peck must fill for UNPLUG");
+const fpvUnplugJob = nextJob(fpvOpening);
+if (fpvUnplugJob?.need !== "unplug") throw new Error(`FPV next job after fill must be UNPLUG, got ${fpvUnplugJob?.need}`);
+const fpvLoopBays = BAYS.map((bay) => ({
+  id: bay.playable!,
+  x: bay.x,
+  z: bay.z,
+  open: !fpvOpening.bays.find((b) => b.id === bay.playable)?.guestId,
+}));
+const fpvUnplugCands = collectCandidates(fpvOpening, fpvCars, PAY_POINTS, KIOSK_REACH, WAVE_POINT, WAVE_REACH, fpvLoopBays);
+const backToPeck = followTo(atWave.x, atWave.z, peckBay.x - 3.3, peckBay.z + 0.7, 720);
+if (backToPeck.dest) throw new Error("FPV walk back to Peck for UNPLUG did not finish");
+const unplugFpv = resolveInteract(
+  { x: backToPeck.x, y: 1.58, z: backToPeck.z },
+  { x: peckBay.x - backToPeck.x, y: -1.4, z: peckBay.z - backToPeck.z },
+  null,
+  fpvUnplugCands,
+  fpvUnplugJob,
+);
+if (!unplugFpv.ready || unplugFpv.ready.need !== "unplug" || unplugFpv.ready.guestId !== "peck") {
+  throw new Error(`FPV ground-look at full Peck must offer E UNPLUG, got ${unplugFpv.prompt || unplugFpv.objective}`);
+}
+if (!unplugInlet(fpvOpening, "peck")) throw new Error("FPV UNPLUG failed");
+if (fpvOpening.sessionsDone < 1) throw new Error("FPV ZIP must be 1 after UNPLUG");
+
+if (!inRect(DOOR_SHOT.x, DOOR_SHOT.z, DOOR_YARD) && !inPlayableVolume(DOOR_SHOT.x, DOOR_SHOT.z)) {
+  throw new Error("door yard must keep the south door approach");
+}
 
 console.log("verify-shift ok");

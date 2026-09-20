@@ -31,17 +31,27 @@ export interface InteractResult {
   objective: string;
 }
 
-export const GUEST_REACH = 4.6;
-export const GUEST_CLOSE = 3.2;
-export const KIOSK_CLOSE = 3.4;
+export const GUEST_REACH = 5.0;
+export const GUEST_CLOSE = 3.8;
+/** Half-length of a Model 3 — FPV stands at the bumper, not the bay center. */
+export const GUEST_HULL_R = 2.4;
+export const KIOSK_CLOSE = 4.8;
 export const WAVE_CLOSE = 4.4;
 export const BAY_REACH = 3.8;
 export const BAY_CLOSE = 2.2;
 export const AIM_DOT = 0.58;
-export const AIM_DOT_LOOSE = 0.32;
+/** XZ facing — ignore pitch so looking at the asphalt near a car still counts. */
+export const AIM_DOT_LOOSE = 0.12;
 
 export function xzDist(a: Vec3, b: Vec3): number {
   return Math.hypot(a.x - b.x, a.z - b.z);
+}
+
+/** Distance to a guest hull (or the point itself for stands). */
+export function planarDist(eye: Vec3, c: Pick<InteractCandidate, "x" | "z" | "kind">): number {
+  const raw = xzDist(eye, c);
+  if (c.kind === "guest") return Math.max(0, raw - GUEST_HULL_R);
+  return raw;
 }
 
 export function lookDot(eye: Vec3, look: Vec3, target: Vec3): number {
@@ -54,6 +64,18 @@ export function lookDot(eye: Vec3, look: Vec3, target: Vec3): number {
   const tz = target.z - eye.z;
   const tlen = Math.hypot(tx, ty, tz) || 1;
   return (lx / llen) * (tx / tlen) + (ly / llen) * (ty / tlen) + (lz / llen) * (tz / tlen);
+}
+
+/** Facing in plan — FPV pitch at the ground must not hide PAY / UNPLUG / WAVE. */
+export function xzLookDot(eye: Vec3, look: Vec3, target: Vec3): number {
+  const lx = look.x;
+  const lz = look.z;
+  const llen = Math.hypot(lx, lz);
+  if (llen < 1e-5) return 0;
+  const tx = target.x - eye.x;
+  const tz = target.z - eye.z;
+  const tlen = Math.hypot(tx, tz) || 1;
+  return (lx / llen) * (tx / tlen) + (lz / llen) * (tz / tlen);
 }
 
 export function promptFor(need: InteractNeed, name = ""): string {
@@ -116,14 +138,15 @@ export function jobHint(job: { need: InteractNeed; name: string } | null): strin
 }
 
 function usable(c: InteractCandidate, eye: Vec3, look: Vec3, aimedId: string | null): { ok: boolean; aimed: boolean; dist: number; dot: number } {
-  const dist = xzDist(eye, c);
+  const dist = planarDist(eye, c);
   const dot = lookDot(eye, look, { x: c.x, y: c.y, z: c.z });
+  const facingDot = xzLookDot(eye, look, { x: c.x, y: c.y, z: c.z });
   const ray = aimedId === c.id;
   const aimed = ray || dot >= AIM_DOT;
   const close = dist <= c.close;
   const inReach = dist <= c.reach;
-  const facing = ray || dot >= AIM_DOT_LOOSE;
-  const ok = inReach && (close || aimed || (facing && dist <= c.reach));
+  const facing = ray || facingDot >= AIM_DOT_LOOSE;
+  const ok = inReach && (close || aimed || facing);
   return { ok, aimed: aimed && inReach, dist, dot };
 }
 
