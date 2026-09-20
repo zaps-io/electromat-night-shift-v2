@@ -39,27 +39,35 @@ function paintAsphaltHeight(ctx: CanvasRenderingContext2D, size: number): void {
 
 export function asphaltColor(): THREE.CanvasTexture {
   return canvasTex(1024, 1024, (ctx, size) => {
-    ctx.fillStyle = "#0a0b0d";
+    ctx.fillStyle = "#141318";
     ctx.fillRect(0, 0, size, size);
-    for (let i = 0; i < 72000; i++) {
+    for (let i = 0; i < 82000; i++) {
       const x = Math.random() * size;
       const y = Math.random() * size;
-      const warm = Math.random() < 0.2;
-      const n = 16 + Math.random() * 36;
+      const warm = Math.random() < 0.28;
+      const n = 22 + Math.random() * 48;
       ctx.fillStyle = warm
-        ? `rgba(${n + 18},${n + 10},${n},${0.34 + Math.random() * 0.42})`
-        : `rgba(${n},${n + 2},${n + 6},${0.28 + Math.random() * 0.44})`;
-      ctx.fillRect(x, y, 1 + (Math.random() < 0.22 ? 2 : 1), 1 + (Math.random() < 0.14 ? 2 : 0));
+        ? `rgba(${n + 22},${n + 12},${n},${0.4 + Math.random() * 0.42})`
+        : `rgba(${n},${n + 3},${n + 8},${0.32 + Math.random() * 0.46})`;
+      ctx.fillRect(x, y, 1 + (Math.random() < 0.28 ? 2 : 1), 1 + (Math.random() < 0.18 ? 2 : 0));
     }
-    for (let i = 0; i < 160; i++) {
+    for (let i = 0; i < 28; i++) {
       const x = Math.random() * size;
       const y = Math.random() * size;
-      ctx.fillStyle = `rgba(6,6,8,${0.18 + Math.random() * 0.24})`;
-      ctx.fillRect(x, y, 10 + Math.random() * 28, 2 + Math.random() * 7);
+      ctx.fillStyle = `rgba(8,8,10,${0.22 + Math.random() * 0.28})`;
+      ctx.beginPath();
+      ctx.ellipse(x, y, 36 + Math.random() * 70, 14 + Math.random() * 22, Math.random() * Math.PI, 0, Math.PI * 2);
+      ctx.fill();
     }
-    for (let i = 0; i < 36; i++) {
-      ctx.strokeStyle = `rgba(20,18,16,${0.2 + Math.random() * 0.22})`;
-      ctx.lineWidth = 1 + Math.random();
+    for (let i = 0; i < 180; i++) {
+      const x = Math.random() * size;
+      const y = Math.random() * size;
+      ctx.fillStyle = `rgba(6,6,8,${0.2 + Math.random() * 0.26})`;
+      ctx.fillRect(x, y, 12 + Math.random() * 32, 2 + Math.random() * 7);
+    }
+    for (let i = 0; i < 48; i++) {
+      ctx.strokeStyle = `rgba(28,24,20,${0.22 + Math.random() * 0.24})`;
+      ctx.lineWidth = 1 + Math.random() * 1.4;
       ctx.beginPath();
       ctx.moveTo(Math.random() * size, Math.random() * size);
       ctx.quadraticCurveTo(Math.random() * size, Math.random() * size, Math.random() * size, Math.random() * size);
@@ -121,20 +129,23 @@ function heightToNormal(src: HTMLCanvasElement, repeatX: number, repeatY: number
 
 export function curbColor(): THREE.CanvasTexture {
   return canvasTex(256, 256, (ctx, w, h) => {
-    ctx.fillStyle = "#E6E0D4";
+    ctx.fillStyle = "#EFE8D8";
     ctx.fillRect(0, 0, w, h);
-    for (let i = 0; i < 2400; i++) {
-      const n = 200 + Math.random() * 40;
-      ctx.fillStyle = `rgb(${n},${n - 8},${n - 18})`;
+    for (let i = 0; i < 2800; i++) {
+      const n = 196 + Math.random() * 48;
+      ctx.fillStyle = `rgb(${n},${n - 10},${n - 22})`;
       ctx.fillRect(Math.random() * w, Math.random() * h, 2, 2);
     }
-    ctx.strokeStyle = "rgba(160,150,136,0.28)";
-    for (let y = 32; y < h; y += 48) {
+    ctx.strokeStyle = "rgba(120,108,90,0.38)";
+    ctx.lineWidth = 2;
+    for (let y = 28; y < h; y += 40) {
       ctx.beginPath();
       ctx.moveTo(0, y);
-      ctx.lineTo(w, y + 2);
+      ctx.lineTo(w, y + 3);
       ctx.stroke();
     }
+    ctx.fillStyle = "rgba(90,80,68,0.16)";
+    for (let i = 0; i < 18; i++) ctx.fillRect(Math.random() * w, Math.random() * h, 18, 6);
   }, { repeatX: 2, repeatY: 6, aniso: 6 });
 }
 
@@ -233,10 +244,35 @@ export function stucco(base = "#F6F1E6"): THREE.CanvasTexture {
 export type FacadeStyle = "warm" | "cool" | "dark" | "brick";
 
 function plasterHex(style: FacadeStyle): string {
-  if (style === "dark") return "#2a2e34";
-  if (style === "cool") return "#a8a8a4";
-  if (style === "brick") return "#8a6a58";
-  return "#b8a890";
+  if (style === "dark") return "#1c2228";
+  if (style === "cool") return "#8a9098";
+  if (style === "brick") return "#7a4a3a";
+  return "#c4a888";
+}
+
+function paintBrickCourses(ctx: CanvasRenderingContext2D, w: number, h: number): void {
+  ctx.fillStyle = "#6a3e30";
+  for (let y = 0; y < h; y += 8) {
+    ctx.fillRect(0, y, w, 1);
+    const off = (y / 8) % 2 === 0 ? 0 : 10;
+    for (let x = off; x < w; x += 20) ctx.fillRect(x, y, 1, 8);
+  }
+}
+
+function windowColor(style: FacadeStyle, seed: number, emitOnly: boolean): string | null {
+  const on = seed !== 0 && seed !== 3 && seed !== 7;
+  const bright = seed === 2 || seed === 6;
+  if (emitOnly) {
+    if (!on) return null;
+    if (style === "dark") return bright ? "#c8e4ff" : "#7aa0c8";
+    if (style === "cool") return bright ? "#f0d8a0" : "#c88848";
+    return bright ? "#ffe2a0" : "#d88840";
+  }
+  if (!on) return style === "dark" ? "#080a0e" : "#12161c";
+  if (style === "dark") return bright ? "#d0e8ff" : "#6a8498";
+  if (style === "cool") return bright ? "#f4d898" : "#c08038";
+  if (style === "brick") return bright ? "#f2c878" : "#b87838";
+  return bright ? "#f6c878" : "#c88840";
 }
 
 function paintFacadeGrid(
@@ -249,32 +285,77 @@ function paintFacadeGrid(
   ctx.fillStyle = emitOnly ? "#000000" : plasterHex(style);
   ctx.fillRect(0, 0, w, h);
   if (!emitOnly) {
-    for (let i = 0; i < 2200; i++) {
-      const n = style === "dark" ? 36 + Math.random() * 28 : 140 + Math.random() * 40;
-      ctx.fillStyle = `rgb(${n},${n - 8},${n - 16})`;
-      ctx.fillRect(Math.random() * w, Math.random() * h, 2, 2);
-    }
-    ctx.fillStyle = style === "dark" ? "rgba(8,8,12,0.45)" : "rgba(70,60,50,0.32)";
-    for (let y = 48; y < h; y += 64) ctx.fillRect(0, y, w, 4);
-  }
-  for (let row = 18; row < h - 24; row += 40) {
-    for (let col = 10; col < w - 10; col += 32) {
-      const seed = (row * 17 + col * 11) % 9;
-      const on = seed !== 0 && seed !== 3;
-      const bright = seed === 2 || seed === 6;
-      if (emitOnly) {
-        if (!on) continue;
-        ctx.fillStyle = bright ? "#ffe2a0" : "#d88840";
-        ctx.fillRect(col, row, 18, 14);
-        continue;
+    if (style === "brick") paintBrickCourses(ctx, w, h);
+    else {
+      for (let i = 0; i < 2200; i++) {
+        const n = style === "dark" ? 28 + Math.random() * 26 : 140 + Math.random() * 40;
+        ctx.fillStyle = `rgb(${n},${n - 6},${n - 12})`;
+        ctx.fillRect(Math.random() * w, Math.random() * h, 2, 2);
       }
-      ctx.fillStyle = "#141820";
-      ctx.fillRect(col - 1, row - 1, 20, 16);
-      ctx.fillStyle = on ? (bright ? "#f6c878" : "#c88840") : style === "dark" ? "#0a0c10" : "#161c24";
-      ctx.fillRect(col, row, 18, 14);
-      if (on) {
-        ctx.fillStyle = "rgba(255,230,180,0.28)";
-        ctx.fillRect(col, row, 18, 3);
+    }
+    ctx.fillStyle = style === "dark" ? "rgba(8,8,12,0.5)" : "rgba(50,42,34,0.34)";
+    const belt = style === "cool" ? 52 : 64;
+    for (let y = 40; y < h; y += belt) ctx.fillRect(0, y, w, style === "cool" ? 2 : 4);
+  }
+
+  if (style === "cool") {
+    for (let row = 16; row < h - 18; row += 28) {
+      for (let col = 6; col < w - 6; col += 54) {
+        const seed = (row * 13 + col * 7) % 9;
+        const fill = windowColor(style, seed, emitOnly);
+        if (!fill) continue;
+        if (!emitOnly) {
+          ctx.fillStyle = "#101418";
+          ctx.fillRect(col - 1, row - 1, 48, 14);
+        }
+        ctx.fillStyle = fill;
+        ctx.fillRect(col, row, 46, 12);
+      }
+    }
+    return;
+  }
+
+  if (style === "dark") {
+    for (let row = 14; row < h - 22; row += 36) {
+      for (let col = 8; col < w - 8; col += 28) {
+        const seed = (row * 19 + col * 5) % 9;
+        const fill = windowColor(style, seed, emitOnly);
+        if (!fill) continue;
+        if (!emitOnly) {
+          ctx.fillStyle = "#06080c";
+          ctx.fillRect(col - 1, row - 1, 24, 26);
+        }
+        ctx.fillStyle = fill;
+        ctx.fillRect(col, row, 22, 24);
+      }
+    }
+    return;
+  }
+
+  const rowStep = style === "brick" ? 36 : 42;
+  const colStep = style === "brick" ? 26 : 34;
+  const ww = style === "brick" ? 12 : 18;
+  const wh = style === "brick" ? 16 : 20;
+  for (let row = 16; row < h - 22; row += rowStep) {
+    for (let col = 8; col < w - 8; col += colStep) {
+      const seed = (row * 17 + col * 11) % 9;
+      const wide = style === "warm" && seed === 2;
+      const fill = windowColor(style, seed, emitOnly);
+      if (!fill) continue;
+      const pw = wide ? ww + 10 : ww;
+      if (!emitOnly) {
+        ctx.fillStyle = "#141820";
+        ctx.fillRect(col - 1, row - 1, pw + 2, wh + 2);
+      }
+      ctx.fillStyle = fill;
+      ctx.fillRect(col, row, pw, wh);
+      if (!emitOnly && seed === 4) {
+        ctx.fillStyle = "#3a4048";
+        ctx.fillRect(col + pw - 4, row + wh - 5, 6, 4);
+      }
+      if (!emitOnly && fill !== "#12161c") {
+        ctx.fillStyle = "rgba(255,230,180,0.26)";
+        ctx.fillRect(col, row, pw, 3);
       }
     }
   }
@@ -389,44 +470,117 @@ export function fabric(): THREE.CanvasTexture {
 }
 
 export function brushMetal(): { map: THREE.CanvasTexture; rough: THREE.CanvasTexture; normal: THREE.CanvasTexture } {
-  const map = canvasTex(64, 512, (ctx, w, h) => {
-    ctx.fillStyle = "#C4C8CC";
+  const map = canvasTex(128, 512, (ctx, w, h) => {
+    ctx.fillStyle = "#D8DCE2";
     ctx.fillRect(0, 0, w, h);
     for (let x = 0; x < w; x++) {
-      const grain = Math.sin(x * 0.85) * 14 + Math.sin(x * 2.4) * 7 + ((x * 23) % 9);
-      const v = 168 + grain;
-      ctx.fillStyle = `rgb(${v},${v + 2},${v + 6})`;
+      const grain = Math.sin(x * 0.7) * 22 + Math.sin(x * 2.1) * 10 + ((x * 29) % 12);
+      const v = 188 + grain;
+      ctx.fillStyle = `rgb(${v},${v + 2},${v + 7})`;
       ctx.fillRect(x, 0, 1, h);
     }
-    for (let i = 0; i < 80; i++) {
+    for (let i = 0; i < 120; i++) {
       const x = Math.random() * w;
-      ctx.fillStyle = `rgba(255,255,255,${0.04 + Math.random() * 0.06})`;
+      ctx.fillStyle = `rgba(255,255,255,${0.05 + Math.random() * 0.08})`;
+      ctx.fillRect(x, 0, 1, h);
+    }
+    for (let i = 0; i < 40; i++) {
+      const x = Math.random() * w;
+      ctx.fillStyle = `rgba(40,44,52,${0.04 + Math.random() * 0.05})`;
       ctx.fillRect(x, 0, 1, h);
     }
   }, { aniso: 8, wrap: true });
-  const rough = canvasTex(64, 512, (ctx, w, h) => {
-    ctx.fillStyle = "#6a6a6a";
+  const rough = canvasTex(128, 512, (ctx, w, h) => {
+    ctx.fillStyle = "#7a7a7a";
     ctx.fillRect(0, 0, w, h);
     for (let x = 0; x < w; x++) {
-      const grain = Math.sin(x * 0.85) * 18 + ((x * 23) % 11);
-      const v = 78 + grain;
+      const grain = Math.sin(x * 0.7) * 22 + ((x * 29) % 14);
+      const v = 88 + grain;
       ctx.fillStyle = `rgb(${v},${v},${v})`;
       ctx.fillRect(x, 0, 1, h);
     }
   }, { srgb: false, aniso: 8 });
   const height = document.createElement("canvas");
-  height.width = 64;
+  height.width = 128;
   height.height = 512;
   const hctx = height.getContext("2d")!;
   hctx.fillStyle = "#808080";
-  hctx.fillRect(0, 0, 64, 512);
-  for (let x = 0; x < 64; x++) {
-    const grain = 118 + Math.sin(x * 0.85) * 22 + ((x * 23) % 10);
+  hctx.fillRect(0, 0, 128, 512);
+  for (let x = 0; x < 128; x++) {
+    const grain = 118 + Math.sin(x * 0.7) * 28 + ((x * 29) % 12);
     hctx.fillStyle = `rgb(${grain},${grain},${grain})`;
     hctx.fillRect(x, 0, 1, 512);
   }
   const normal = heightToNormal(height, 1, 1);
   return { map, rough, normal };
+}
+
+export function woodFloor(): THREE.CanvasTexture {
+  return canvasTex(512, 512, (ctx, w, h) => {
+    const plank = 36;
+    for (let y = 0; y < h; y += plank) {
+      const base = 150 + ((y / plank) % 5) * 8;
+      ctx.fillStyle = `rgb(${base + 18},${base - 8},${base - 36})`;
+      ctx.fillRect(0, y, w, plank - 1);
+      ctx.fillStyle = "rgba(40,24,12,0.28)";
+      ctx.fillRect(0, y + plank - 1, w, 1);
+      for (let x = 0; x < w; x += 128) {
+        ctx.fillStyle = "rgba(50,30,16,0.22)";
+        ctx.fillRect(x, y, 1, plank);
+      }
+      for (let i = 0; i < 18; i++) {
+        const n = 20 + Math.random() * 30;
+        ctx.fillStyle = `rgba(${n + 80},${n + 40},${n},0.18)`;
+        ctx.fillRect(Math.random() * w, y + Math.random() * (plank - 4), 24, 1);
+      }
+    }
+  }, { repeatX: 3, repeatY: 4, aniso: 6 });
+}
+
+export function loungeRug(): THREE.CanvasTexture {
+  return canvasTex(256, 256, (ctx, w, h) => {
+    ctx.fillStyle = "#2a2420";
+    ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = "#E63225";
+    ctx.lineWidth = 10;
+    ctx.strokeRect(12, 12, w - 24, h - 24);
+    ctx.strokeStyle = "#E89A2E";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(22, 22, w - 44, h - 44);
+    ctx.fillStyle = "#3a322c";
+    for (let y = 32; y < h - 32; y += 8) ctx.fillRect(32, y, w - 64, 3);
+  }, { wrap: false, aniso: 4 });
+}
+
+export function menuBoard(): THREE.CanvasTexture {
+  return canvasTex(256, 320, (ctx, w, h) => {
+    ctx.fillStyle = "#1E1E24";
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = "#E89A2E";
+    ctx.font = "700 28px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText("ELECTROMAT", w / 2, 42);
+    ctx.fillStyle = "#F5F0E8";
+    ctx.font = "600 16px Arial";
+    ctx.fillText("DRIP  ·  BITES  ·  CHARGE", w / 2, 70);
+    const rows = [
+      ["OAT LATTE", "4"],
+      ["DRIP", "3"],
+      ["SPARKLING", "2"],
+      ["TRAIL MIX", "5"],
+      ["BAR", "4"],
+    ];
+    ctx.textAlign = "left";
+    ctx.font = "600 18px Arial";
+    rows.forEach((row, i) => {
+      ctx.fillStyle = "#F5F0E8";
+      ctx.fillText(row[0], 28, 118 + i * 36);
+      ctx.fillStyle = "#00D4F5";
+      ctx.textAlign = "right";
+      ctx.fillText(row[1], w - 28, 118 + i * 36);
+      ctx.textAlign = "left";
+    });
+  }, { wrap: false });
 }
 
 export function rubber(): THREE.CanvasTexture {

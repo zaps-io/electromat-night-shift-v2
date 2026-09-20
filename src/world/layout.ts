@@ -108,7 +108,7 @@ export const BAY_SIZE = { w: 2.6, d: CAR_LENGTH + STALL_CLEARANCE + 0.35 };
 /** Lot PAY terminal (west of left canopy) + lounge door. Either completes kiosk pay. */
 export const PAY_POINTS = [
   { x: -15.2, z: -10.4 },
-  { x: -22.6, z: -3.7 },
+  { x: -20.55, z: -4.15 },
 ] as const;
 export const KIOSK = PAY_POINTS[0];
 export const KIOSK_REACH = 7.2;
@@ -170,22 +170,33 @@ export const CANOPY_SHOT = {
 } as const;
 
 export const ZEUS_SHOT = {
-  x: -2.35,
-  z: -3.45,
-  eyeY: 1.32,
-  yaw: 0.62,
-  pitch: 0.02,
-  lookAt: { x: -6.9, y: 0.88, z: -1.15 },
+  x: -6.12,
+  z: -3.08,
+  eyeY: 1.26,
+  yaw: 0.48,
+  pitch: 0.06,
+  lookAt: { x: -7.62, y: 0.92, z: -1.08 },
   fov: 42,
 } as const;
 
 /** Inside the lounge, sofa in frame, looking out the east storefront toward the lot. */
 export const INTERIOR_SHOT = {
-  x: -24.15,
-  z: 5.15,
-  eyeY: 1.54,
+  x: -26.55,
+  z: 4.85,
+  eyeY: 1.56,
   yaw: -1.05,
-  pitch: 0.02,
-  lookAt: { x: -17.55, y: 1.28, z: 3.55 },
-  fov: 62,
+  pitch: 0.04,
+  lookAt: { x: -18.4, y: 1.18, z: 3.05 },
+  fov: 64,
+} as const;
+
+/** South storefront door from the lot, next to the lounge PAY stand. */
+export const DOOR_SHOT = {
+  x: -21.35,
+  z: -6.45,
+  eyeY: 1.56,
+  yaw: 0.18,
+  pitch: 0.04,
+  lookAt: { x: -22.55, y: 1.35, z: -3.15 },
+  fov: 50,
 } as const;

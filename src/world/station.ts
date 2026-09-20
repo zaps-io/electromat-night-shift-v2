@@ -48,14 +48,14 @@ function makeAsphalt(root: THREE.Group): THREE.Mesh {
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(78, 68),
     new THREE.MeshStandardMaterial({
-      color: 0x16151a,
+      color: 0x1c1b20,
       map: asphaltColor(),
-      roughness: 0.94,
+      roughness: 0.92,
       roughnessMap: asphaltRough(),
       normalMap: asphaltNormal(),
-      normalScale: new THREE.Vector2(0.85, 0.85),
-      metalness: 0.02,
-      envMapIntensity: 0.16,
+      normalScale: new THREE.Vector2(1.05, 1.05),
+      metalness: 0.03,
+      envMapIntensity: 0.22,
     }),
   );
   ground.rotation.x = -Math.PI / 2;
@@ -163,22 +163,22 @@ function addCanopyAt(root: THREE.Group, cx: number, cz: number, w: number, d: nu
     map: panels,
   });
   const under = new THREE.MeshStandardMaterial({
-    color: 0xddd4c4,
+    color: 0xeee4d4,
     map: soffitPanels(),
-    emissive: 0xc47a28,
-    emissiveIntensity: 0.26,
-    roughness: 0.68,
+    emissive: 0xd48830,
+    emissiveIntensity: 0.42,
+    roughness: 0.62,
     metalness: 0.02,
   });
   const redLip = mat(C.red, {
-    roughness: 0.32,
-    metalness: 0.1,
-    envMapIntensity: 0.34,
+    roughness: 0.28,
+    metalness: 0.12,
+    envMapIntensity: 0.4,
   });
-  const fasciaPlate = mat(0xddd6c8, {
-    roughness: 0.5,
+  const fasciaPlate = mat(0xf2ebe0, {
+    roughness: 0.46,
     metalness: 0.06,
-    envMapIntensity: 0.22,
+    envMapIntensity: 0.28,
     map: panels,
   });
   const topGeo = new THREE.ExtrudeGeometry(roundedRectShape(w, d, 1.35), {
@@ -208,17 +208,20 @@ function addCanopyAt(root: THREE.Group, cx: number, cz: number, w: number, d: nu
   root.add(soffit);
 
   const fasciaZ = cz - d * 0.5 - 0.1;
-  const fascia = new THREE.Mesh(new THREE.BoxGeometry(w - 1.45, 0.78, 0.2), fasciaPlate);
-  fascia.position.set(cx, y + 0.02, fasciaZ);
+  const fascia = new THREE.Mesh(new THREE.BoxGeometry(w - 1.2, 1.08, 0.22), fasciaPlate);
+  fascia.position.set(cx, y + 0.08, fasciaZ);
   fascia.castShadow = true;
   fascia.userData.canopyFascia = true;
   root.add(fascia);
-  const lip = new THREE.Mesh(new THREE.BoxGeometry(w - 1.15, 0.16, 0.26), redLip);
-  lip.position.set(cx, y - 0.32, fasciaZ - 0.03);
+  const lip = new THREE.Mesh(new THREE.BoxGeometry(w - 0.85, 0.2, 0.3), redLip);
+  lip.position.set(cx, y - 0.42, fasciaZ - 0.04);
   root.add(lip);
-  const shade = new THREE.Mesh(new THREE.BoxGeometry(w - 1.5, 0.04, 0.16), mat(0x3a342c, { roughness: 0.7 }));
-  shade.position.set(cx, y - 0.22, fasciaZ + 0.02);
+  const shade = new THREE.Mesh(new THREE.BoxGeometry(w - 1.28, 0.05, 0.16), mat(0x2a2420, { roughness: 0.7 }));
+  shade.position.set(cx, y - 0.28, fasciaZ + 0.02);
   root.add(shade);
+  const edge = new THREE.Mesh(new THREE.BoxGeometry(w - 0.4, 0.08, 0.12), redLip);
+  edge.position.set(cx, y + 0.62, fasciaZ + 0.04);
+  root.add(edge);
 
   const col = mat(0xf2eee6, { metalness: 0.18, roughness: 0.4, envMapIntensity: 0.38 });
   const insetZ = d * 0.5 - 0.55;
@@ -235,9 +238,9 @@ function addCanopyAt(root: THREE.Group, cx: number, cz: number, w: number, d: nu
 
   const well = mat(0x3a3e44, { roughness: 0.58 });
   const lamp = new THREE.MeshStandardMaterial({
-    color: 0xffe8c0,
-    emissive: 0xf0a848,
-    emissiveIntensity: 0.72,
+    color: 0xfff0d0,
+    emissive: 0xf2b050,
+    emissiveIntensity: 1.05,
     toneMapped: false,
   });
   const zs = [cz - d * 0.32, cz - d * 0.12, cz + d * 0.12, cz + d * 0.32];
@@ -256,28 +259,36 @@ function addCanopyAt(root: THREE.Group, cx: number, cz: number, w: number, d: nu
   }
 
   const pad = mat(0xe8e2d4, {
-    roughness: 0.78,
+    roughness: 0.76,
     metalness: 0.02,
     map: curbColor(),
     roughnessMap: curbRough(),
-    envMapIntensity: 0.1,
+    envMapIntensity: 0.14,
   });
-  const median = new THREE.Mesh(new RoundedBoxGeometry(1.45, 0.2, d - 3.2, 2, 0.05), pad);
-  median.position.set(cx, 0.1, cz);
+  const face = mat(0x6a6458, { roughness: 0.82, metalness: 0.03, envMapIntensity: 0.08 });
+  const paint = mat(0xe8c040, { roughness: 0.62, metalness: 0.04, envMapIntensity: 0.12 });
+  const median = new THREE.Mesh(new RoundedBoxGeometry(1.45, 0.16, d - 3.2, 2, 0.05), pad);
+  median.position.set(cx, 0.09, cz);
   median.receiveShadow = true;
-  root.add(median);
-  const curb = mat(0xf0eadc, {
-    roughness: 0.74,
+  const medianFace = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.08, d - 3.05), face);
+  medianFace.position.set(cx, 0.04, cz);
+  root.add(median, medianFace);
+  const curb = mat(0xf4eee0, {
+    roughness: 0.7,
     metalness: 0.02,
     map: curbColor(),
     roughnessMap: curbRough(),
-    envMapIntensity: 0.1,
+    envMapIntensity: 0.14,
   });
   for (const sx of [-1, 1]) {
-    const island = new THREE.Mesh(new RoundedBoxGeometry(0.48, 0.18, d - 2.6, 2, 0.05), curb);
+    const island = new THREE.Mesh(new RoundedBoxGeometry(0.52, 0.16, d - 2.6, 2, 0.05), curb);
     island.position.set(cx + sx * (w * 0.42), 0.09, cz);
     island.receiveShadow = true;
-    root.add(island);
+    const riser = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.07, d - 2.48), face);
+    riser.position.set(cx + sx * (w * 0.42), 0.035, cz);
+    const nose = new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.025, 0.42), paint);
+    nose.position.set(cx + sx * (w * 0.42), 0.175, cz - (d - 2.6) * 0.48);
+    root.add(island, riser, nose);
   }
 }
 
@@ -323,12 +334,32 @@ function addOneKiosk(root: THREE.Group, x: number, z: number): { kiosk: THREE.Gr
   hit.position.set(x, 1.15, z);
   hit.userData.kind = "kiosk";
   const alert = makePayIcon();
-  alert.position.set(x, 2.35, z);
+  alert.position.set(x, 2.72, z);
   alert.visible = false;
   kiosk.add(stand, head, glow, hit, alert);
   root.add(kiosk);
   return { kiosk, alert };
 }
+
+function wavePlate(): THREE.CanvasTexture {
+  const c = document.createElement("canvas");
+  c.width = 256;
+  c.height = 96;
+  const ctx = c.getContext("2d")!;
+  ctx.fillStyle = "#1E1E24";
+  ctx.fillRect(0, 0, 256, 96);
+  ctx.fillStyle = "#E89A2E";
+  ctx.font = "900 48px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("WAVE", 128, 52);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.needsUpdate = true;
+  return tex;
+}
+
+const waveTex = wavePlate();
 
 function addWaveKiosk(root: THREE.Group): { kiosk: THREE.Group; alert: THREE.Sprite } {
   const { x, z } = WAVE_POINT;
@@ -337,13 +368,18 @@ function addWaveKiosk(root: THREE.Group): { kiosk: THREE.Group; alert: THREE.Spr
   const cream = mat(0xf3eee4);
   const stand = box(0.62, 1.22, 0.4, cream, x, 0.62, z);
   const head = box(0.56, 0.42, 0.1, mat(C.charcoal), x, 1.38, z - 0.16);
+  const glow = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.5, 0.32),
+    new THREE.MeshBasicMaterial({ map: waveTex, toneMapped: false }),
+  );
+  glow.position.set(x, 1.38, z - 0.22);
   const ghost = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
   const hit = new THREE.Mesh(new THREE.BoxGeometry(2.2, 2.2, 2.0), ghost);
   hit.position.set(x, 1.05, z);
   hit.userData.kind = "wave";
   const alert = makeWaveIcon();
   alert.position.set(x, 2.72, z);
-  kiosk.add(stand, head, hit, alert);
+  kiosk.add(stand, head, glow, hit, alert);
   root.add(kiosk);
   return { kiosk, alert };
 }

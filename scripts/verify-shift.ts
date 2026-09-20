@@ -18,6 +18,7 @@ import { assertOpaqueCarMaterials, glassMaterial, paintMaterial } from "../src/c
 import {
   BAYS,
   CAR_LENGTH,
+  DOOR_SHOT,
   INTERIOR_SHOT,
   KIOSK_REACH,
   PAY_POINTS,
@@ -155,5 +156,10 @@ if (INTERIOR_SHOT.x < WALK_BOUNDS.xmin || INTERIOR_SHOT.x > WALK_BOUNDS.xmax) {
 }
 if (PAVILION_DOOR.width < 1.4) throw new Error("storefront door must be walkable");
 if (WALK_BOUNDS.xmin > PAVILION.x - PAVILION.w * 0.35) throw new Error("walk bounds must reach the pavilion interior");
+if (DOOR_SHOT.x < WALK_BOUNDS.xmin || DOOR_SHOT.x > WALK_BOUNDS.xmax) throw new Error("door shot X outside walk");
+if (DOOR_SHOT.z < WALK_BOUNDS.zmin || DOOR_SHOT.z > WALK_BOUNDS.zmax) throw new Error("door shot Z outside walk");
+const doorCenterX = PAVILION.x + PAVILION_DOOR.localX;
+if (Math.abs(doorCenterX - -22.6) > 0.2) throw new Error("door center drifted");
+if (STALL_CLEARANCE !== 0.9) throw new Error("stall clearance must stay 0.9");
 
 console.log("verify-shift ok");
