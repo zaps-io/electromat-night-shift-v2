@@ -48,7 +48,7 @@ Private-repo Pages also needs a GitHub plan that includes Pages (org GitHub Team
 2. Click once to lock mouse-look. **WASD** walks continuously after lock. **E** uses the on-screen prompt only. Right-click walks to a ground spot (amber puck). There is no left-click-to-destination.
 3. **E TALK** to a driver (amber `!` in the aisle queue).
 4. **E PARK** — pulls them into an open stall (or look at an empty painted bay and press E).
-5. **E WAVE** at the aisle-mouth cream stand (east of the queue, cyan chevrons when WAVE is the job) — greets if needed and hustles the next waiter into an open bay. Opening lot: **PAY Peck** stays on E until paid; WAVE / TALK / PARK cannot steal the key. After pay, WAVE is the job (Ng) until a car fills; then **UNPLUG** owns E and the cyan target. HUD **WAVE** counts hustles; **ZIP** counts unplugs.
+5. **E WAVE** at the aisle-mouth cream stand (east of the queue, cyan chevrons when WAVE is the job) — greets if needed and hustles the next waiter into an open bay. Opening lot: **PAY Peck** stays on E until paid; WAVE / TALK / PARK cannot steal the key. After pay, WAVE is the job (Ng) until a car fills; then **UNPLUG** owns E and the cyan target. After a zip-out, WAVE is the next job even if another car is already full, so the loop can finish. HUD **WAVE** counts hustles; **ZIP** counts unplugs.
 6. **E PLUG** the inlet. AutoCharge cars take power immediately. Paying a kiosk guest enrolls AutoCharge (HUD AUTO increments) so they pull full power and zip sooner.
 7. **How to pay (QA repro):**
    1. Start night. Objective: `PAY · PECK — walk to the car or a PAY stand`. No E prompt until Peck or a PAY stand is in range / aimed.

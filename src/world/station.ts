@@ -407,11 +407,12 @@ function addWaveKiosk(root: THREE.Group): { kiosk: THREE.Group; alert: THREE.Spr
   const stand = box(0.78, 1.58, 0.48, cream, x, 0.79, z);
   const head = box(0.7, 0.5, 0.12, mat(C.charcoal), x, 1.72, z);
   const plateMat = new THREE.MeshBasicMaterial({ map: waveTex, toneMapped: false, side: THREE.DoubleSide });
-  const south = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.4), plateMat);
-  south.position.set(x, 1.72, z - 0.08);
   const north = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.4), plateMat);
   north.position.set(x, 1.72, z + 0.08);
-  north.rotation.y = Math.PI;
+  const south = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.4), plateMat);
+  south.position.set(x, 1.72, z - 0.08);
+  south.rotation.y = Math.PI;
+  south.scale.x = -1;
   const ghost = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
   const hit = new THREE.Mesh(new THREE.BoxGeometry(3.2, 2.8, 3.0), ghost);
   hit.position.set(x, 1.2, z);

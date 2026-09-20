@@ -495,6 +495,18 @@ if (waveAgain.prompt !== waveAgain.objective.replace(/^/, "E  ")) {
 if (!waveQueue(loop)) throw new Error("WAVE after unplug failed");
 if (loop.queueWaves < 1) throw new Error("WAVE counter must increment");
 
+const packed = resetNight();
+seedOpeningLot(packed);
+if (!payKiosk(packed, "peck")) throw new Error("packed pay failed");
+tick(packed, 20);
+const firstFull = packed.guests.find((g) => guestAction(g) === "unplug");
+if (!firstFull) throw new Error("packed lot should have a full car");
+if (!unplugInlet(packed, firstFull.id)) throw new Error("packed unplug failed");
+const afterPacked = nextJob(packed);
+if (afterPacked?.need !== "wave") {
+  throw new Error(`after a zip-out, WAVE must beat the next UNPLUG, got ${afterPacked?.need}`);
+}
+
 if (!inPlayableVolume(WAVE_SHOT.x, WAVE_SHOT.z)) throw new Error("WAVE shot off playable volume");
 if (!inPlayableVolume(UNPLUG_SHOT.x, UNPLUG_SHOT.z)) throw new Error("UNPLUG shot off playable volume");
 if (!inPlayableVolume(WAVE_POINT.x, WAVE_POINT.z)) throw new Error("WAVE stand off playable volume");

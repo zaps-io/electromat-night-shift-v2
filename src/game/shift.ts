@@ -25,6 +25,7 @@ export function createState(): GameState {
     toastUntil: 0,
     gradeLine: "",
     fullAlertId: null,
+    justUnplugged: false,
   };
 }
 
@@ -84,6 +85,7 @@ export function waveQueue(s: GameState, bayId?: number): boolean {
   if (!g.greeted) g.greeted = true;
   if (!parkInBay(s, g.id, bayId)) return false;
   s.queueWaves += 1;
+  s.justUnplugged = false;
   speak(s, `${g.name} — bay ${g.assignedBay}. Queue moving.`);
   return true;
 }
@@ -149,6 +151,7 @@ export function unplugInlet(s: GameState, guestId: string): boolean {
   if (g.authorized && g.delivered >= g.targetKwh) {
     g.served = true;
     s.sessionsDone += 1;
+    s.justUnplugged = true;
     if (s.fullAlertId === g.id) s.fullAlertId = null;
     if (g.assignedBay != null) {
       const bay = s.bays.find((b) => b.id === g.assignedBay);

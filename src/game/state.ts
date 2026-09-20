@@ -50,6 +50,8 @@ export interface GameState {
   gradeLine: string;
   /** Guest who just hit full — next UNPLUG job / cyan target follows the toast. */
   fullAlertId: string | null;
+  /** After a zip-out, WAVE the queue before the next UNPLUG so the loop can finish. */
+  justUnplugged: boolean;
 }
 
 export function clockLabel(timeMin: number): string {

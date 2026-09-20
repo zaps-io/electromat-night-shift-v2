@@ -86,14 +86,18 @@ export function nextJob(state: GameState): { need: InteractNeed; name: string; g
   const live = state.guests.filter((g) => state.timeMin >= g.arriveMin && !g.served && !g.walked);
   const auto = live.find((g) => guestAction(g) === "auto");
   if (auto) return { need: "auto", name: auto.name, guestId: auto.id };
+  const queued = nextQueueGuest(state);
+  const openBay = state.bays.some((b) => !b.guestId);
+  if (state.justUnplugged && queued && openBay) {
+    return { need: "wave", name: queued.name, guestId: queued.id };
+  }
   const unplugs = live.filter((g) => guestAction(g) === "unplug");
   const unplug = unplugs.find((g) => g.id === state.fullAlertId) ?? unplugs[0];
   if (unplug) return { need: "unplug", name: unplug.name, guestId: unplug.id };
   const plug = live.find((g) => guestAction(g) === "plug");
   if (plug) return { need: "plug", name: plug.name, guestId: plug.id };
-  const queued = nextQueueGuest(state);
   if (queued) {
-    if (state.bays.some((b) => !b.guestId)) return { need: "wave", name: queued.name, guestId: queued.id };
+    if (openBay) return { need: "wave", name: queued.name, guestId: queued.id };
     return { need: guestAction(queued) || "talk", name: queued.name, guestId: queued.id };
   }
   return null;
