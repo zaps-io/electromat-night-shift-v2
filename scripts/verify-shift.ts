@@ -18,6 +18,7 @@ import {
   doorApproachHint,
   GUEST_HULL_R,
   GUEST_REACH,
+  JOB_LOT_RANGE,
   jobFocusCandidate,
   jobReadyFallback,
   nextJob,
@@ -116,6 +117,8 @@ if (STALL_CLEARANCE < 0.85) throw new Error("stall clearance must keep Tesla off
 if (KIOSK_REACH < 6) throw new Error("kiosk reach must not require pixel-perfect aim");
 if (WAVE_REACH < 6) throw new Error("WAVE reach must not require pixel-perfect aim");
 if (WAVE_CLOSE > 4.8) throw new Error("un-aimed WAVE must stay tighter than spawn distance");
+if (JOB_LOT_RANGE < 12) throw new Error("locked PAY/WAVE/UNPLUG range must be at least 12m");
+if (JOB_LOT_RANGE > 22) throw new Error("locked job lot range grew too loose");
 if (PAY_POINTS.length < 2) throw new Error("need lot PAY kiosk and lounge door");
 if (START_SHOT.x < WALK_BOUNDS.xmin || START_SHOT.x > WALK_BOUNDS.xmax) throw new Error("start X outside walk");
 if (START_SHOT.z < WALK_BOUNDS.zmin || START_SHOT.z > WALK_BOUNDS.zmax) throw new Error("start Z outside walk");
@@ -282,10 +285,11 @@ const startLook = {
   z: START_SHOT.lookAt.z - START_SHOT.z,
 };
 const startHit = resolveInteract(START_SHOT, startLook, null, cands, job);
-if (startHit.ready) throw new Error(`spawn must not offer ${startHit.prompt}`);
-if (!startHit.objective.includes("PAY") || !startHit.objective.includes("PECK")) {
-  throw new Error(`spawn objective should send the tester to Peck, got ${startHit.objective}`);
+if (!startHit.ready || startHit.ready.need !== "pay" || startHit.ready.guestId !== "peck") {
+  throw new Error(`spawn must offer E PAY Peck under lot range, got ${startHit.prompt || startHit.objective}`);
 }
+if (startHit.prompt !== "E  PAY  ·  PECK") throw new Error(`spawn prompt ${startHit.prompt}`);
+if (startHit.objective !== "PAY  ·  PECK") throw new Error(`spawn objective ${startHit.objective}`);
 
 const promptLook = {
   x: PROMPT_SHOT.lookAt.x - PROMPT_SHOT.x,
@@ -407,9 +411,13 @@ if (!waveMark || waveMark.kind !== "wave") {
   throw new Error("WAVE job must mark the aisle stand, not the queue car");
 }
 const spawnWave = resolveInteract(START_SHOT, startLook, null, paidCands, paidJob);
-if (spawnWave.ready) throw new Error("spawn must not fire WAVE after pay");
+if (!spawnWave.ready || spawnWave.ready.need !== "wave") {
+  throw new Error(`spawn after pay must offer E WAVE in lot range, got ${spawnWave.prompt || spawnWave.objective}`);
+}
 if (spawnWave.focus?.kind !== "wave") throw new Error("after pay, cyan target must be the WAVE stand");
-if (!spawnWave.objective.includes("WAVE")) throw new Error(`spawn after pay must send Zoey to WAVE, got ${spawnWave.objective}`);
+if (spawnWave.prompt !== "E  WAVE  ·  NG" || spawnWave.objective !== "WAVE  ·  NG") {
+  throw new Error(`spawn WAVE HUD disagree ${spawnWave.prompt} / ${spawnWave.objective}`);
+}
 
 const kimBesideWave = resolveInteract(besideKim, { x: -1, y: 0, z: 0 }, "guest:kim", paidCands, paidJob);
 if (kimBesideWave.ready?.need === "talk" || kimBesideWave.ready?.need === "park") {
@@ -803,7 +811,9 @@ const fpvJob = nextJob(fpvOpening);
 if (fpvJob?.need !== "pay") throw new Error("FPV opening job must be PAY");
 
 const spawnFpv = resolveInteract(START_SHOT, startLook, null, fpvCands, fpvJob);
-if (spawnFpv.ready) throw new Error("spawn must still not offer E PAY");
+if (!spawnFpv.ready || spawnFpv.ready.need !== "pay" || spawnFpv.prompt !== "E  PAY  ·  PECK") {
+  throw new Error(`spawn FPV must offer E PAY · PECK, got ${spawnFpv.prompt || spawnFpv.objective}`);
+}
 
 const behindPeck = followTo(START_SHOT.x, START_SHOT.z, peckBay.x - 3.4, peckBay.z + 0.9, 720);
 if (behindPeck.dest) throw new Error("FPV walk from spawn to Peck did not finish");
@@ -951,6 +961,61 @@ if (keyToken({ key: "e", code: "", keyCode: 0 } as KeyboardEvent).includes("KeyE
   throw new Error("letter e must map to KeyE when code is empty");
 }
 const spawnPayFb = jobReadyFallback(START_SHOT, fpvJob, fpvCands);
-if (spawnPayFb) throw new Error("spawn must not PAY via E fallback");
+if (!spawnPayFb || spawnPayFb.need !== "pay" || spawnPayFb.guestId !== "peck") {
+  throw new Error("spawn must PAY via E fallback under lot range");
+}
+
+const spawnPeckHull = planarDist(START_SHOT, { x: peckBay.x, z: peckBay.z, kind: "guest" });
+if (JOB_LOT_RANGE < 12) throw new Error("locked job range must be at least 12m");
+if (JOB_LOT_RANGE + 1e-6 < spawnPeckHull) {
+  throw new Error(`JOB_LOT_RANGE ${JOB_LOT_RANGE} must cover spawn→Peck hull ${spawnPeckHull.toFixed(2)}`);
+}
+
+const skyLook = { x: 0.15, y: -0.95, z: 0.2 };
+const elevenFromPeck = {
+  x: peckBay.x - 11 - GUEST_HULL_R,
+  y: 1.58,
+  z: peckBay.z,
+};
+const elevenPay = resolveInteract(elevenFromPeck, skyLook, null, fpvCands, fpvJob);
+if (!elevenPay.ready || elevenPay.ready.need !== "pay" || elevenPay.prompt !== "E  PAY  ·  PECK") {
+  throw new Error(`~11m hull from Peck must offer E PAY without reticle, got ${elevenPay.prompt || elevenPay.objective}`);
+}
+const elevenPayFb = jobReadyFallback(elevenFromPeck, fpvJob, fpvCands);
+if (!elevenPayFb || elevenPayFb.need !== "pay") throw new Error("E fallback must pay ~11m from Peck");
+
+const lotPay = PAY_POINTS[0];
+const nearStand = { x: lotPay.x, y: 1.58, z: lotPay.z + 11 };
+if (planarDist(nearStand, { x: peckBay.x, z: peckBay.z, kind: "guest" }) <= JOB_LOT_RANGE) {
+  throw new Error("PAY-stand probe must sit outside Peck hull range");
+}
+const standPay = resolveInteract(nearStand, { x: 0, y: -1, z: 1 }, null, fpvCands, fpvJob);
+if (!standPay.ready || standPay.ready.need !== "pay" || standPay.prompt !== "E  PAY  ·  PECK") {
+  throw new Error(`~11m from a PAY stand (far from Peck) must offer E PAY, got ${standPay.prompt || standPay.objective}`);
+}
+const standFb = jobReadyFallback(nearStand, fpvJob, fpvCands);
+if (!standFb || standFb.need !== "pay") throw new Error("fallback must accept any PAY stand, not only Peck's car");
+
+const farLot = { x: 20, y: 1.58, z: 16 };
+const farPay = resolveInteract(farLot, { x: -1, y: 0, z: -1 }, null, fpvCands, fpvJob);
+if (farPay.ready) throw new Error(`far lot must not offer ${farPay.prompt}`);
+if (jobReadyFallback(farLot, fpvJob, fpvCands)) throw new Error("far lot must not PAY via fallback");
+
+const elevenWave = resolveInteract(
+  { x: WAVE_POINT.x, y: 1.58, z: WAVE_POINT.z + 11 },
+  { x: 1, y: -0.8, z: 0.2 },
+  null,
+  paidCands,
+  paidJob,
+);
+if (!elevenWave.ready || elevenWave.ready.need !== "wave" || elevenWave.prompt !== "E  WAVE  ·  NG") {
+  throw new Error(`~11m from WAVE stand must offer E WAVE, got ${elevenWave.prompt || elevenWave.objective}`);
+}
+
+const elevenUnplugEye = { x: fullBay.x + (fullBay.x > 0 ? -11 - GUEST_HULL_R : 11 + GUEST_HULL_R), y: 1.58, z: fullBay.z };
+const elevenUnplug = resolveInteract(elevenUnplugEye, { x: 0.2, y: -0.9, z: 0.15 }, null, loopCands, unplugJob);
+if (!elevenUnplug.ready || elevenUnplug.ready.need !== "unplug" || elevenUnplug.ready.guestId !== full.id) {
+  throw new Error(`~11m hull from full car must offer E UNPLUG, got ${elevenUnplug.prompt || elevenUnplug.objective}`);
+}
 
 console.log("verify-shift ok");

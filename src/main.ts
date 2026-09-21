@@ -503,21 +503,33 @@ function isUseKey(e: KeyboardEvent): boolean {
 
 let lastUseAt = 0;
 let eHeard = 0;
-function onUseKey(e: Event): void {
+let useArmed = false;
+
+function onUseKeyDown(e: Event): void {
   const ke = e as KeyboardEvent;
   if (!isUseKey(ke)) return;
-  if (ke.type === "keydown" && ke.repeat) return;
+  if (ke.repeat) return;
   ke.preventDefault();
+  if (useArmed) return;
   const now = performance.now();
   if (now - lastUseAt < 80) return;
   lastUseAt = now;
+  useArmed = true;
   eHeard += 1;
   act();
 }
 
+/** Keyup only clears the latch — never act(). */
+function onUseKeyUp(e: Event): void {
+  const ke = e as KeyboardEvent;
+  if (!isUseKey(ke)) return;
+  ke.preventDefault();
+  useArmed = false;
+}
+
 for (const target of [canvas, document, window]) {
-  target.addEventListener("keydown", onUseKey, true);
-  target.addEventListener("keyup", onUseKey, true);
+  target.addEventListener("keydown", onUseKeyDown, true);
+  target.addEventListener("keyup", onUseKeyUp, true);
 }
 window.addEventListener("keydown", (e) => {
   if (e.code === "KeyF") lockFromGesture();

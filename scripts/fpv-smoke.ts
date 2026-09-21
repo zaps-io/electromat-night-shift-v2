@@ -1,10 +1,11 @@
 /**
- * Real Chromium FPV smoke: pointer lock + WASD + trusted keyboard E.
+ * Real Chromium FPV smoke: pointer lock + trusted keyboard E from spawn.
  * Does not call api.act() or dispatch synthetic KeyboardEvents.
+ * One E at START_SHOT must raise AUTO and must not WAVE (keyup does not act).
  */
 import { existsSync, mkdirSync } from "node:fs";
 import { createServer } from "vite";
-import { BAYS, PROMPT_SHOT, WAVE_POINT, WAVE_SHOT } from "../src/world/layout.ts";
+import { BAYS, START_SHOT, WAVE_POINT, WAVE_SHOT } from "../src/world/layout.ts";
 
 type Hud = {
   prompt: string;
@@ -216,12 +217,12 @@ async function main(): Promise<void> {
           (document.getElementById("view") as HTMLCanvasElement | null)?.focus();
         },
         {
-          x: PROMPT_SHOT.x,
-          z: PROMPT_SHOT.z,
-          yaw: PROMPT_SHOT.yaw,
-          pitch: PROMPT_SHOT.pitch,
-          eyeY: PROMPT_SHOT.eyeY,
-          lookAt: { ...PROMPT_SHOT.lookAt },
+          x: START_SHOT.x,
+          z: START_SHOT.z,
+          yaw: START_SHOT.yaw,
+          pitch: START_SHOT.pitch,
+          eyeY: START_SHOT.eyeY,
+          lookAt: { ...START_SHOT.lookAt },
         },
       );
       await new Promise((r) => setTimeout(r, 250));
@@ -231,11 +232,16 @@ async function main(): Promise<void> {
         throw new Error(`PAY HUD disagree ${pay.prompt} / ${pay.objective}`);
       }
       if (/UNPLUG/i.test(pay.toast)) throw new Error(`PAY toast leaked UNPLUG: ${pay.toast}`);
+      const spawnish = Math.hypot(pay.x - START_SHOT.x, pay.z - START_SHOT.z);
+      if (spawnish > 2.4) throw new Error(`PAY prompt must be spawn-ish, drifted ${spawnish.toFixed(2)}m`);
       await page.screenshot({ path: `${OUT}/fpv_e_pay_peck.png` });
 
       const heardBefore = pay.eHeard;
       await pressE(page);
       const paid = await waitHud(page, (s) => s.auto >= 1 && s.eHeard > heardBefore, 4000);
+      if (paid.wave >= 1) {
+        throw new Error("single keyboard E at spawn must not also WAVE — keyup must not call act()");
+      }
       await page.screenshot({ path: `${OUT}/fpv_auto1_after_pay.png` });
 
       await page.evaluate(
