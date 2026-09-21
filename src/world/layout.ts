@@ -168,7 +168,7 @@ export const WEST_APRON_X = -16.55;
 
 export const PAVILION = { x: -23.4, z: 3.4, yaw: 0, w: 11.6, d: 13.4, h: 3.35 };
 /** South storefront door, local X toward the lounge PAY stand. Wide enough for WASD + walk-to. */
-export const PAVILION_DOOR = { localX: 0.8, width: 3.08, height: 2.38 };
+export const PAVILION_DOOR = { localX: 0.8, width: 3.36, height: 2.38 };
 
 export type XZRect = { xmin: number; xmax: number; zmin: number; zmax: number };
 export type XZ = { x: number; z: number };
@@ -198,10 +198,10 @@ export const LOUNGE_WALK: XZRect = {
 
 /** South-door throat: full opening plus a short lot-side funnel. */
 export const DOOR_CORRIDOR: XZRect = {
-  xmin: DOOR_WORLD_X - PAVILION_DOOR.width * 0.5 - 0.1,
-  xmax: DOOR_WORLD_X + PAVILION_DOOR.width * 0.5 + 0.1,
-  zmin: DOOR_WORLD_Z - 2.55,
-  zmax: DOOR_WORLD_Z + 2.45,
+  xmin: DOOR_WORLD_X - PAVILION_DOOR.width * 0.5 - 0.28,
+  xmax: DOOR_WORLD_X + PAVILION_DOOR.width * 0.5 + 0.28,
+  zmin: DOOR_WORLD_Z - 2.85,
+  zmax: DOOR_WORLD_Z + 2.75,
 };
 
 /**
@@ -219,8 +219,8 @@ export const DOOR_YARD: XZRect = {
 export const DOOR_MAT: XZRect = {
   xmin: DOOR_CORRIDOR.xmin,
   xmax: DOOR_CORRIDOR.xmax,
-  zmin: DOOR_WORLD_Z - 2.35,
-  zmax: DOOR_WORLD_Z + 0.42,
+  zmin: DOOR_WORLD_Z - 2.55,
+  zmax: DOOR_WORLD_Z + 0.72,
 };
 
 /** Building footprint for snapping furniture / wall clicks onto the lounge walk. */
@@ -233,7 +233,10 @@ export const PAVILION_FOOTPRINT: XZRect = {
 
 export const LOUNGE_ARRIVE: XZ = { x: DOOR_WORLD_X, z: DOOR_WORLD_Z + 2.15 };
 export const LOT_ARRIVE: XZ = { x: DOOR_WORLD_X, z: DOOR_WORLD_Z - 2.15 };
-export const DOOR_HINT_RANGE = 6.2;
+export const DOOR_HINT_RANGE = 7.4;
+export const GAMEPLAY_EYE_Y = 1.64;
+export const UNDERGROUND_Y = 0.82;
+export const GAMEPLAY_SKY_Y = 3.2;
 
 /** Outer envelope of lot ∪ lounge — not the playable shape. */
 export const WALK_BOUNDS: XZRect = {
@@ -269,6 +272,39 @@ export function closestOnRect(x: number, z: number, r: XZRect): { x: number; z: 
     x: Math.min(r.xmax, Math.max(r.xmin, x)),
     z: Math.min(r.zmax, Math.max(r.zmin, z)),
   };
+}
+
+/** Soft-recover FPV pose: underground / sky-black / off-lot → lot spawn or nearest playable. */
+export function recoverPlayableCamera(
+  x: number,
+  y: number,
+  z: number,
+): { x: number; y: number; z: number; teleported: boolean } {
+  if (y > GAMEPLAY_SKY_Y) return { x, y, z, teleported: false };
+  const held = clampPlayable(x, z);
+  const buried = y < UNDERGROUND_Y;
+  if (held.teleported) {
+    return { x: held.x, y: GAMEPLAY_EYE_Y, z: held.z, teleported: true };
+  }
+  if (buried) {
+    return { x: held.x, y: GAMEPLAY_EYE_Y, z: held.z, teleported: true };
+  }
+  return { x: held.x, y, z: held.z, teleported: false };
+}
+
+/** Look-ahead in XZ: planter void / off-rail black, not the lounge glass. */
+export function lookHitsUnlitVoid(x: number, z: number, yaw: number, meters = 9): boolean {
+  const lx = -Math.sin(yaw);
+  const lz = -Math.cos(yaw);
+  for (let d = 1.1; d <= meters; d += 0.75) {
+    const px = x + lx * d;
+    const pz = z + lz * d;
+    if (inPlayableVolume(px, pz) || inRect(px, pz, PAVILION_FOOTPRINT)) continue;
+    if (inWestSidewalk(px, pz)) return true;
+    if (px < LOT_RAILS.xmin - 1.1 || px > LOT_RAILS.xmax + 1.4) return true;
+    if (pz < LOT_RAILS.zmin - 1.1 || pz > LOT_RAILS.zmax + 1.4) return true;
+  }
+  return false;
 }
 
 export function clampPlayable(x: number, z: number): { x: number; z: number; teleported: boolean } {
@@ -334,6 +370,70 @@ export function resolveWalkDestination(fromX: number, fromZ: number, toX: number
 /** Horizon / sky / canopy clicks must not become a walk-to. */
 export const WALK_CLICK_MAX_M = 26;
 export const WALK_RAY_MAX_Y = -0.03;
+/** Looking at the OPEN sign / portal glow is still a door walk. */
+export const DOOR_WALK_RAY_MAX_Y = 0.62;
+
+export type Aabb3 = { xmin: number; xmax: number; ymin: number; ymax: number; zmin: number; zmax: number };
+
+export function doorPortalBox(): Aabb3 {
+  const door = pavilionDoorWorld();
+  return {
+    xmin: door.x - door.width * 0.5 - 0.45,
+    xmax: door.x + door.width * 0.5 + 0.45,
+    ymin: 0,
+    ymax: door.height + 0.95,
+    zmin: door.z - 2.65,
+    zmax: door.z + 1.4,
+  };
+}
+
+/** Slab test — used so an OPEN-sign / door-glow click still walks through. */
+export function rayHitsAabb(
+  ox: number,
+  oy: number,
+  oz: number,
+  dx: number,
+  dy: number,
+  dz: number,
+  box: Aabb3,
+  maxDist = 22,
+): boolean {
+  let tmin = 0;
+  let tmax = maxDist;
+  const slabs: [number, number, number][] = [
+    [ox, dx, 0],
+    [oy, dy, 1],
+    [oz, dz, 2],
+  ];
+  const min = [box.xmin, box.ymin, box.zmin];
+  const max = [box.xmax, box.ymax, box.zmax];
+  for (const [origin, dir, axis] of slabs) {
+    if (Math.abs(dir) < 1e-8) {
+      if (origin < min[axis]! || origin > max[axis]!) return false;
+      continue;
+    }
+    const inv = 1 / dir;
+    let t0 = (min[axis]! - origin) * inv;
+    let t1 = (max[axis]! - origin) * inv;
+    if (t0 > t1) [t0, t1] = [t1, t0];
+    tmin = Math.max(tmin, t0);
+    tmax = Math.min(tmax, t1);
+    if (tmax < tmin) return false;
+  }
+  return tmax >= 0 && tmin <= maxDist;
+}
+
+export function rayHitsDoorPortal(
+  ox: number,
+  oy: number,
+  oz: number,
+  dx: number,
+  dy: number,
+  dz: number,
+  maxDist = 22,
+): boolean {
+  return rayHitsAabb(ox, oy, oz, dx, dy, dz, doorPortalBox(), maxDist);
+}
 
 export function pickWalkDestination(
   fromX: number,
@@ -344,8 +444,11 @@ export function pickWalkDestination(
   hitDist: number,
 ): XZ | null {
   if (!Number.isFinite(hitX) || !Number.isFinite(hitZ) || !Number.isFinite(hitDist)) return null;
-  if (rayDirY > WALK_RAY_MAX_Y) return null;
-  if (hitDist > WALK_CLICK_MAX_M || hitDist < 0.35) return null;
+  const doorClick = onDoorMat(hitX, hitZ) || nearDoor(hitX, hitZ, 3.2);
+  if (rayDirY > (doorClick ? DOOR_WALK_RAY_MAX_Y : WALK_RAY_MAX_Y)) return null;
+  if (hitDist > WALK_CLICK_MAX_M || hitDist < 0.28) {
+    if (!(doorClick && hitDist >= 0.2 && hitDist <= 32)) return null;
+  }
   if (inWestSidewalk(hitX, hitZ)) return null;
   return resolveWalkDestination(fromX, fromZ, hitX, hitZ);
 }
@@ -557,8 +660,8 @@ export function pavilionFurniture(): { cx: number; cy: number; cz: number; w: nu
   const px = PAVILION.x;
   const pz = PAVILION.z;
   return [
-    { cx: px - 3.25, cy: 0.6, cz: pz - 5.72, w: 3.15, h: 1.2, d: 0.86 },
-    { cx: px - 3.95, cy: 0.55, cz: pz - 4.15, w: 1.05, h: 1.15, d: 0.92 },
+    { cx: px - 3.55, cy: 0.6, cz: pz - 5.72, w: 2.85, h: 1.2, d: 0.86 },
+    { cx: px - 4.15, cy: 0.55, cz: pz - 4.15, w: 0.95, h: 1.15, d: 0.92 },
     { cx: px - 5.12, cy: 0.75, cz: pz - 3.55, w: 0.72, h: 1.55, d: 2.55 },
     { cx: px - 5.12, cy: 0.75, cz: pz - 0.15, w: 0.68, h: 1.5, d: 2.15 },
     { cx: px - 5.12, cy: 0.75, cz: pz + 4.55, w: 0.68, h: 1.5, d: 1.85 },
@@ -626,14 +729,48 @@ export const CANOPY_SHOT = {
   fov: 38,
 } as const;
 
+/** Street-level apron: pavilion as civic hero, thin canopies as wings. */
+export const LOT_HERO_SHOT = {
+  x: -6.2,
+  z: -16.55,
+  eyeY: 3.38,
+  yaw: 0.85,
+  pitch: -0.06,
+  lookAt: { x: -16.8, y: 2.22, z: 0.45 },
+  fov: 50,
+} as const;
+
+/** Under the left canopy — cinematic eye so pitch clamp stays off. Coffers + pavilion. */
+export const COFFER_SHOT = {
+  x: LEFT_CANOPY_X + 3.35,
+  z: -6.55,
+  eyeY: 3.48,
+  yaw: 0.55,
+  pitch: 0.22,
+  lookAt: { x: LEFT_CANOPY_X - 4.2, y: 4.22, z: 2.15 },
+  fov: 58,
+} as const;
+
+/** Lounge sanctuary + CHARGE / RELAX / DEPART board on the north wall. */
+export const BOARD_SHOT = {
+  x: -23.25,
+  z: 1.85,
+  eyeY: 1.58,
+  yaw: 0.18,
+  pitch: 0.08,
+  lookAt: { x: -20.85, y: 1.92, z: 7.85 },
+  fov: 58,
+} as const;
+
+/** Slim Zeus 3/4 south of stall 1 — face, holsters, cyan ring, parking stop. */
 export const ZEUS_SHOT = {
-  x: -6.12,
-  z: -3.08,
-  eyeY: 1.26,
-  yaw: 0.48,
-  pitch: 0.06,
-  lookAt: { x: -7.62, y: 0.92, z: -1.08 },
-  fov: 42,
+  x: -6.28,
+  z: -8.22,
+  eyeY: 1.14,
+  yaw: 0.42,
+  pitch: 0.04,
+  lookAt: { x: -8.02, y: 0.96, z: -6.52 },
+  fov: 40,
 } as const;
 
 /** Inside the lounge, sofa in frame, looking out the east storefront toward the lot. */

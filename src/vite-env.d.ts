@@ -3,7 +3,7 @@
 interface ElectromatApi {
   startNight: () => void;
   act: () => void;
-  place: (x: number, z: number, yaw?: number, pitch?: number, eyeY?: number) => void;
+  place: (x: number, z: number, yaw?: number, pitch?: number, eyeY?: number, fov?: number) => void;
   lookAt: (x: number, y: number, z: number) => void;
   position: { x: number; y: number; z: number };
   pitch: number;
@@ -20,6 +20,7 @@ interface ElectromatApi {
   ready: boolean;
   destination: { x: number; z: number } | null;
   doorHint: string;
+  doorLine: string;
   inPlayable: (x: number, z: number) => boolean;
   capture: (w?: number, h?: number) => string;
   carProbe: (w?: number, h?: number) => string;

@@ -16,7 +16,7 @@ import {
   westVoidWalls,
 } from "./layout";
 import { addPavilion } from "./pavilion";
-import { asphaltColor, asphaltNormal, asphaltRough, creamPanels, curbColor, curbRough, gravel, soffitPanels } from "./tex";
+import { asphaltColor, asphaltNormal, asphaltRough, brushMetal, creamPanels, curbColor, curbRough, gravel } from "./tex";
 import { makePayIcon, makeWaveGuide, makeWaveIcon } from "./icons";
 import { addZeusCharger } from "./zeus";
 
@@ -171,75 +171,92 @@ function roundedRectShape(w: number, d: number, r: number): THREE.Shape {
 }
 
 function addCanopyAt(root: THREE.Group, cx: number, cz: number, w: number, d: number, y: number, _shadow: boolean): void {
-  const panels = creamPanels();
-  const shell = mat(0xe6e0d4, {
-    roughness: 0.56,
-    metalness: 0.05,
-    envMapIntensity: 0.24,
-    map: panels,
-  });
-  const under = new THREE.MeshStandardMaterial({
-    color: 0xeee4d4,
-    map: soffitPanels(),
-    emissive: 0xd48830,
-    emissiveIntensity: 0.42,
-    roughness: 0.62,
-    metalness: 0.02,
-  });
-  const redLip = mat(C.red, {
-    roughness: 0.28,
-    metalness: 0.12,
+  const brush = brushMetal();
+  const alum = new THREE.MeshPhysicalMaterial({
+    color: 0xeef1f4,
+    map: brush.map,
+    roughnessMap: brush.rough,
+    normalMap: brush.normal,
+    normalScale: new THREE.Vector2(0.7, 1.8),
+    metalness: 0.7,
+    roughness: 0.38,
     envMapIntensity: 0.4,
   });
+  const panels = creamPanels();
   const fasciaPlate = mat(0xf2ebe0, {
     roughness: 0.46,
     metalness: 0.06,
     envMapIntensity: 0.28,
     map: panels,
   });
+  const redHair = mat(C.red, {
+    roughness: 0.3,
+    metalness: 0.16,
+    envMapIntensity: 0.35,
+    emissive: 0x4a100c,
+    emissiveIntensity: 0.18,
+  });
+  const cyanHair = new THREE.MeshStandardMaterial({
+    color: C.cyan,
+    emissive: C.cyan,
+    emissiveIntensity: 2.4,
+    roughness: 0.22,
+    metalness: 0.08,
+    toneMapped: false,
+  });
   const topGeo = new THREE.ExtrudeGeometry(roundedRectShape(w, d, 1.35), {
-    depth: 0.58,
+    depth: 0.16,
     bevelEnabled: true,
-    bevelThickness: 0.1,
-    bevelSize: 0.16,
+    bevelThickness: 0.04,
+    bevelSize: 0.08,
     bevelSegments: 2,
     curveSegments: 10,
   });
   topGeo.rotateX(-Math.PI / 2);
-  const top = new THREE.Mesh(topGeo, shell);
+  const top = new THREE.Mesh(topGeo, alum);
   top.position.set(cx, y, cz);
   top.castShadow = true;
   top.receiveShadow = true;
   root.add(top);
 
-  const underGeo = new THREE.ExtrudeGeometry(roundedRectShape(w - 0.7, d - 0.7, 1.15), {
-    depth: 0.07,
+  const soffitWell = mat(0x2a2c32, { roughness: 0.62, metalness: 0.12, envMapIntensity: 0.2 });
+  const underGeo = new THREE.ExtrudeGeometry(roundedRectShape(w - 0.55, d - 0.55, 1.1), {
+    depth: 0.05,
     bevelEnabled: false,
     curveSegments: 8,
   });
   underGeo.rotateX(-Math.PI / 2);
-  const soffit = new THREE.Mesh(underGeo, under);
-  soffit.position.set(cx, y - 0.08, cz);
+  const soffit = new THREE.Mesh(underGeo, soffitWell);
+  soffit.position.set(cx, y - 0.02, cz);
   soffit.receiveShadow = true;
   root.add(soffit);
 
-  const fasciaZ = cz - d * 0.5 - 0.1;
-  const fascia = new THREE.Mesh(new THREE.BoxGeometry(w - 1.2, 1.08, 0.22), fasciaPlate);
-  fascia.position.set(cx, y + 0.08, fasciaZ);
+  const fasciaZ = cz - d * 0.5 - 0.08;
+  const fascia = new THREE.Mesh(new THREE.BoxGeometry(w - 1.6, 0.52, 0.1), fasciaPlate);
+  fascia.position.set(cx, y + 0.02, fasciaZ);
   fascia.castShadow = true;
   fascia.userData.canopyFascia = true;
   root.add(fascia);
-  const lip = new THREE.Mesh(new THREE.BoxGeometry(w - 0.85, 0.2, 0.3), redLip);
-  lip.position.set(cx, y - 0.42, fasciaZ - 0.04);
-  root.add(lip);
-  const shade = new THREE.Mesh(new THREE.BoxGeometry(w - 1.28, 0.05, 0.16), mat(0x2a2420, { roughness: 0.7 }));
-  shade.position.set(cx, y - 0.28, fasciaZ + 0.02);
-  root.add(shade);
-  const edge = new THREE.Mesh(new THREE.BoxGeometry(w - 0.4, 0.08, 0.12), redLip);
-  edge.position.set(cx, y + 0.62, fasciaZ + 0.04);
-  root.add(edge);
+  const redBand = new THREE.Mesh(new THREE.BoxGeometry(w - 1.45, 0.045, 0.08), redHair);
+  redBand.position.set(cx, y - 0.26, fasciaZ - 0.01);
+  root.add(redBand);
+  const cyanEdge = new THREE.Mesh(new THREE.BoxGeometry(w - 0.35, 0.018, 0.04), cyanHair);
+  cyanEdge.position.set(cx, y + 0.1, fasciaZ - 0.02);
+  root.add(cyanEdge);
+  const cyanSideL = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.018, d - 0.4), cyanHair);
+  cyanSideL.position.set(cx - w * 0.5 + 0.08, y + 0.1, cz);
+  const cyanSideR = cyanSideL.clone();
+  cyanSideR.position.x = cx + w * 0.5 - 0.08;
+  root.add(cyanSideL, cyanSideR);
 
-  const col = mat(0xf2eee6, { metalness: 0.18, roughness: 0.4, envMapIntensity: 0.38 });
+  const col = new THREE.MeshPhysicalMaterial({
+    color: 0xe4e7ec,
+    map: brush.map,
+    roughnessMap: brush.rough,
+    metalness: 0.74,
+    roughness: 0.36,
+    envMapIntensity: 0.55,
+  });
   const boltSteel = mat(0x6a7076, { metalness: 0.62, roughness: 0.36, envMapIntensity: 0.28 });
   const insetZ = d * 0.5 - 0.55;
   for (const sx of [-1, 1]) {
@@ -248,42 +265,48 @@ function addCanopyAt(root: THREE.Group, cx: number, cz: number, w: number, d: nu
     for (const sz of [-1, 1]) {
       const px = cx + sx * insetX;
       const pz = cz + sz * insetZ;
-      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.13, y - 0.12, 14), col);
-      post.position.set(px, (y - 0.12) * 0.5, pz);
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, y - 0.08, 20), col);
+      post.position.set(px, (y - 0.08) * 0.5, pz);
       post.castShadow = true;
-      const plate = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.24, 0.03, 16), col);
+      const plate = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.26, 0.03, 20), col);
       plate.position.set(px, 0.02, pz);
       plate.receiveShadow = true;
-      root.add(post, plate);
+      const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.14, 0.06, 16), col);
+      cap.position.set(px, y - 0.04, pz);
+      root.add(post, plate, cap);
       for (let i = 0; i < 6; i++) {
         const a = (i / 6) * Math.PI * 2;
         const bolt = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.018, 6), boltSteel);
-        bolt.position.set(px + Math.cos(a) * 0.165, 0.038, pz + Math.sin(a) * 0.165);
+        bolt.position.set(px + Math.cos(a) * 0.175, 0.038, pz + Math.sin(a) * 0.175);
         root.add(bolt);
       }
     }
   }
 
-  const well = mat(0x3a3e44, { roughness: 0.58 });
+  const well = mat(0x1c1e24, { roughness: 0.7, metalness: 0.08 });
   const lamp = new THREE.MeshStandardMaterial({
-    color: 0xfff0d0,
-    emissive: 0xf2b050,
-    emissiveIntensity: 1.05,
-    toneMapped: false,
+    color: 0xfff4dc,
+    emissive: 0xffd090,
+    emissiveIntensity: 1.15,
+    roughness: 0.42,
+    metalness: 0.02,
   });
-  const zs = [cz - d * 0.32, cz - d * 0.12, cz + d * 0.12, cz + d * 0.32];
-  for (const z of zs) {
-    const recess = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.05, 16), well);
-    recess.position.set(cx, y - 0.1, z);
-    const disc = new THREE.Mesh(new THREE.CircleGeometry(0.28, 20), lamp);
-    disc.rotation.x = Math.PI / 2;
-    disc.position.set(cx, y - 0.14, z);
-    root.add(recess, disc);
-  }
-  for (let i = -2; i <= 2; i++) {
-    const seam = new THREE.Mesh(new THREE.BoxGeometry(w - 1.6, 0.01, 0.035), mat(0xe4d8c4, { roughness: 0.55 }));
-    seam.position.set(cx, y + 0.59, cz + i * (d * 0.16));
-    root.add(seam);
+  const cols = Math.max(3, Math.round(w / 3.05));
+  const rows = Math.max(4, Math.round(d / 2.85));
+  const cellW = (w - 1.7) / cols;
+  const cellD = (d - 1.7) / rows;
+  for (let i = 0; i < cols; i++) {
+    for (let j = 0; j < rows; j++) {
+      const px = cx - (w - 1.7) * 0.5 + (i + 0.5) * cellW;
+      const pz = cz - (d - 1.7) * 0.5 + (j + 0.5) * cellD;
+      const recess = new THREE.Mesh(new RoundedBoxGeometry(cellW * 0.78, 0.2, cellD * 0.72, 2, 0.055), well);
+      recess.position.set(px, y - 0.1, pz);
+      recess.receiveShadow = true;
+      const disc = new THREE.Mesh(new THREE.PlaneGeometry(cellW * 0.58, cellD * 0.52), lamp);
+      disc.rotation.x = Math.PI / 2;
+      disc.position.set(px, y - 0.2, pz);
+      root.add(recess, disc);
+    }
   }
 
   const pad = mat(0xe8e2d4, {
@@ -620,15 +643,58 @@ function addDesertBed(root: THREE.Group, x: number, z: number, w: number, d: num
   }
 }
 
+function pylonBoard(): THREE.CanvasTexture {
+  const c = document.createElement("canvas");
+  c.width = 256;
+  c.height = 220;
+  const ctx = c.getContext("2d")!;
+  ctx.fillStyle = "#0c0d12";
+  ctx.fillRect(0, 0, 256, 220);
+  ctx.fillStyle = "#1a1c22";
+  for (let y = 10; y < 210; y += 5) {
+    for (let x = 10; x < 246; x += 5) ctx.fillRect(x, y, 1, 1);
+  }
+  ctx.fillStyle = "#E89A2E";
+  ctx.font = "700 18px monospace";
+  ctx.textAlign = "left";
+  ctx.fillText("AVAILABLE", 22, 48);
+  ctx.textAlign = "right";
+  ctx.fillText("12", 234, 48);
+  ctx.textAlign = "left";
+  ctx.fillText("WAIT", 22, 92);
+  ctx.textAlign = "right";
+  ctx.fillText("0 MIN", 234, 92);
+  ctx.textAlign = "left";
+  ctx.fillText("POWER", 22, 136);
+  ctx.textAlign = "right";
+  ctx.fillText("1 MW", 234, 136);
+  ctx.textAlign = "center";
+  ctx.font = "600 14px monospace";
+  ctx.fillText("ELECTROMAT", 128, 190);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.needsUpdate = true;
+  return tex;
+}
+
 function addMonument(root: THREE.Group): void {
-  const charcoal = mat(C.charcoal, { roughness: 0.55, metalness: 0.12 });
+  const precast = mat(0xd4c6ae, { roughness: 0.62, metalness: 0.04, envMapIntensity: 0.18 });
+  const alum = mat(C.chrome, { roughness: 0.34, metalness: 0.72, envMapIntensity: 0.5 });
   const cream = mat(C.cream, { roughness: 0.42, metalness: 0.06 });
-  const pylon = new THREE.Mesh(new RoundedBoxGeometry(0.38, 1.55, 1.15, 2, 0.06), charcoal);
-  pylon.position.set(-12.2, 0.9, -15.4);
-  const plate = new THREE.Mesh(new RoundedBoxGeometry(0.08, 0.7, 0.9, 2, 0.03), cream);
-  plate.position.set(-12.0, 1.15, -15.4);
+  const pylon = new THREE.Mesh(new RoundedBoxGeometry(0.42, 3.15, 1.28, 3, 0.1), precast);
+  pylon.position.set(-12.2, 1.62, -15.4);
+  const trim = new THREE.Mesh(new RoundedBoxGeometry(0.08, 3.22, 1.36, 2, 0.04), alum);
+  trim.position.set(-12.38, 1.62, -15.4);
+  const plate = new THREE.Mesh(new RoundedBoxGeometry(0.06, 0.62, 0.86, 2, 0.03), cream);
+  plate.position.set(-11.96, 2.55, -15.4);
   plate.userData.monumentFace = true;
-  root.add(pylon, plate);
+  const board = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.92, 0.78),
+    new THREE.MeshBasicMaterial({ map: pylonBoard(), toneMapped: false }),
+  );
+  board.position.set(-11.96, 1.35, -15.4);
+  board.rotation.y = Math.PI / 2;
+  root.add(pylon, trim, plate, board);
 }
 
 function addPlanters(root: THREE.Group): void {

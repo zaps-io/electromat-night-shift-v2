@@ -16,6 +16,7 @@ import {
 import {
   collectCandidates,
   doorApproachHint,
+  doorHintBesidePrompt,
   GUEST_HULL_R,
   GUEST_REACH,
   JOB_LOT_RANGE,
@@ -70,12 +71,15 @@ import {
   WAVE_POINT,
   WAVE_REACH,
   WAVE_SHOT,
+  WIDE_SHOT,
   ZEUS_HALF_DEPTH,
   clampPlayable,
   DOOR_YARD,
+  GAMEPLAY_EYE_Y,
   inPlayableVolume,
   inRect,
   inWestSidewalk,
+  lookHitsUnlitVoid,
   pavilionDoorGap,
   pavilionDoorWorld,
   pavilionExteriorWalls,
@@ -84,14 +88,17 @@ import {
   planterColliders,
   playableWalkPath,
   playableWalkTarget,
+  rayHitsDoorPortal,
+  recoverPlayableCamera,
   resolveWalkDestination,
   segmentPlayable,
+  UNDERGROUND_Y,
   WEST_APRON_X,
   westVoidWalls,
 } from "../src/world/layout.ts";
 import { cableHitsCarBody, ccsLeadPoints, holsterRestPoints } from "../src/world/cables.ts";
 import { OPAQUE_SEDAN_INLET } from "../src/cars/opaque.ts";
-import { beginWalk, clampGameplayPitch, keyToken, PITCH_MAX, PITCH_MIN, resolveColliders, stepWalk, WALK_RADIUS } from "../src/input/walker.ts";
+import { beginWalk, clampGameplayPitch, horizonInView, keyToken, PITCH_MAX, PITCH_MIN, resolveColliders, stepWalk, WALK_RADIUS } from "../src/input/walker.ts";
 import * as THREE from "three";
 
 for (const name of [
@@ -352,16 +359,31 @@ if (steal.prompt && steal.prompt !== "E  PAY  ·  PECK") {
   throw new Error(`Kim-adjacent prompt leaked ${steal.prompt}`);
 }
 if (doorApproachHint(besidePeck, closePay.prompt) !== "") {
-  throw new Error("door hint must not replace a ready PAY prompt");
+  throw new Error("door hint must not appear beside Peck away from the lounge door");
 }
-if (doorApproachHint({ x: door.x, y: 1.56, z: door.z - 1.6 }, "E  PAY  ·  PECK") !== "") {
-  throw new Error("door hint must yield to PAY at the south door");
+if (doorHintBesidePrompt(besidePeck, closePay.prompt) !== "") {
+  throw new Error("secondary door line must stay off when far from the door");
+}
+if (doorApproachHint({ x: door.x, y: 1.56, z: door.z - 1.6 }, "E  PAY  ·  PECK") !== "WALK IN") {
+  throw new Error("WALK IN must stay visible at the south door while PAY owns E");
+}
+if (doorHintBesidePrompt({ x: door.x, y: 1.56, z: door.z - 1.6 }, "E  PAY  ·  PECK") !== "WALK IN") {
+  throw new Error("secondary HUD line must show WALK IN beside a PAY prompt");
+}
+if (doorHintBesidePrompt({ x: door.x, y: 1.56, z: door.z - 1.6 }, "") !== "") {
+  throw new Error("secondary door line must stay empty when the door hint already owns #prompt");
 }
 if (doorApproachHint({ x: door.x, y: 1.56, z: door.z - 1.6 }, "") !== "WALK IN") {
   throw new Error("near the south door, HUD must hint WALK IN when E is free");
 }
+if (doorApproachHint({ x: door.x, y: 1.56, z: door.z + 1.8 }, "E  WAVE  ·  NG") !== "WALK OUT") {
+  throw new Error("WALK OUT must stay visible inside the lounge while a job prompt is live");
+}
 if (doorApproachHint({ x: door.x, y: 1.56, z: door.z + 1.8 }, "") !== "WALK OUT") {
   throw new Error("inside the lounge door, HUD must hint WALK OUT when E is free");
+}
+if (doorApproachHint(DOOR_SHOT, "E  PAY  ·  PECK") !== "WALK IN") {
+  throw new Error("DOOR_SHOT must keep WALK IN beside the opening PAY prompt");
 }
 if (doorApproachHint(DOOR_SHOT, "") !== "WALK IN") {
   throw new Error("DOOR_SHOT must be in walk-in hint range");
@@ -715,6 +737,16 @@ const matClick = resolveWalkDestination(START_SHOT.x, START_SHOT.z, door.x, door
 if (!matClick || matClick.z < door.z + 1.4) {
   throw new Error("door-mat walk-to must commit to a lounge-interior destination");
 }
+const doorLookUp = pickWalkDestination(DOOR_SHOT.x, DOOR_SHOT.z, door.x, door.z - 0.7, 0.28, 7);
+if (!doorLookUp || doorLookUp.z < door.z + 1.4) {
+  throw new Error("looking at the door portal must still walk into the lounge");
+}
+if (!rayHitsDoorPortal(DOOR_SHOT.x, DOOR_SHOT.eyeY, DOOR_SHOT.z, -0.55, 0.18, 0.72)) {
+  throw new Error("OPEN-sign / portal ray from DOOR_SHOT must hit the door volume");
+}
+if (rayHitsDoorPortal(START_SHOT.x, START_SHOT.eyeY, START_SHOT.z, 0.2, 0.35, 0.9)) {
+  throw new Error("spawn sky look must not count as a door portal click");
+}
 const matFollow = followTo(START_SHOT.x, START_SHOT.z, door.x, door.z - 0.7, 720);
 if (matFollow.dest) throw new Error("door-mat walk-to did not finish");
 if (matFollow.z < door.z + 1.4) throw new Error("door-mat walk-to cancelled at the threshold");
@@ -945,13 +977,54 @@ if (!fallback || fallback.need !== "pay") throw new Error("E fallback must still
 if (clampGameplayPitch(1.4) > PITCH_MAX + 1e-6) throw new Error("zenith pitch must clamp");
 if (clampGameplayPitch(-1.2) < PITCH_MIN - 1e-6) throw new Error("nadir pitch must clamp");
 if (clampGameplayPitch(1.4, 14.6) !== 1.4) throw new Error("cinematic pitch must stay free");
+if (!horizonInView(clampGameplayPitch(1.4))) throw new Error("clamped zenith must keep the horizon");
+if (!horizonInView(clampGameplayPitch(-1.2))) throw new Error("clamped nadir must keep the horizon");
 const lostLook = clampPlayable(-40, -40);
 if (!lostLook.teleported) throw new Error("deep void must still soft-teleport");
 if (lostLook.x !== SAFE_LOT_SPAWN.x || lostLook.z !== SAFE_LOT_SPAWN.z) {
   throw new Error("deep void recover must be lot spawn");
 }
-if (PITCH_MAX > 0.45) throw new Error("pitch max still high enough to dump zenith");
-if (PITCH_MIN < -0.62) throw new Error("pitch min still low enough to dump nadir");
+if (PITCH_MAX > 0.2) throw new Error("pitch max still high enough to hide the horizon");
+if (PITCH_MIN < -0.22) throw new Error("pitch min still low enough to dump asphalt");
+const buried = recoverPlayableCamera(START_SHOT.x, 0.12, START_SHOT.z);
+if (!buried.teleported || buried.y < 1.5) throw new Error("underground camera must soft-recover to eye height");
+if (!inPlayableVolume(buried.x, buried.z)) throw new Error("underground recover left playable volume");
+const skyLost = recoverPlayableCamera(-40, 0.1, -40);
+if (!skyLost.teleported || skyLost.x !== SAFE_LOT_SPAWN.x || skyLost.z !== SAFE_LOT_SPAWN.z) {
+  throw new Error("underground + void must recover to lot spawn");
+}
+const cine = recoverPlayableCamera(WIDE_SHOT.x, WIDE_SHOT.eyeY, WIDE_SHOT.z);
+if (cine.teleported) throw new Error("cinematic camera must not soft-teleport");
+const westLookYaw = Math.PI / 2;
+if (!lookHitsUnlitVoid(-15.4, -10.4, westLookYaw)) {
+  throw new Error("west apron looking into the planter must count as unlit void");
+}
+const toDoorYaw = Math.atan2(-(door.x - DOOR_SHOT.x), -(door.z - DOOR_SHOT.z));
+if (lookHitsUnlitVoid(DOOR_SHOT.x, DOOR_SHOT.z, toDoorYaw)) {
+  throw new Error("door-yard look toward the lounge must not count as unlit void");
+}
+const cafe = pavilionFurniture()[0]!;
+if (cafe.cx + cafe.w * 0.5 > DOOR_CORRIDOR.xmin - 0.15) {
+  throw new Error("cafe counter must stay clear of the south-door corridor");
+}
+if (UNDERGROUND_Y >= GAMEPLAY_EYE_Y) throw new Error("underground threshold must sit below eye height");
+
+const stationSrc = readFileSync(new URL("../src/world/station.ts", import.meta.url), "utf8");
+const pavilionSrc = readFileSync(new URL("../src/world/pavilion.ts", import.meta.url), "utf8");
+const texSrc = readFileSync(new URL("../src/world/tex.ts", import.meta.url), "utf8");
+if (stationSrc.includes("Reflector") || pavilionSrc.includes("Reflector")) {
+  throw new Error("no extra Reflectors — WebGL stay stable");
+}
+if (!stationSrc.includes("cellW") || !stationSrc.includes("RoundedBoxGeometry(cellW")) {
+  throw new Error("canopy must build a modular coffer grid");
+}
+if (!/depth:\s*0\.16/.test(stationSrc)) throw new Error("canopy roof must stay a thin floating slab");
+if (!texSrc.includes("CHARGE") || !texSrc.includes("RELAX") || !texSrc.includes("DEPART")) {
+  throw new Error("status board must show CHARGE / RELAX / DEPART");
+}
+if (!pavilionSrc.includes("leather()") || !pavilionSrc.includes("C.leather")) {
+  throw new Error("lounge seating must be cognac leather");
+}
 
 const ghostKey = { code: "KeyE" } as KeyboardEvent;
 if (!keyToken(ghostKey).includes("KeyE")) throw new Error("KeyE code must map without e.key");

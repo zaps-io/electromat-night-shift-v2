@@ -88,7 +88,7 @@ export function waveQueue(s: GameState, bayId?: number): boolean {
   s.queueWaves += 1;
   s.justUnplugged = false;
   s.justPaid = false;
-  speak(s, `${g.name} — bay ${g.assignedBay}. Queue moving.`);
+  speak(s, `WAVE · ${g.name.toUpperCase()} → BAY ${g.assignedBay}. Queue moving.`);
   return true;
 }
 
@@ -123,7 +123,7 @@ export function parkInBay(s: GameState, guestId: string, bayId?: number): boolea
   }
   bay.guestId = g.id;
   g.assignedBay = bay.id;
-  speak(s, `${g.name} — bay ${bay.id}. Plug in.`);
+  speak(s, `PARK · ${g.name.toUpperCase()} → BAY ${bay.id}. Plug in.`);
   return true;
 }
 
@@ -136,8 +136,8 @@ export function plugInlet(s: GameState, guestId: string): boolean {
     g.plugged = true;
     s.plugs += 1;
   }
-  if (g.authorized) speak(s, "DRIVE IN. CHARGE UP. ZIP OUT.");
-  else speak(s, `${g.name} — pay at the car or a PAY stand.`);
+  if (g.authorized) speak(s, `PLUG · ${g.name.toUpperCase()} — charging.`);
+  else speak(s, `PLUG · ${g.name.toUpperCase()} — pay at the car or a PAY stand.`);
   return true;
 }
 
@@ -160,7 +160,7 @@ export function unplugInlet(s: GameState, guestId: string): boolean {
       if (bay) bay.guestId = null;
     }
     g.assignedBay = null;
-    speak(s, `${g.name} zipped out.`);
+    speak(s, `ZIP · ${g.name.toUpperCase()} — bay clear.`);
   } else {
     speak(s, "Unplugged.");
   }
@@ -183,7 +183,7 @@ export function payKiosk(s: GameState, guestId: string): boolean {
     s.autochargeSignups += 1;
   }
   s.justPaid = true;
-  speak(s, `Paid — ${g.name}. AutoCharge on — they zip sooner.`);
+  speak(s, `PAID · ${g.name.toUpperCase()} · AUTOCHARGE ON.`);
   return true;
 }
 
@@ -199,7 +199,7 @@ export function enrollAuto(s: GameState, guestId: string): boolean {
   g.enrolled = true;
   g.auth = "auto";
   s.autochargeSignups += 1;
-  speak(s, `AutoCharge — ${g.name} pulls full power. They zip sooner.`);
+  speak(s, `AUTOCHARGE · ${g.name.toUpperCase()} — full power.`);
   return true;
 }
 

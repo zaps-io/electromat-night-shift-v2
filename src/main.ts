@@ -22,6 +22,7 @@ import {
 import {
   collectCandidates,
   doorApproachHint,
+  doorHintBesidePrompt,
   jobHint,
   jobReadyFallback,
   nextJob,
@@ -35,8 +36,10 @@ import { configureKeyLight, createDuskEnvironment, createPipeline, createRendere
 import { addLodFillers, hullDebug, loadCarPrototypes, syncCars, trimLodFillers, type CarView } from "./world/cars";
 import {
   BAYS,
+  BOARD_SHOT,
   CANOPY_ROW_SHOT,
   CANOPY_SHOT,
+  COFFER_SHOT,
   DOOR_IN_SHOT,
   DOOR_SHOT,
   INTERIOR_SHOT,
@@ -56,11 +59,14 @@ import {
   ZEUS_SHOT,
   inPlayableVolume,
   pickWalkDestination,
+  pavilionDoorWorld,
+  rayHitsDoorPortal,
 } from "./world/layout";
 import { addBrandSignage } from "./world/branding";
 import { makeAttendantHand, tickHand } from "./world/hand";
 import { makeTargetMark, makeWalkPuck } from "./world/icons";
 import { buildSkyline } from "./world/skyline";
+import { duskSky } from "./world/tex";
 import { addLotMirror, buildStation } from "./world/station";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#view")!;
@@ -74,6 +80,7 @@ const autoEl = document.querySelector("#auto")!;
 const wavesEl = document.querySelector("#waves")!;
 const zipsEl = document.querySelector("#zips")!;
 const promptEl = document.querySelector("#prompt")!;
+const doorLineEl = document.querySelector("#door-line")!;
 const objectiveEl = document.querySelector("#objective")!;
 const toastEl = document.querySelector("#toast")!;
 const gradeEl = document.querySelector("#grade")!;
@@ -85,7 +92,12 @@ const renderer = createRenderer(canvas);
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x2a2438);
-scene.fog = new THREE.Fog(0x4a3428, 52, 148);
+scene.fog = new THREE.Fog(0x4a3428, 58, 160);
+const skyDome = new THREE.Mesh(
+  new THREE.SphereGeometry(170, 32, 20),
+  new THREE.MeshBasicMaterial({ map: duskSky(), side: THREE.BackSide, fog: false }),
+);
+scene.add(skyDome);
 scene.add(new THREE.HemisphereLight(0xffd4a8, 0x16141c, 0.1));
 const sun = new THREE.DirectionalLight(0xffc078, 0.78);
 sun.position.set(-30, 12, -14);
@@ -391,10 +403,13 @@ function paintHud(): void {
   station.waveAlert.scale.set(waveLive ? 1.7 : 1.05, waveLive ? 0.64 : 0.4, 1);
   station.waveGuide.visible = waveLive;
   const resolved = refreshTarget();
-  const doorHint = doorApproachHint(walker.position, resolved.prompt);
+  const doorHint = doorApproachHint(walker.position);
   promptEl.textContent = resolved.prompt || doorHint;
   promptEl.classList.toggle("door-hint", !resolved.prompt && !!doorHint);
+  doorLineEl.textContent = doorHintBesidePrompt(walker.position, resolved.prompt);
   objectiveEl.textContent = resolved.objective;
+  const toastLive = live && state.toastUntil > state.timeMin ? state.toast : "";
+  promptEl.classList.toggle("ack", /PAID|ZIPPED|QUEUE MOVING|AUTOCHARGE|PLUG/i.test(toastLive));
   if (live && toastConflictsJob(state.toast, job)) {
     state.toast = jobHint(job);
     state.toastUntil = state.timeMin + 8;
@@ -424,7 +439,9 @@ function groundWalk(clientX: number, clientY: number): void {
     -((clientY - rect.top) / rect.height) * 2 + 1,
   );
   ray.setFromCamera(ndc, walker.camera);
-  const dirY = ray.ray.direction.y;
+  const dir = ray.ray.direction;
+  const origin = ray.ray.origin;
+  const dirY = dir.y;
   const meshHit = ray.intersectObjects(station.walkGrounds, true)[0];
   let hitX = 0;
   let hitZ = 0;
@@ -437,6 +454,11 @@ function groundWalk(clientX: number, clientY: number): void {
     hitX = walkHit.x;
     hitZ = walkHit.z;
     hitDist = walker.position.distanceTo(walkHit);
+  } else if (rayHitsDoorPortal(origin.x, origin.y, origin.z, dir.x, dir.y, dir.z)) {
+    const door = pavilionDoorWorld();
+    hitX = door.x;
+    hitZ = door.z - 0.85;
+    hitDist = Math.hypot(origin.x - door.x, origin.z - door.z);
   } else {
     return;
   }
@@ -594,6 +616,12 @@ async function saveShots(): Promise<void> {
   await new Promise((r) => setTimeout(r, 500));
   await post("/workspace/docs/shots/canopy-fascia.png", capture(1280, 800));
   await new Promise((r) => setTimeout(r, 400));
+  walker.setFov(COFFER_SHOT.fov);
+  walker.place(COFFER_SHOT.x, COFFER_SHOT.z, COFFER_SHOT.yaw, COFFER_SHOT.pitch, COFFER_SHOT.eyeY);
+  walker.lookAt(COFFER_SHOT.lookAt.x, COFFER_SHOT.lookAt.y, COFFER_SHOT.lookAt.z);
+  await new Promise((r) => setTimeout(r, 500));
+  await post("/workspace/docs/shots/canopy-coffers.png", capture(1280, 800));
+  await new Promise((r) => setTimeout(r, 400));
   walker.setFov(ZEUS_SHOT.fov);
   walker.place(ZEUS_SHOT.x, ZEUS_SHOT.z, ZEUS_SHOT.yaw, ZEUS_SHOT.pitch, ZEUS_SHOT.eyeY);
   walker.lookAt(ZEUS_SHOT.lookAt.x, ZEUS_SHOT.lookAt.y, ZEUS_SHOT.lookAt.z);
@@ -611,6 +639,12 @@ async function saveShots(): Promise<void> {
   walker.lookAt(LOUNGE_WIDE_SHOT.lookAt.x, LOUNGE_WIDE_SHOT.lookAt.y, LOUNGE_WIDE_SHOT.lookAt.z);
   await new Promise((r) => setTimeout(r, 500));
   await post("/workspace/docs/shots/lounge-wide.png", capture(1280, 800));
+  await new Promise((r) => setTimeout(r, 400));
+  walker.setFov(BOARD_SHOT.fov);
+  walker.place(BOARD_SHOT.x, BOARD_SHOT.z, BOARD_SHOT.yaw, BOARD_SHOT.pitch, BOARD_SHOT.eyeY);
+  walker.lookAt(BOARD_SHOT.lookAt.x, BOARD_SHOT.lookAt.y, BOARD_SHOT.lookAt.z);
+  await new Promise((r) => setTimeout(r, 500));
+  await post("/workspace/docs/shots/lounge-board.png", capture(1280, 800));
   await new Promise((r) => setTimeout(r, 400));
   walker.setFov(STOREFRONT_SHOT.fov);
   walker.place(STOREFRONT_SHOT.x, STOREFRONT_SHOT.z, STOREFRONT_SHOT.yaw, STOREFRONT_SHOT.pitch, STOREFRONT_SHOT.eyeY);
@@ -709,9 +743,8 @@ window.__electromat = {
   },
   startNight: dropIn,
   act,
-  place(x: number, z: number, yaw = 0, pitch = 0, eyeY = 1.64) {
-    if (eyeY > 3.2) walker.setFov(WIDE_SHOT.fov);
-    else walker.setFov(START_SHOT.fov);
+  place(x: number, z: number, yaw = 0, pitch = 0, eyeY = 1.64, fov?: number) {
+    walker.setFov(fov ?? (eyeY > 3.2 ? WIDE_SHOT.fov : START_SHOT.fov));
     walker.place(x, z, yaw, pitch, eyeY);
   },
   lookAt(x: number, y: number, z: number) {
@@ -762,7 +795,10 @@ window.__electromat = {
     return walker.destination ? { x: walker.destination.x, z: walker.destination.z } : null;
   },
   get doorHint() {
-    return doorApproachHint(walker.position, refreshTarget().prompt);
+    return doorApproachHint(walker.position);
+  },
+  get doorLine() {
+    return doorHintBesidePrompt(walker.position, refreshTarget().prompt);
   },
   inPlayable(x: number, z: number) {
     return inPlayableVolume(x, z);

@@ -5,7 +5,7 @@
  */
 import { existsSync, mkdirSync } from "node:fs";
 import { createServer } from "vite";
-import { BAYS, START_SHOT, WAVE_POINT, WAVE_SHOT } from "../src/world/layout.ts";
+import { BAYS, DOOR_IN_SHOT, DOOR_SHOT, INTERIOR_SHOT, START_SHOT, WAVE_SHOT } from "../src/world/layout.ts";
 
 type Hud = {
   prompt: string;
@@ -22,6 +22,8 @@ type Hud = {
   playable: boolean;
   dest: boolean;
   eHeard: number;
+  doorHint: string;
+  doorLine: string;
 };
 
 type ChromePage = {
@@ -89,6 +91,8 @@ async function hud(page: ChromePage): Promise<Hud> {
           destination: { x: number; z: number } | null;
           inPlayable: (x: number, z: number) => boolean;
           eHeard: number;
+          doorHint: string;
+          doorLine: string;
         };
       }
     ).__electromat;
@@ -107,6 +111,8 @@ async function hud(page: ChromePage): Promise<Hud> {
       playable: api.inPlayable(api.position.x, api.position.z),
       dest: api.destination != null,
       eHeard: api.eHeard,
+      doorHint: api.doorHint,
+      doorLine: api.doorLine,
     };
   });
 }
@@ -227,6 +233,57 @@ async function main(): Promise<void> {
       );
       await new Promise((r) => setTimeout(r, 250));
 
+      await page.evaluate(
+        (shot: { x: number; z: number; yaw: number; pitch: number; eyeY: number; lookAt: { x: number; y: number; z: number } }) => {
+          const api = (
+            window as unknown as {
+              __electromat: {
+                place: (x: number, z: number, yaw?: number, pitch?: number, eyeY?: number) => void;
+                lookAt: (x: number, y: number, z: number) => void;
+              };
+            }
+          ).__electromat;
+          api.place(shot.x, shot.z, shot.yaw, shot.pitch, shot.eyeY);
+          api.lookAt(shot.lookAt.x, shot.lookAt.y, shot.lookAt.z);
+        },
+        {
+          x: DOOR_SHOT.x,
+          z: DOOR_SHOT.z,
+          yaw: DOOR_SHOT.yaw,
+          pitch: DOOR_SHOT.pitch,
+          eyeY: DOOR_SHOT.eyeY,
+          lookAt: { ...DOOR_SHOT.lookAt },
+        },
+      );
+      const doorPay = await waitHud(page, (s) => s.prompt.includes("PAY") && s.doorHint === "WALK IN", 8000);
+      if (doorPay.doorLine !== "WALK IN") {
+        throw new Error(`door must keep WALK IN beside PAY, got line=${doorPay.doorLine} prompt=${doorPay.prompt}`);
+      }
+      await page.screenshot({ path: `${OUT}/fpv_door_walkin_beside_pay.png` });
+
+      await page.evaluate(
+        (shot: { x: number; z: number; yaw: number; pitch: number; eyeY: number; lookAt: { x: number; y: number; z: number } }) => {
+          const api = (
+            window as unknown as {
+              __electromat: {
+                place: (x: number, z: number, yaw?: number, pitch?: number, eyeY?: number) => void;
+                lookAt: (x: number, y: number, z: number) => void;
+              };
+            }
+          ).__electromat;
+          api.place(shot.x, shot.z, shot.yaw, shot.pitch, shot.eyeY);
+          api.lookAt(shot.lookAt.x, shot.lookAt.y, shot.lookAt.z);
+        },
+        {
+          x: START_SHOT.x,
+          z: START_SHOT.z,
+          yaw: START_SHOT.yaw,
+          pitch: START_SHOT.pitch,
+          eyeY: START_SHOT.eyeY,
+          lookAt: { ...START_SHOT.lookAt },
+        },
+      );
+
       const pay = await waitHud(page, (s) => s.prompt.includes("PAY") && s.prompt.includes("PECK"), 8000);
       if (!pay.objective.includes("PAY") || !pay.objective.includes("PECK")) {
         throw new Error(`PAY HUD disagree ${pay.prompt} / ${pay.objective}`);
@@ -310,9 +367,64 @@ async function main(): Promise<void> {
         const api = (window as unknown as { __electromat: { lookAt: (x: number, y: number, z: number) => void; position: { x: number; z: number } } }).__electromat;
         api.lookAt(api.position.x, 80, api.position.z + 0.15);
       });
+      await new Promise((r) => setTimeout(r, 250));
       const sky = await hud(page);
-      if (sky.pitch > 0.45) throw new Error(`zenith look not clamped, pitch=${sky.pitch}`);
+      if (sky.pitch > 0.2) throw new Error(`zenith look not clamped, pitch=${sky.pitch}`);
+      if (!sky.playable) throw new Error("look-up left playable volume");
       await page.screenshot({ path: `${OUT}/fpv_look_up_clamped.png` });
+      await page.evaluate(() => {
+        const api = (window as unknown as { __electromat: { lookAt: (x: number, y: number, z: number) => void; position: { x: number; z: number } } }).__electromat;
+        api.lookAt(api.position.x, -40, api.position.z + 0.15);
+      });
+      await new Promise((r) => setTimeout(r, 250));
+      const down = await hud(page);
+      if (down.pitch < -0.22) throw new Error(`nadir look not clamped, pitch=${down.pitch}`);
+      if (!down.playable) throw new Error("look-down left playable volume");
+      await page.screenshot({ path: `${OUT}/fpv_look_down_clamped.png` });
+
+      const lounge = await page.evaluate(
+        (door: { x: number; z: number }, inside: { x: number; z: number }) => {
+          const api = (
+            window as unknown as {
+              __electromat: {
+                walkTo: (x: number, z: number) => void;
+                step: (dt?: number) => void;
+                destination: { x: number; z: number } | null;
+                position: { x: number; y: number; z: number };
+                inPlayable: (x: number, z: number) => boolean;
+                lookAt: (x: number, y: number, z: number) => void;
+                doorHint: string;
+              };
+            }
+          ).__electromat;
+          api.walkTo(door.x, door.z - 0.7);
+          for (let i = 0; i < 720; i++) {
+            api.step(0.05);
+            if (!api.destination) break;
+          }
+          api.walkTo(inside.x, inside.z);
+          for (let i = 0; i < 720; i++) {
+            api.step(0.05);
+            if (!api.destination) break;
+          }
+          api.lookAt(inside.x + 4.2, 1.2, inside.z);
+          return {
+            x: api.position.x,
+            z: api.position.z,
+            y: api.position.y,
+            playable: api.inPlayable(api.position.x, api.position.z),
+            dest: api.destination != null,
+            doorHint: api.doorHint,
+          };
+        },
+        { x: DOOR_SHOT.x, z: DOOR_SHOT.z },
+        { x: INTERIOR_SHOT.x, z: INTERIOR_SHOT.z },
+      );
+      if (lounge.dest) throw new Error("door-mat walk-to lounge did not finish");
+      if (lounge.z < DOOR_IN_SHOT.z - 1.6) throw new Error(`walk-to door did not enter lounge z=${lounge.z}`);
+      if (!lounge.playable) throw new Error("lounge walk-to ended off playable");
+      if (lounge.y < 1.2) throw new Error("lounge camera went underground");
+      await page.screenshot({ path: `${OUT}/fpv_lounge_after_doormat.png` });
 
       const west = await page.evaluate(() => {
         const api = (
@@ -351,10 +463,14 @@ async function main(): Promise<void> {
         unplugPrompt: unplug.prompt,
         x: paid.x,
         z: paid.z,
-        playable: zipped.playable,
+        playable: zipped.playable && lounge.playable,
         westCancelled: west.cancelled,
         locked: pay.locked,
         pitch: sky.pitch,
+        doorHint: doorPay.doorHint,
+        doorLine: doorPay.doorLine,
+        loungeZ: lounge.z,
+        downPitch: down.pitch,
       };
     });
 
@@ -364,6 +480,13 @@ async function main(): Promise<void> {
     if ((result.zip ?? 0) < 1) throw new Error(`FPV smoke ZIP ${result.zip} prompt=${result.unplugPrompt}`);
     if (result.westCancelled === false) throw new Error("west sidewalk walk-to must cancel");
     if (!result.prompt.includes("PAY")) throw new Error(`expected E PAY before keyboard E, got ${result.prompt}`);
+    if (result.doorHint !== "WALK IN" || result.doorLine !== "WALK IN") {
+      throw new Error(`expected WALK IN beside PAY at the door, hint=${result.doorHint} line=${result.doorLine}`);
+    }
+    if ((result.loungeZ ?? -99) < DOOR_IN_SHOT.z - 1.6) {
+      throw new Error(`expected lounge interior after door walk-to, z=${result.loungeZ}`);
+    }
+    if ((result.downPitch ?? 0) < -0.22) throw new Error(`look-down still dumps, pitch=${result.downPitch}`);
     console.log("fpv-smoke ok", result);
   } finally {
     await server.close();
