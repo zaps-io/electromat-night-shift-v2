@@ -22,8 +22,11 @@ import {
 import {
   collectCandidates,
   doorApproachHint,
+  jobHint,
+  jobReadyFallback,
   nextJob,
   resolveInteract,
+  toastConflictsJob,
   type InteractCandidate,
   type InteractResult,
 } from "./game/interact";
@@ -326,7 +329,10 @@ function act(): void {
     return;
   }
   const resolved = refreshTarget();
-  const ready = resolved.ready;
+  let ready = resolved.ready;
+  if (!ready) {
+    ready = jobReadyFallback(walker.position, nextJob(state), currentCandidates());
+  }
   if (!ready) {
     const job = nextJob(state);
     if (pendingPayGuest(state)) nudgePay(state);
@@ -373,6 +379,10 @@ function paintHud(): void {
   promptEl.textContent = resolved.prompt || doorHint;
   promptEl.classList.toggle("door-hint", !resolved.prompt && !!doorHint);
   objectiveEl.textContent = resolved.objective;
+  if (live && toastConflictsJob(state.toast, job)) {
+    state.toast = jobHint(job);
+    state.toastUntil = state.timeMin + 8;
+  }
   toastEl.textContent = live && state.toastUntil > state.timeMin ? state.toast : "";
   crossEl.classList.toggle("ready", !!resolved.prompt);
   const markAt = resolved.focus;
@@ -467,11 +477,28 @@ startBtn.addEventListener("click", (e) => {
   else if (!walker.locked) lockFromGesture();
 });
 
+function isUseKey(e: KeyboardEvent): boolean {
+  const key = typeof e.key === "string" ? e.key.toLowerCase() : "";
+  return e.code === "KeyE" || key === "e";
+}
+
+let useArmed = false;
+function onUseDown(e: KeyboardEvent): void {
+  if (!isUseKey(e)) return;
+  if (e.repeat) return;
+  e.preventDefault();
+  if (useArmed) return;
+  useArmed = true;
+  act();
+}
+function onUseUp(e: KeyboardEvent): void {
+  if (!isUseKey(e)) return;
+  if (!useArmed) act();
+  useArmed = false;
+}
+document.addEventListener("keydown", onUseDown, true);
+document.addEventListener("keyup", onUseUp, true);
 window.addEventListener("keydown", (e) => {
-  if (e.code === "KeyE" || e.key.toLowerCase() === "e") {
-    e.preventDefault();
-    act();
-  }
   if (e.code === "KeyF") lockFromGesture();
 });
 
@@ -660,6 +687,15 @@ window.__electromat = {
   get position() {
     return { x: walker.position.x, y: walker.position.y, z: walker.position.z };
   },
+  get pitch() {
+    return walker.pitch;
+  },
+  get locked() {
+    return walker.locked || document.pointerLockElement != null;
+  },
+  lock() {
+    lockFromGesture();
+  },
   get target() {
     return refreshTarget();
   },
@@ -677,65 +713,6 @@ window.__electromat = {
   },
   step(dt = 0.05) {
     walker.tick(dt, station.colliders);
-  },
-  async runFpvSmoke() {
-    const deadline = performance.now() + 8000;
-    while (!ready && performance.now() < deadline) await new Promise((r) => setTimeout(r, 40));
-    if (state.phase === "title") dropIn();
-    const peckBay = BAYS.find((b) => b.playable === 4)!;
-    const dest = { x: peckBay.x - 3.35, z: peckBay.z + 0.85 };
-    walker.walkTo(new THREE.Vector3(dest.x, 0, dest.z));
-    for (let i = 0; i < 480; i++) {
-      walker.tick(0.05, station.colliders);
-      if (!walker.destination) break;
-    }
-    walker.lookAt(peckBay.x - 1.1, 0.18, peckBay.z - 0.35);
-    paintHud();
-    const payPrompt = refreshTarget();
-    window.dispatchEvent(new KeyboardEvent("keydown", { code: "KeyE", key: "e", bubbles: true }));
-    paintHud();
-    const afterPay = {
-      prompt: payPrompt.prompt,
-      auto: state.autochargeSignups,
-      x: walker.position.x,
-      z: walker.position.z,
-    };
-    walker.walkTo(new THREE.Vector3(WAVE_POINT.x + 0.35, 0, WAVE_POINT.z + 1.8));
-    for (let i = 0; i < 480; i++) {
-      walker.tick(0.05, station.colliders);
-      if (!walker.destination) break;
-    }
-    walker.lookAt(WAVE_POINT.x, 0.2, WAVE_POINT.z);
-    paintHud();
-    const wavePrompt = refreshTarget();
-    window.dispatchEvent(new KeyboardEvent("keydown", { code: "KeyE", key: "e", bubbles: true }));
-    paintHud();
-    if (state.phase === "shift") tick(state, 4);
-    walker.walkTo(new THREE.Vector3(peckBay.x - 3.3, 0, peckBay.z + 0.7));
-    for (let i = 0; i < 480; i++) {
-      walker.tick(0.05, station.colliders);
-      if (!walker.destination) break;
-    }
-    walker.lookAt(peckBay.x - 1.0, 0.18, peckBay.z);
-    paintHud();
-    const unplugPrompt = refreshTarget();
-    window.dispatchEvent(new KeyboardEvent("keydown", { code: "KeyE", key: "e", bubbles: true }));
-    paintHud();
-    walker.walkTo(new THREE.Vector3(-24.0, 0, -10.4));
-    const westCancelled = walker.destination == null;
-    return {
-      prompt: afterPay.prompt,
-      objective: payPrompt.objective,
-      auto: state.autochargeSignups,
-      wave: state.queueWaves,
-      zip: state.sessionsDone,
-      wavePrompt: wavePrompt.prompt,
-      unplugPrompt: unplugPrompt.prompt,
-      x: afterPay.x,
-      z: afterPay.z,
-      playable: inPlayableVolume(walker.position.x, walker.position.z),
-      westCancelled,
-    };
   },
   advance(dtMin: number) {
     if (state.phase === "shift") tick(state, dtMin);

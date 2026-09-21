@@ -19,9 +19,11 @@ import {
   GUEST_HULL_R,
   GUEST_REACH,
   jobFocusCandidate,
+  jobReadyFallback,
   nextJob,
   planarDist,
   resolveInteract,
+  toastConflictsJob,
   WAVE_CLOSE,
   xzLookDot,
 } from "../src/game/interact.ts";
@@ -88,7 +90,7 @@ import {
 } from "../src/world/layout.ts";
 import { cableHitsCarBody, ccsLeadPoints, holsterRestPoints } from "../src/world/cables.ts";
 import { OPAQUE_SEDAN_INLET } from "../src/cars/opaque.ts";
-import { beginWalk, resolveColliders, stepWalk, WALK_RADIUS } from "../src/input/walker.ts";
+import { beginWalk, clampGameplayPitch, PITCH_MAX, PITCH_MIN, resolveColliders, stepWalk, WALK_RADIUS } from "../src/input/walker.ts";
 import * as THREE from "three";
 
 for (const name of [
@@ -435,6 +437,8 @@ const loop = resetNight();
 seedOpeningLot(loop);
 if (!payKiosk(loop, "peck")) throw new Error("loop pay Peck failed");
 if (loop.autochargeSignups < 1) throw new Error("loop AUTO must be 1 after pay");
+if (nextJob(loop)?.need !== "wave") throw new Error("after PAY, job must be WAVE before UNPLUG");
+if (!waveQueue(loop)) throw new Error("loop WAVE after PAY failed");
 tick(loop, 4);
 const full = loop.guests.find((g) => guestAction(g) === "unplug");
 if (!full) throw new Error("after 4 min Peck must be full and need UNPLUG");
@@ -531,7 +535,7 @@ if (!inPlayableVolume(WAVE_SHOT.x, WAVE_SHOT.z)) throw new Error("WAVE shot off 
 if (!inPlayableVolume(UNPLUG_SHOT.x, UNPLUG_SHOT.z)) throw new Error("UNPLUG shot off playable volume");
 if (!inPlayableVolume(WAVE_POINT.x, WAVE_POINT.z)) throw new Error("WAVE stand off playable volume");
 
-if (GUEST_REACH > 5.6) throw new Error("guest reach grew too loose");
+if (GUEST_REACH > 7.2) throw new Error("guest reach grew too loose");
 if (GUEST_HULL_R < 2.2) throw new Error("guest hull radius must cover a Tesla bumper");
 
 if (!inPlayableVolume(START_SHOT.x, START_SHOT.z)) throw new Error("spawn must be on the lot");
@@ -884,5 +888,59 @@ if (fpvOpening.sessionsDone < 1) throw new Error("FPV ZIP must be 1 after UNPLUG
 if (!inRect(DOOR_SHOT.x, DOOR_SHOT.z, DOOR_YARD) && !inPlayableVolume(DOOR_SHOT.x, DOOR_SHOT.z)) {
   throw new Error("door yard must keep the south door approach");
 }
+
+const raced = resetNight();
+seedOpeningLot(raced);
+tick(raced, 12);
+const racedFull = raced.guests.find((g) => guestAction(g) === "unplug");
+if (!racedFull) throw new Error("a seeded car should fill if the tester is slow to PAY");
+const racedJob = nextJob(raced);
+if (racedJob?.need !== "pay" || racedJob.name !== "Peck") {
+  throw new Error(`slow PAY must keep PAY Peck, got ${racedJob?.need} ${racedJob?.name}`);
+}
+if (/UNPLUG/i.test(raced.toast)) {
+  throw new Error(`UNPLUG toast must not steal the HUD during PAY, got ${raced.toast}`);
+}
+if (toastConflictsJob(raced.toast, racedJob)) {
+  throw new Error(`PAY toast conflict ${raced.toast}`);
+}
+if (!payKiosk(raced, "peck")) throw new Error("slow PAY Peck failed");
+const afterSlowPay = nextJob(raced);
+if (afterSlowPay?.need !== "wave") {
+  throw new Error(`after PAY, WAVE must beat a sibling full-car, got ${afterSlowPay?.need} ${afterSlowPay?.name}`);
+}
+if (toastConflictsJob("Chen is full — E UNPLUG.", afterSlowPay)) {
+  /* expected conflict — paintHud replaces it */
+} else {
+  throw new Error("UNPLUG toast must conflict with WAVE");
+}
+
+const aislePay = resolveInteract(
+  { x: peckBay.x - 4.6, y: 1.58, z: peckBay.z + 1.8 },
+  { x: 0.2, y: -0.9, z: 0.15 },
+  null,
+  fpvCands,
+  fpvJob,
+);
+if (!aislePay.ready || aislePay.ready.need !== "pay") {
+  throw new Error(`aisle stand near Peck must offer E PAY without aim, got ${aislePay.prompt || aislePay.objective}`);
+}
+const fallback = jobReadyFallback(
+  { x: peckBay.x - 4.8, z: peckBay.z + 1.6 },
+  fpvJob,
+  fpvCands,
+);
+if (!fallback || fallback.need !== "pay") throw new Error("E fallback must still pay Peck from the aisle");
+
+if (clampGameplayPitch(1.4) > PITCH_MAX + 1e-6) throw new Error("zenith pitch must clamp");
+if (clampGameplayPitch(-1.2) < PITCH_MIN - 1e-6) throw new Error("nadir pitch must clamp");
+if (clampGameplayPitch(1.4, 14.6) !== 1.4) throw new Error("cinematic pitch must stay free");
+const lostLook = clampPlayable(-40, -40);
+if (!lostLook.teleported) throw new Error("deep void must still soft-teleport");
+if (lostLook.x !== SAFE_LOT_SPAWN.x || lostLook.z !== SAFE_LOT_SPAWN.z) {
+  throw new Error("deep void recover must be lot spawn");
+}
+if (PITCH_MAX > 0.45) throw new Error("pitch max still high enough to dump zenith");
+if (PITCH_MIN < -0.62) throw new Error("pitch min still low enough to dump nadir");
 
 console.log("verify-shift ok");

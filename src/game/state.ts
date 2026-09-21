@@ -52,6 +52,8 @@ export interface GameState {
   fullAlertId: string | null;
   /** After a zip-out, WAVE the queue before the next UNPLUG so the loop can finish. */
   justUnplugged: boolean;
+  /** After PAY, WAVE the aisle before a sibling full-car can steal E. */
+  justPaid: boolean;
 }
 
 export function clockLabel(timeMin: number): string {

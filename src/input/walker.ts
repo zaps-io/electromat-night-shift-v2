@@ -2,6 +2,14 @@ import * as THREE from "three";
 import { clampPlayable, inPlayableVolume, playableWalkPath, segmentPlayable } from "../world/layout";
 
 export const WALK_RADIUS = 0.34;
+/** Gameplay look — zenith / nadir dump the lot into a black void. */
+export const PITCH_MIN = -0.52;
+export const PITCH_MAX = 0.38;
+
+export function clampGameplayPitch(pitch: number, eyeY = 1.64): number {
+  if (eyeY > 3.2) return pitch;
+  return THREE.MathUtils.clamp(pitch, PITCH_MIN, PITCH_MAX);
+}
 
 export type WalkStep = {
   x: number;
@@ -145,7 +153,8 @@ export class Walker {
     document.addEventListener("mousemove", (e) => {
       if (!this.locked) return;
       this.yaw -= e.movementX * 0.0022;
-      this.pitch = THREE.MathUtils.clamp(this.pitch - e.movementY * 0.0022, -1.15, 1.15);
+      this.pitch -= e.movementY * 0.0022;
+      this.applyPitch();
     });
   }
 
@@ -202,6 +211,7 @@ export class Walker {
     this.look.set(x, y, z).sub(this.position);
     this.yaw = Math.atan2(-this.look.x, -this.look.z);
     this.pitch = Math.atan2(this.look.y, Math.hypot(this.look.x, this.look.z));
+    this.applyPitch();
     this.sync();
   }
 
@@ -210,7 +220,10 @@ export class Walker {
     this.yaw = yaw;
     this.pitch = pitch;
     this.clearWalk();
-    if (eyeY <= 3.2) this.applyPlayable();
+    if (eyeY <= 3.2) {
+      this.applyPlayable();
+      this.applyPitch();
+    }
     this.sync();
   }
 
@@ -262,6 +275,7 @@ export class Walker {
     } else {
       this.confine(colliders);
     }
+    this.applyPitch();
     this.sync();
   }
 
@@ -286,9 +300,13 @@ export class Walker {
   /** Soft-recover look when a walk ends facing the west void or a canopy slab. */
   keepLookSafe(): void {
     if (this.position.y > 3.2) return;
+    this.applyPitch();
     const lookX = -Math.sin(this.yaw);
-    const westVoid = this.position.x < -13.2 && lookX < -0.42;
-    if (westVoid) {
+    const lookZ = -Math.cos(this.yaw);
+    const westVoid = this.position.x < -12.6 && lookX < -0.28;
+    const southVoid = this.position.z < -20.4 && lookZ < -0.5;
+    const northVoid = this.position.z > 15.8 && lookZ > 0.5;
+    if (westVoid || southVoid || northVoid) {
       this.lookAtLot();
       return;
     }
@@ -297,7 +315,13 @@ export class Walker {
 
   lookAtLot(): void {
     if (this.position.y > 3.2) return;
-    this.lookAt(1.6, 1.05, -3.2);
+    this.lookAt(1.6, 1.2, -3.2);
+    this.pitch = THREE.MathUtils.clamp(this.pitch, -0.1, 0.1);
+    this.sync();
+  }
+
+  applyPitch(): void {
+    this.pitch = clampGameplayPitch(this.pitch, this.position.y);
   }
 
   private sync(): void {

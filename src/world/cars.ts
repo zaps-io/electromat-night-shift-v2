@@ -11,6 +11,7 @@ import {
 } from "../cars/opaque";
 import type { GameState, Guest, HullKind } from "../game/state";
 import { arrivedGuests, guestAction } from "../game/shift";
+import { jobNeedLocked, nextJob } from "../game/interact";
 import {
   BAYS,
   LEFT_EAST_CAR_X,
@@ -690,7 +691,7 @@ export function spawnCar(guest: Guest): CarView {
   return finishCar(root, guest, inletByKind[kind]);
 }
 
-export function placeGuest(view: CarView, guest: Guest, now: number): void {
+export function placeGuest(view: CarView, guest: Guest, now: number, state?: GameState): void {
   if (guest.assignedBay != null) {
     const bay = BAYS[guest.assignedBay - 1];
     view.root.position.set(bay.x, 0, bay.z);
@@ -704,7 +705,14 @@ export function placeGuest(view: CarView, guest: Guest, now: number): void {
   }
   const need = guestAction(guest);
   const onCharge = guest.plugged && guest.authorized && guest.delivered < guest.targetKwh && !guest.served;
-  view.attention.visible = need === "talk" || need === "park" || need === "plug" || need === "pay" || need === "unplug";
+  const showNeed = need === "talk" || need === "park" || need === "plug" || need === "pay" || need === "unplug";
+  const job = state ? nextJob(state) : null;
+  if (jobNeedLocked(job)) {
+    if (job?.need === "wave") view.attention.visible = false;
+    else view.attention.visible = showNeed && need === job?.need && (job.guestId == null || guest.id === job.guestId);
+  } else {
+    view.attention.visible = showNeed;
+  }
   view.battery.visible = onCharge;
   view.cable.visible = guest.plugged && !guest.served;
   view.portGlow.visible = guest.plugged && !guest.served;
@@ -731,6 +739,6 @@ export function syncCars(map: Map<string, CarView>, scene: THREE.Scene, state: G
       map.set(guest.id, view);
       scene.add(view.root);
     }
-    placeGuest(view, guest, now);
+    placeGuest(view, guest, now, state);
   }
 }
