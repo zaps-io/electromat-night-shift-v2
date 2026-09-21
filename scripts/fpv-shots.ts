@@ -54,9 +54,10 @@ async function main(): Promise<void> {
     await page.screenshot({ path: `${OUT}/fpv_e_pay_peck.png` });
     if (!pay.prompt.includes("PAY")) throw new Error(`PAY shot missing prompt: ${pay.prompt}`);
 
+    await page.mouse.click(640, 400);
+    await page.keyboard.press("e");
     const auto = await page.evaluate(() => {
       const api = (window as unknown as { __electromat: { state: { autochargeSignups: number } } }).__electromat;
-      window.dispatchEvent(new KeyboardEvent("keydown", { code: "KeyE", key: "e", bubbles: true }));
       return { auto: api.state.autochargeSignups };
     });
     await page.screenshot({ path: `${OUT}/fpv_auto1_after_pay.png` });

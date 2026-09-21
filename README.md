@@ -57,7 +57,7 @@ Private-repo Pages also needs a GitHub plan that includes Pages (org GitHub Team
    2. **At the car:** walk to the dark Tesla on the **right island** (cyan arrow + amber `!`). Objective and prompt both read `PAY · PECK`. Press **E**. Toast `Paid — Peck.`
    3. **At the kiosk (operator path):** after any first-visit **E PLUG**, walk **west** (left of the left canopy) or to the lounge south door. Both stands have a floating **PAY** badge; the lounge stand is a taller totem with a pole flag. When the prompt reads `E PAY · NAME`, **E** pays that guest.
    4. Payment is not gated on a full battery. Paying Peck (car or PAY stand) enrolls AutoCharge — HUD **AUTO** goes to 1 and they zip sooner. Later queue cars: talk → park → plug → same pay, or WAVE from the aisle.
-8. When the battery finishes, toast `NAME is full — E UNPLUG`. Objective, cyan target, and E all stay on that car. Walk to it (not the WAVE stand) and press **E**. HUD **ZIP** increments.
+8. When the **current job** is UNPLUG, toast `NAME is full — E UNPLUG`. Objective, cyan target, and E all stay on that car. A sibling full-car never overwrites PAY / WAVE. Walk to the marked car and press **E**. HUD **ZIP** increments.
 9. Cyan battery icons mark occupancy. Three walkaways end the night. 04:00 grades the shift.
 
 Site line: **DRIVE IN. CHARGE UP. ZIP OUT.**

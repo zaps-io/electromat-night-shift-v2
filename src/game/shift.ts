@@ -26,6 +26,7 @@ export function createState(): GameState {
     gradeLine: "",
     fullAlertId: null,
     justUnplugged: false,
+    justPaid: false,
   };
 }
 
@@ -86,6 +87,7 @@ export function waveQueue(s: GameState, bayId?: number): boolean {
   if (!parkInBay(s, g.id, bayId)) return false;
   s.queueWaves += 1;
   s.justUnplugged = false;
+  s.justPaid = false;
   speak(s, `${g.name} — bay ${g.assignedBay}. Queue moving.`);
   return true;
 }
@@ -180,6 +182,7 @@ export function payKiosk(s: GameState, guestId: string): boolean {
     g.auth = "auto";
     s.autochargeSignups += 1;
   }
+  s.justPaid = true;
   speak(s, `Paid — ${g.name}. AutoCharge on — they zip sooner.`);
   return true;
 }
@@ -232,14 +235,24 @@ export function tick(s: GameState, dtMin: number): void {
     const kw = g.enrolled ? 7.4 : 4.8;
     g.delivered = Math.min(g.targetKwh, g.delivered + kw * dtMin);
     if (g.delivered >= g.targetKwh) {
-      if (!s.fullAlertId) {
-        s.fullAlertId = g.id;
-        speak(s, `${g.name} is full — E UNPLUG.`, 10);
-      }
+      if (!s.fullAlertId) s.fullAlertId = g.id;
     }
   }
 
-  if (s.toastUntil <= s.timeMin && Math.floor(s.timeMin) % 28 === 0) {
+  const payPending = pendingPayGuest(s);
+  const unplugNow =
+    !payPending &&
+    !s.justPaid &&
+    !s.justUnplugged &&
+    (s.fullAlertId ? guestById(s, s.fullAlertId) : arrivedGuests(s).find((g) => guestAction(g) === "unplug"));
+  if (unplugNow && guestAction(unplugNow) === "unplug") {
+    if (!/UNPLUG/i.test(s.toast) || s.toastUntil <= s.timeMin) {
+      speak(s, `${unplugNow.name} is full — E UNPLUG.`, 10);
+    }
+  }
+
+  const flavorOk = !payPending && !s.justPaid && !s.justUnplugged && !unplugNow;
+  if (flavorOk && s.toastUntil <= s.timeMin && Math.floor(s.timeMin) % 28 === 0) {
     const i = Math.floor((s.timeMin - SHIFT_START) / 28) % MARKET.length;
     speak(s, MARKET[i], 7);
   }

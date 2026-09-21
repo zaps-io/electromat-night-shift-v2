@@ -31,17 +31,19 @@ export interface InteractResult {
   objective: string;
 }
 
-export const GUEST_REACH = 5.0;
-export const GUEST_CLOSE = 3.8;
+export const GUEST_REACH = 6.6;
+export const GUEST_CLOSE = 5.2;
 /** Half-length of a Model 3 — FPV stands at the bumper, not the bay center. */
 export const GUEST_HULL_R = 2.4;
-export const KIOSK_CLOSE = 4.8;
-export const WAVE_CLOSE = 4.4;
+export const KIOSK_CLOSE = 5.4;
+export const WAVE_CLOSE = 4.6;
 export const BAY_REACH = 3.8;
 export const BAY_CLOSE = 2.2;
 export const AIM_DOT = 0.58;
 /** XZ facing — ignore pitch so looking at the asphalt near a car still counts. */
 export const AIM_DOT_LOOSE = 0.12;
+/** Locked PAY / UNPLUG / WAVE: any XZ facing while in reach still shows E. */
+export const AIM_DOT_JOB = -0.45;
 
 export function xzDist(a: Vec3, b: Vec3): number {
   return Math.hypot(a.x - b.x, a.z - b.z);
@@ -110,7 +112,7 @@ export function nextJob(state: GameState): { need: InteractNeed; name: string; g
   if (auto) return { need: "auto", name: auto.name, guestId: auto.id };
   const queued = nextQueueGuest(state);
   const openBay = state.bays.some((b) => !b.guestId);
-  if (state.justUnplugged && queued && openBay) {
+  if ((state.justUnplugged || state.justPaid) && queued && openBay) {
     return { need: "wave", name: queued.name, guestId: queued.id };
   }
   const unplugs = live.filter((g) => guestAction(g) === "unplug");
@@ -137,7 +139,13 @@ export function jobHint(job: { need: InteractNeed; name: string } | null): strin
   return jobLabel(job.need, job.name);
 }
 
-function usable(c: InteractCandidate, eye: Vec3, look: Vec3, aimedId: string | null): { ok: boolean; aimed: boolean; dist: number; dot: number } {
+function usable(
+  c: InteractCandidate,
+  eye: Vec3,
+  look: Vec3,
+  aimedId: string | null,
+  job: { need: InteractNeed } | null,
+): { ok: boolean; aimed: boolean; dist: number; dot: number } {
   const dist = planarDist(eye, c);
   const dot = lookDot(eye, look, { x: c.x, y: c.y, z: c.z });
   const facingDot = xzLookDot(eye, look, { x: c.x, y: c.y, z: c.z });
@@ -145,9 +153,47 @@ function usable(c: InteractCandidate, eye: Vec3, look: Vec3, aimedId: string | n
   const aimed = ray || dot >= AIM_DOT;
   const close = dist <= c.close;
   const inReach = dist <= c.reach;
-  const facing = ray || facingDot >= AIM_DOT_LOOSE;
-  const ok = inReach && (close || aimed || facing);
+  const locked = jobNeedLocked(job) && c.need === job?.need;
+  const facing = ray || facingDot >= (locked ? AIM_DOT_JOB : AIM_DOT_LOOSE);
+  const ok = inReach && (close || aimed || facing || locked);
   return { ok, aimed: aimed && inReach, dist, dot };
+}
+
+/** True when toast names a different live action than the current job. */
+export function toastConflictsJob(toast: string, job: { need: InteractNeed; name: string } | null): boolean {
+  if (!toast || !job) return false;
+  const t = toast.toUpperCase();
+  if (
+    t.startsWith("PAID") ||
+    t.includes("ZIPPED") ||
+    t.includes("QUEUE MOVING") ||
+    t.includes("AUTOCHARGE ON") ||
+    t.includes("WALKED") ||
+    t.includes("STILL CHARGING") ||
+    t.includes("NO OPEN BAY") ||
+    t.includes("QUEUE IS CLEAR")
+  ) {
+    return false;
+  }
+  const need = job.need.toUpperCase();
+  if (t.includes("UNPLUG") && need !== "UNPLUG") return true;
+  if (/\bWAVE\b/.test(t) && need !== "WAVE") return true;
+  if (t.includes("PAY") && need !== "PAY") return true;
+  return false;
+}
+
+/** E fallback: locked job target is in reach even if the aim cone missed. */
+export function jobReadyFallback(
+  eye: Vec3,
+  job: { need: InteractNeed; guestId?: string } | null,
+  candidates: InteractCandidate[],
+): InteractCandidate | null {
+  if (!job || !jobNeedLocked(job)) return null;
+  const focus = jobFocusCandidate(job, candidates);
+  if (!focus || !matchesJob(focus, job)) return null;
+  const slack = focus.kind === "guest" ? 8.0 : 3.2;
+  if (planarDist(eye, focus) > focus.reach + slack) return null;
+  return focus;
 }
 
 /** While PAY is the live job, talk / wave / park cannot steal E, the prompt, or the objective. */
@@ -219,7 +265,7 @@ export function resolveInteract(
   };
   if (!candidates.length) return empty;
 
-  const scored = candidates.map((c) => ({ c, ...usable(c, eye, look, aimedId) }));
+  const scored = candidates.map((c) => ({ c, ...usable(c, eye, look, aimedId, job) }));
   const liveAll = scored.filter((s) => s.ok);
   const live = liveAll.filter((s) => matchesJob(s.c, job));
   const aimedHit = live.find((s) => s.c.id === aimedId) ?? live.filter((s) => s.aimed).sort((a, b) => a.dist - b.dist)[0];
