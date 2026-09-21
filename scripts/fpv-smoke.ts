@@ -367,16 +367,18 @@ async function main(): Promise<void> {
         const api = (window as unknown as { __electromat: { lookAt: (x: number, y: number, z: number) => void; position: { x: number; z: number } } }).__electromat;
         api.lookAt(api.position.x, 80, api.position.z + 0.15);
       });
+      await new Promise((r) => setTimeout(r, 250));
       const sky = await hud(page);
-      if (sky.pitch > 0.28) throw new Error(`zenith look not clamped, pitch=${sky.pitch}`);
+      if (sky.pitch > 0.2) throw new Error(`zenith look not clamped, pitch=${sky.pitch}`);
       if (!sky.playable) throw new Error("look-up left playable volume");
       await page.screenshot({ path: `${OUT}/fpv_look_up_clamped.png` });
       await page.evaluate(() => {
         const api = (window as unknown as { __electromat: { lookAt: (x: number, y: number, z: number) => void; position: { x: number; z: number } } }).__electromat;
         api.lookAt(api.position.x, -40, api.position.z + 0.15);
       });
+      await new Promise((r) => setTimeout(r, 250));
       const down = await hud(page);
-      if (down.pitch < -0.38) throw new Error(`nadir look not clamped, pitch=${down.pitch}`);
+      if (down.pitch < -0.22) throw new Error(`nadir look not clamped, pitch=${down.pitch}`);
       if (!down.playable) throw new Error("look-down left playable volume");
       await page.screenshot({ path: `${OUT}/fpv_look_down_clamped.png` });
 
@@ -486,7 +488,7 @@ async function main(): Promise<void> {
     if ((result.loungeZ ?? -99) < DOOR_IN_SHOT.z - 1.6) {
       throw new Error(`expected lounge interior after door walk-to, z=${result.loungeZ}`);
     }
-    if ((result.downPitch ?? 0) < -0.38) throw new Error(`look-down still dumps, pitch=${result.downPitch}`);
+    if ((result.downPitch ?? 0) < -0.22) throw new Error(`look-down still dumps, pitch=${result.downPitch}`);
     console.log("fpv-smoke ok", result);
   } finally {
     await server.close();

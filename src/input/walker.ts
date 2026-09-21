@@ -11,9 +11,9 @@ import {
 } from "../world/layout";
 
 export const WALK_RADIUS = 0.34;
-/** Gameplay look — keep the lot horizon in frame (no zenith / asphalt dump). */
-export const PITCH_MIN = -0.32;
-export const PITCH_MAX = 0.22;
+/** Gameplay look — keep the lot horizon in the frame (no zenith / asphalt dump). */
+export const PITCH_MIN = -0.18;
+export const PITCH_MAX = 0.16;
 
 export function clampGameplayPitch(pitch: number, eyeY = GAMEPLAY_EYE_Y): number {
   if (eyeY > GAMEPLAY_SKY_Y) return pitch;
@@ -329,7 +329,11 @@ export class Walker {
       this.lookAtLot();
       return;
     }
-    if (!this.locked && this.pitch > 0.12) this.lookAtLot();
+    if (this.pitch <= PITCH_MIN + 0.01 || this.pitch >= PITCH_MAX - 0.01) {
+      this.lookAtLot();
+      return;
+    }
+    if (!this.locked && this.pitch > 0.08) this.lookAtLot();
   }
 
   lookAtLot(): void {

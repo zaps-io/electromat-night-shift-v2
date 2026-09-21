@@ -984,8 +984,8 @@ if (!lostLook.teleported) throw new Error("deep void must still soft-teleport");
 if (lostLook.x !== SAFE_LOT_SPAWN.x || lostLook.z !== SAFE_LOT_SPAWN.z) {
   throw new Error("deep void recover must be lot spawn");
 }
-if (PITCH_MAX > 0.28) throw new Error("pitch max still high enough to hide the horizon");
-if (PITCH_MIN < -0.38) throw new Error("pitch min still low enough to dump asphalt");
+if (PITCH_MAX > 0.2) throw new Error("pitch max still high enough to hide the horizon");
+if (PITCH_MIN < -0.22) throw new Error("pitch min still low enough to dump asphalt");
 const buried = recoverPlayableCamera(START_SHOT.x, 0.12, START_SHOT.z);
 if (!buried.teleported || buried.y < 1.5) throw new Error("underground camera must soft-recover to eye height");
 if (!inPlayableVolume(buried.x, buried.z)) throw new Error("underground recover left playable volume");
