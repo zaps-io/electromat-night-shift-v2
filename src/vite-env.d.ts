@@ -3,7 +3,7 @@
 interface ElectromatApi {
   startNight: () => void;
   act: () => void;
-  place: (x: number, z: number, yaw?: number, pitch?: number, eyeY?: number) => void;
+  place: (x: number, z: number, yaw?: number, pitch?: number, eyeY?: number, fov?: number) => void;
   lookAt: (x: number, y: number, z: number) => void;
   position: { x: number; y: number; z: number };
   pitch: number;

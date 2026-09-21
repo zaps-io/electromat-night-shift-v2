@@ -441,9 +441,9 @@ function addInterior(g: THREE.Group, W: number, D: number, H: number): THREE.Box
     g.add(box(0.16, 0.22, 0.12, mat(c, { roughness: 0.38 }), x, 1.16, z));
   }
 
-  const boardBezel = box(2.15, 0.92, 0.08, charcoal, 2.35, 2.22, D / 2 - 0.22);
-  const board = new THREE.Mesh(new THREE.PlaneGeometry(2.05, 0.86), status);
-  board.position.set(2.35, 2.22, D / 2 - 0.32);
+  const boardBezel = box(2.55, 1.08, 0.08, charcoal, 2.35, 2.28, D / 2 - 0.22);
+  const board = new THREE.Mesh(new THREE.PlaneGeometry(2.42, 1.0), status);
+  board.position.set(2.35, 2.28, D / 2 - 0.32);
   board.rotation.y = Math.PI;
   const menuWall = new THREE.Mesh(new THREE.PlaneGeometry(0.72, 0.9), menu);
   menuWall.position.set(-3.45, 1.95, -5.95);
@@ -760,6 +760,18 @@ export function addPavilion(root: THREE.Group): THREE.Box3[] {
   roof.position.y = H + 0.1;
   roof.castShadow = true;
   g.add(roof);
+  const cornerR = 0.38;
+  for (const [sx, sz] of [
+    [-1, -1],
+    [1, -1],
+    [-1, 1],
+    [1, 1],
+  ] as const) {
+    const drum = new THREE.Mesh(new THREE.CylinderGeometry(cornerR, cornerR, H - 0.06, 18), wall);
+    drum.position.set(sx * (W * 0.5 - cornerR + 0.04), H * 0.5, sz * (D * 0.5 - cornerR + 0.04));
+    drum.castShadow = true;
+    g.add(drum);
+  }
 
   root.add(g);
   addPatio(root);

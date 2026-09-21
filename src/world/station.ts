@@ -178,9 +178,9 @@ function addCanopyAt(root: THREE.Group, cx: number, cz: number, w: number, d: nu
     roughnessMap: brush.rough,
     normalMap: brush.normal,
     normalScale: new THREE.Vector2(0.7, 1.8),
-    metalness: 0.78,
-    roughness: 0.32,
-    envMapIntensity: 0.62,
+    metalness: 0.7,
+    roughness: 0.38,
+    envMapIntensity: 0.4,
   });
   const panels = creamPanels();
   const fasciaPlate = mat(0xf2ebe0, {
@@ -287,7 +287,7 @@ function addCanopyAt(root: THREE.Group, cx: number, cz: number, w: number, d: nu
   const lamp = new THREE.MeshStandardMaterial({
     color: 0xfff4dc,
     emissive: 0xffd090,
-    emissiveIntensity: 0.95,
+    emissiveIntensity: 1.15,
     roughness: 0.42,
     metalness: 0.02,
   });

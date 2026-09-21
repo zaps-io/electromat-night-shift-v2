@@ -3,8 +3,8 @@ import { existsSync, mkdirSync } from "node:fs";
 import {
   BOARD_SHOT,
   COFFER_SHOT,
+  LOT_HERO_SHOT,
   START_SHOT,
-  WIDE_SHOT,
   ZEUS_SHOT,
 } from "../src/world/layout.ts";
 
@@ -62,16 +62,7 @@ async function main(): Promise<void> {
     await new Promise((r) => setTimeout(r, 1200));
 
     const shots: Shot[] = [
-      {
-        file: "lot_wide_apron.png",
-        x: -16.8,
-        z: -21.4,
-        eyeY: 7.6,
-        yaw: 0.08,
-        pitch: -0.32,
-        lookAt: { x: 1.4, y: 2.4, z: 1.6 },
-        fov: 50,
-      },
+      { file: "lot_wide_apron.png", ...LOT_HERO_SHOT },
       { file: "canopy_underside_coffers.png", ...COFFER_SHOT },
       { file: "lounge_status_board.png", ...BOARD_SHOT },
       { file: "slim_zeus_close.png", ...ZEUS_SHOT },
@@ -82,12 +73,12 @@ async function main(): Promise<void> {
         const api = (
           window as unknown as {
             __electromat: {
-              place: (x: number, z: number, yaw?: number, pitch?: number, eyeY?: number) => void;
+              place: (x: number, z: number, yaw?: number, pitch?: number, eyeY?: number, fov?: number) => void;
               lookAt: (x: number, y: number, z: number) => void;
             };
           }
         ).__electromat;
-        api.place(s.x, s.z, s.yaw, s.pitch, s.eyeY);
+        api.place(s.x, s.z, s.yaw, s.pitch, s.eyeY, s.fov);
         api.lookAt(s.lookAt.x, s.lookAt.y, s.lookAt.z);
       }, shot);
       await new Promise((r) => setTimeout(r, 500));

@@ -729,36 +729,48 @@ export const CANOPY_SHOT = {
   fov: 38,
 } as const;
 
-/** Under the left canopy looking up at warm coffers — cinematic eye so pitch clamp stays off. */
+/** Street-level apron: pavilion + thin floating canopies. eyeY > sky so place() stays off-lot. */
+export const LOT_HERO_SHOT = {
+  x: -16.4,
+  z: -17.15,
+  eyeY: 3.38,
+  yaw: 0.22,
+  pitch: -0.08,
+  lookAt: { x: -9.6, y: 2.28, z: 1.55 },
+  fov: 48,
+} as const;
+
+/** Under the left canopy — cinematic eye so pitch clamp stays off. Coffers + pavilion. */
 export const COFFER_SHOT = {
-  x: LEFT_CANOPY_X + 2.55,
-  z: -4.35,
-  eyeY: 3.55,
-  yaw: 0.18,
-  pitch: -0.42,
-  lookAt: { x: LEFT_CANOPY_X - 0.4, y: 4.85, z: 0.15 },
-  fov: 56,
+  x: LEFT_CANOPY_X + 3.35,
+  z: -6.55,
+  eyeY: 3.48,
+  yaw: 0.55,
+  pitch: 0.22,
+  lookAt: { x: LEFT_CANOPY_X - 4.2, y: 4.22, z: 2.15 },
+  fov: 58,
 } as const;
 
-/** Lounge status board — CHARGE / RELAX / DEPART amber on charcoal. */
+/** Lounge sanctuary + CHARGE / RELAX / DEPART board on the north wall. */
 export const BOARD_SHOT = {
-  x: -21.05,
-  z: 6.55,
-  eyeY: 1.62,
-  yaw: 0.02,
-  pitch: 0.12,
-  lookAt: { x: -21.05, y: 2.22, z: 9.55 },
-  fov: 46,
+  x: -23.25,
+  z: 1.85,
+  eyeY: 1.58,
+  yaw: 0.18,
+  pitch: 0.08,
+  lookAt: { x: -20.85, y: 1.92, z: 7.85 },
+  fov: 58,
 } as const;
 
+/** Slim Zeus 3/4: alum body, charcoal recess, twin holsters, cyan ring, stall badge. */
 export const ZEUS_SHOT = {
-  x: -6.05,
-  z: -3.92,
-  eyeY: 1.28,
-  yaw: 1.52,
-  pitch: 0.04,
-  lookAt: { x: -8.0, y: 1.18, z: -3.9 },
-  fov: 40,
+  x: -2.35,
+  z: -2.55,
+  eyeY: 1.22,
+  yaw: 0.85,
+  pitch: -0.05,
+  lookAt: { x: -7.85, y: 0.86, z: -3.85 },
+  fov: 38,
 } as const;
 
 /** Inside the lounge, sofa in frame, looking out the east storefront toward the lot. */

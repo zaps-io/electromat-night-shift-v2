@@ -130,7 +130,8 @@ body {
   top: 1.1rem;
   right: 1.2rem;
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.22em;
+  letter-spacing: 0.28em;
+  font-weight: 600;
   color: var(--amber);
 }
 
@@ -182,7 +183,7 @@ body {
   bottom: 4.55rem;
   left: 50%;
   transform: translateX(-50%);
-  letter-spacing: 0.14em;
+  letter-spacing: 0.08em;
   color: var(--cream);
   text-align: center;
   max-width: 40rem;
@@ -194,7 +195,8 @@ body {
   bottom: 2.55rem;
   left: 50%;
   transform: translateX(-50%);
-  letter-spacing: 0.18em;
+  letter-spacing: 0.12em;
+  font-weight: 600;
   color: var(--amber);
 }
 

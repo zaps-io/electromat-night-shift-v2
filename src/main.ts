@@ -743,9 +743,8 @@ window.__electromat = {
   },
   startNight: dropIn,
   act,
-  place(x: number, z: number, yaw = 0, pitch = 0, eyeY = 1.64) {
-    if (eyeY > 3.2) walker.setFov(WIDE_SHOT.fov);
-    else walker.setFov(START_SHOT.fov);
+  place(x: number, z: number, yaw = 0, pitch = 0, eyeY = 1.64, fov?: number) {
+    walker.setFov(fov ?? (eyeY > 3.2 ? WIDE_SHOT.fov : START_SHOT.fov));
     walker.place(x, z, yaw, pitch, eyeY);
   },
   lookAt(x: number, y: number, z: number) {
