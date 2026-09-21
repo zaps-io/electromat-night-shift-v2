@@ -5,9 +5,12 @@ import { clockParts, MS_PER_GAME_MIN } from "./game/state";
 import {
   earlyShift,
   enrollAuto,
+  gradeStars,
   greetDriver,
   guestAction,
+  HEAT_CAP,
   nudgePay,
+  optionalObjective,
   parkInBay,
   payKiosk,
   nextQueueGuest,
@@ -20,6 +23,7 @@ import {
   startGlare,
   startLounge,
   startRush,
+  syncGrade,
   tick,
   unplugInlet,
   waitingParker,
@@ -92,10 +96,21 @@ const endEl = document.querySelector("#end")!;
 const clockPlate = document.querySelector<HTMLElement>("#clock-plate")!;
 const clockHmEl = document.querySelector("#clock-hm")!;
 const clockSecEl = document.querySelector("#clock-sec")!;
+const gradeRowEl = document.querySelector<HTMLElement>("#grade-row")!;
+const shiftGradeEl = document.querySelector<HTMLElement>("#shift-grade")!;
+const starsEl = document.querySelector("#stars")!;
+const scoreLineEl = document.querySelector<HTMLElement>("#score-line")!;
+const scoreEl = document.querySelector("#score")!;
+const streakEl = document.querySelector<HTMLElement>("#streak")!;
+const streakMulEl = document.querySelector("#streak-mul")!;
+const streakCountEl = document.querySelector("#streak-count")!;
 const metersEl = document.querySelector<HTMLElement>("#meters")!;
 const autoEl = document.querySelector("#auto")!;
 const wavesEl = document.querySelector("#waves")!;
 const zipsEl = document.querySelector("#zips")!;
+const optEl = document.querySelector<HTMLElement>("#opt")!;
+const gradeMarkEl = document.querySelector<HTMLElement>("#grade-mark")!;
+const gradeStarsEl = document.querySelector("#grade-stars")!;
 const promptEl = document.querySelector("#prompt")!;
 const doorLineEl = document.querySelector("#door-line")!;
 const objectiveEl = document.querySelector("#objective")!;
@@ -436,18 +451,39 @@ function paintHud(): void {
   hudMark?.classList.toggle("hidden", cinematic);
   titleEl.classList.toggle("hidden", live || state.phase === "grade" || state.phase === "lose");
   endEl.classList.toggle("hidden", state.phase !== "grade" && state.phase !== "lose");
-  if (state.phase === "grade" || state.phase === "lose") gradeEl.textContent = state.gradeLine;
+  syncGrade(state);
+  const stars = gradeStars(state.grade);
+  if (state.phase === "grade" || state.phase === "lose") {
+    gradeEl.textContent = state.gradeLine;
+    gradeMarkEl.textContent = state.grade;
+    gradeMarkEl.className = state.grade;
+    gradeStarsEl.textContent = stars;
+  }
   const face = clockParts(state.timeMin);
   clockHmEl.textContent = face.hm;
   clockSecEl.textContent = face.sec;
   const showClock = state.phase === "title" || (live && !cinematic);
+  const showStats = live && !cinematic;
   clockPlate.classList.toggle("hidden", !showClock);
-  metersEl.classList.toggle("hidden", !live || cinematic);
+  gradeRowEl.classList.toggle("hidden", !showStats);
+  scoreLineEl.classList.toggle("hidden", !showStats);
+  metersEl.classList.toggle("hidden", !showStats);
+  heatEl.classList.toggle("hidden", !showStats);
+  shiftGradeEl.textContent = state.grade;
+  shiftGradeEl.className = state.grade;
+  starsEl.textContent = stars;
+  scoreEl.textContent = String(state.score);
+  const streakOn = showStats && state.combo > 0;
+  streakEl.classList.toggle("hidden", !streakOn);
+  streakMulEl.textContent = `x${state.comboMul}`;
+  streakCountEl.textContent = `STREAK ${state.combo}`;
   autoEl.textContent = `AUTO ${state.autochargeSignups}`;
   wavesEl.textContent = `WAVE ${state.queueWaves}`;
   zipsEl.textContent = `ZIP ${state.sessionsDone}`;
   heatEl.textContent = pressureLabel(state);
   heatEl.classList.toggle("hot", !earlyShift(state) && state.heat >= 1);
+  optEl.textContent = showStats ? optionalObjective(state) : "";
+  optEl.classList.toggle("blown", state.heatBroke || state.heat >= HEAT_CAP);
   pips.forEach((el, i) => el.classList.toggle("off", i < state.walkaways));
   if (state.sfxCue) {
     playCue(state.sfxCue);

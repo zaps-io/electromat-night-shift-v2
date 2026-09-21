@@ -1,16 +1,21 @@
 import { readFileSync } from "node:fs";
 import {
+  COMBO_GAP,
   DISRUPT_MIN,
   EARLY_MIN,
   earlyShift,
+  gradeStars,
   greetDriver,
   guestAction,
+  HEAT_CAP,
   lotRead,
+  optionalObjective,
   parkInBay,
   payKiosk,
   pendingPayGuest,
   plugInlet,
   pressureLabel,
+  projectGrade,
   resetNight,
   RUSH_AT,
   seedOpeningLot,
@@ -44,7 +49,7 @@ import {
   WAVE_CLOSE,
   xzLookDot,
 } from "../src/game/interact.ts";
-import { clockParts, MS_PER_GAME_MIN, SHIFT_START } from "../src/game/state.ts";
+import { clockParts, MS_PER_GAME_MIN, SHIFT_END, SHIFT_START } from "../src/game/state.ts";
 import { assertOpaqueCarMaterials, glassMaterial, paintMaterial } from "../src/cars/opaque.ts";
 import {
   BAYS,
@@ -1343,6 +1348,127 @@ for (let x = -30; x <= -16.6; x += 0.5) {
 }
 if (!admitsLoungeEntry(westApproach.x, westApproach.z)) {
   throw new Error("playable west door-yard approach must still admit lounge entry");
+}
+
+if (gradeStars("A") !== "★★★★" || gradeStars("D") !== "★☆☆☆") {
+  throw new Error("grade stars must run from four to one");
+}
+
+const chain = resetNight();
+seedOpeningLot(chain);
+if (chain.grade !== "B") throw new Error(`clean opening projects B, got ${chain.grade}`);
+if (chain.combo !== 0 || chain.comboMul !== 1) throw new Error("opening streak starts cold");
+if (optionalObjective(chain) !== `OPT · HEAT UNDER ${HEAT_CAP}`) {
+  throw new Error(`standing optional should be heat, got ${optionalObjective(chain)}`);
+}
+if (nextJob(chain)?.need !== "pay") throw new Error("opening job must stay PAY");
+if (!payKiosk(chain, "peck")) throw new Error("chain pay failed");
+if (chain.combo !== 2 || chain.comboMul !== 2) {
+  throw new Error(`PAY→AUTO should show x2, got streak ${chain.combo} x${chain.comboMul}`);
+}
+if (chain.score < 6) throw new Error(`PAY→AUTO should bank score, got ${chain.score}`);
+if (chain.autochargeSignups < 1) throw new Error("chain pay must still enroll AUTO");
+if (!waveQueue(chain)) throw new Error("chain wave failed");
+if (chain.combo !== 3) throw new Error(`WAVE should extend the streak, got ${chain.combo}`);
+const chainPeck = chain.guests.find((g) => g.id === "peck")!;
+chainPeck.delivered = chainPeck.targetKwh;
+if (!unplugInlet(chain, "peck")) throw new Error("chain zip failed");
+if (chain.combo !== 4 || chain.comboMul < 3) {
+  throw new Error(`ZIP should grow the multiplier, got streak ${chain.combo} x${chain.comboMul}`);
+}
+if (chain.sessionsDone < 1) throw new Error("ZIP must still count");
+if (projectGrade(chain) !== "A") throw new Error(`clean loop projects A, got ${projectGrade(chain)}`);
+
+const idle = resetNight();
+seedOpeningLot(idle);
+if (!payKiosk(idle, "peck")) throw new Error("idle-chain pay failed");
+tick(idle, COMBO_GAP + 1);
+if (idle.combo !== 0 || idle.comboMul !== 1) throw new Error("idle gap must break the streak");
+if (idle.bestMul < 2) throw new Error("best multiplier should remember the chain");
+
+const miss = resetNight();
+seedOpeningLot(miss);
+if (!payKiosk(miss, "peck")) throw new Error("miss-chain pay failed");
+const ngMiss = miss.guests.find((g) => g.id === "ng")!;
+ngMiss.patienceMin = 0.01;
+ngMiss.arriveMin = miss.timeMin - 1;
+tick(miss, 0.2);
+if (!ngMiss.walked) throw new Error("miss setup should walk the queue");
+if (miss.combo !== 0) throw new Error("a walkaway must break the streak");
+if (projectGrade(miss) === "A" || projectGrade(miss) === "B") {
+  throw new Error(`a miss must drop the projected grade, got ${projectGrade(miss)}`);
+}
+
+const optRush = resetNight();
+seedOpeningLot(optRush);
+startRush(optRush);
+if (nextJob(optRush)?.need !== "pay") throw new Error("optional RUSH must not steal PAY");
+if (optionalObjective(optRush) !== "OPT · CLEAR RUSH") {
+  throw new Error(`rush optional line, got ${optionalObjective(optRush)}`);
+}
+if (!payKiosk(optRush, "peck")) throw new Error("rush optional pay failed");
+const scoreBeforeRush = optRush.score;
+if (!waveQueue(optRush)) throw new Error("WAVE should clear the rush");
+if (optRush.disruption) throw new Error("WAVE should end the rush");
+if (!optRush.clearedRush || optRush.score <= scoreBeforeRush) {
+  throw new Error("clearing RUSH should bank bonus score");
+}
+if (optRush.objectiveBonus < 4) throw new Error("rush bonus missing");
+
+const optLounge = resetNight();
+seedOpeningLot(optLounge);
+if (!payKiosk(optLounge, "peck")) throw new Error("lounge optional pay failed");
+startLounge(optLounge);
+if (nextJob(optLounge)?.need !== "wave") throw new Error("lounge optional must leave WAVE on E");
+if (optionalObjective(optLounge) !== "OPT · SERVE LOUNGE") {
+  throw new Error(`lounge optional line, got ${optionalObjective(optLounge)}`);
+}
+if (!waveQueue(optLounge)) throw new Error("WAVE should serve the lounge guest");
+if (!optLounge.clearedLounge || optLounge.hospitality < 1) {
+  throw new Error("serving the lounge guest should score merch and bonus");
+}
+
+const heatBlown = resetNight();
+seedOpeningLot(heatBlown);
+heatBlown.heat = HEAT_CAP;
+heatBlown.heatBroke = true;
+if (optionalObjective(heatBlown) !== "OPT · HEAT BLOWN") {
+  throw new Error(`blown heat line, got ${optionalObjective(heatBlown)}`);
+}
+if (nextJob(heatBlown)?.need !== "pay") throw new Error("HEAT must not retarget PAY");
+
+const timed = resetNight();
+seedOpeningLot(timed);
+if (!payKiosk(timed, "peck")) throw new Error("timeout pay failed");
+startRush(timed);
+if (nextJob(timed)?.need !== "wave") throw new Error("after pay the job is still WAVE during rush");
+timed.timeMin = timed.disruptionUntil;
+tick(timed, 0.05);
+if (timed.disruption) throw new Error("expired rush should clear");
+if (timed.combo !== 0) throw new Error("an expired rush must break the streak");
+if (nextJob(timed)?.need !== "wave") throw new Error("timeout must not retarget the primary job");
+
+const graded = resetNight();
+seedOpeningLot(graded);
+if (!payKiosk(graded, "peck")) throw new Error("grade pay failed");
+startLounge(graded);
+if (!waveQueue(graded)) throw new Error("grade wave failed");
+const gradedPeck = graded.guests.find((g) => g.id === "peck")!;
+gradedPeck.delivered = gradedPeck.targetKwh;
+if (!unplugInlet(graded, "peck")) throw new Error("grade zip failed");
+if (projectGrade(graded) !== "A") throw new Error(`projected grade should be A, got ${projectGrade(graded)}`);
+for (const g of graded.guests) {
+  if (!g.served) g.served = true;
+}
+graded.timeMin = SHIFT_END - 0.05;
+tick(graded, 0.1);
+if (graded.phase !== "grade") throw new Error(`04:00 should grade the shift, got ${graded.phase}`);
+if (graded.grade !== "A" || !graded.gradeLine.startsWith("A")) {
+  throw new Error(`clean throughput + merch should grade A, got ${graded.gradeLine}`);
+}
+if (!graded.heatHeld) throw new Error("HEAT under the cap should pay the end bonus");
+if (!/SCORE \d+/.test(graded.gradeLine) || !graded.gradeLine.includes("MERCH")) {
+  throw new Error(`grade line should show score and merch, got ${graded.gradeLine}`);
 }
 
 const stationPay = readFileSync(new URL("../src/world/station.ts", import.meta.url), "utf8");

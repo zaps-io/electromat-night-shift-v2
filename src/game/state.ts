@@ -12,6 +12,10 @@ export type Disruption = "" | "rush" | "lounge" | "glare";
 /** Stall read: unpaid / charging / full / departing. Idle = empty bay. */
 export type LotRead = "idle" | "unpaid" | "charging" | "full" | "departing";
 export type SfxCue = "" | LotRead | "stamp" | "rush" | "lounge" | "glare" | "relax";
+/** End-of-shift letter. Live HUD shows the same scale as a projection. */
+export type ShiftGrade = "A" | "B" | "C" | "D";
+/** Attendant chain. PAY enrolls AUTO; WAVE and ZIP continue it. */
+export type ChainStep = "pay" | "auto" | "wave" | "zip";
 
 export interface Guest {
   id: string;
@@ -71,6 +75,26 @@ export interface GameState {
   relaxUntil: number;
   /** Late-shift score pressure. Early minute stays at 0. */
   heat: number;
+  /** Banked points. Chain steps multiply by the live combo. */
+  score: number;
+  /** Live projection during the shift; final letter at 04:00 or on a loss. */
+  grade: ShiftGrade;
+  /** Consecutive PAY / AUTO / WAVE / ZIP hits with no idle gap or miss. */
+  combo: number;
+  /** Shown large on the plate. Grows with the streak, drops to 1 when it breaks. */
+  comboMul: number;
+  bestCombo: number;
+  bestMul: number;
+  /** Game minute of the last chain hit. Idle past the gap breaks the streak. */
+  lastChainMin: number;
+  /** Bonus from optional mid-shift goals. Does not retarget E. */
+  objectiveBonus: number;
+  /** HEAT crossed the optional cap. The bonus is gone for the night. */
+  heatBroke: boolean;
+  /** Kept HEAT under the cap through the final grade. */
+  heatHeld: boolean;
+  clearedRush: boolean;
+  clearedLounge: boolean;
   /** One-shot cue the renderer plays, then clears. */
   sfxCue: SfxCue;
 }

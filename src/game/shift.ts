@@ -6,9 +6,11 @@ import {
   SHIFT_START,
   WALKAWAY_LOSE,
   type Bay,
+  type ChainStep,
   type GameState,
   type Guest,
   type LotRead,
+  type ShiftGrade,
 } from "./state";
 
 /** First real minute of the shift (~36 game minutes). Generous, one hot car. */
@@ -19,6 +21,18 @@ export const LOUNGE_AT = 72;
 export const GLARE_AT = 90;
 /** Game minutes. ~11.7s real — recoverable inside 15s. */
 export const DISRUPT_MIN = 7;
+/** Optional HEAT goal. Crossing it fails the bonus; it does not retarget E. */
+export const HEAT_CAP = 3;
+/** Game minutes between chain hits. Longer than a full charge, shorter than a stall. */
+export const COMBO_GAP = 14;
+export const COMBO_MUL_MAX = 4;
+/** Flat points added at 04:00 when HEAT never crossed the cap. */
+export const HEAT_BONUS = 5;
+const MISS_PENALTY = 6;
+const CHAIN_POINTS: Record<ChainStep, number> = { pay: 2, auto: 2, wave: 2, zip: 4 };
+const RUSH_BONUS = 4;
+const LOUNGE_BONUS = 3;
+const MERCH_POINTS = 2;
 
 export function createState(): GameState {
   return {
@@ -46,8 +60,99 @@ export function createState(): GameState {
     hospitality: 0,
     relaxUntil: 0,
     heat: 0,
+    score: 0,
+    grade: "B",
+    combo: 0,
+    comboMul: 1,
+    bestCombo: 0,
+    bestMul: 1,
+    lastChainMin: 0,
+    objectiveBonus: 0,
+    heatBroke: false,
+    heatHeld: false,
+    clearedRush: false,
+    clearedLounge: false,
     sfxCue: "",
   };
+}
+
+function bank(s: GameState, points: number): void {
+  if (points === 0) return;
+  const mul = Math.max(1, s.comboMul);
+  s.score = Math.max(0, s.score + points * mul);
+}
+
+/** Drop the live multiplier. Banked score stays. */
+export function breakCombo(s: GameState): void {
+  s.combo = 0;
+  s.comboMul = 1;
+  s.lastChainMin = s.timeMin;
+}
+
+/**
+ * PAY → AUTO → WAVE → ZIP. Each hit inside the gap grows the streak.
+ * A miss, an expired rush/lounge, or an idle gap resets the multiplier.
+ */
+export function noteChain(s: GameState, step: ChainStep): void {
+  if (s.phase !== "shift") return;
+  if (s.combo > 0 && s.timeMin - s.lastChainMin > COMBO_GAP) breakCombo(s);
+  s.combo += 1;
+  s.lastChainMin = s.timeMin;
+  s.comboMul = Math.min(COMBO_MUL_MAX, 1 + Math.floor(s.combo / 2));
+  if (s.combo > s.bestCombo) s.bestCombo = s.combo;
+  if (s.comboMul > s.bestMul) s.bestMul = s.comboMul;
+  bank(s, CHAIN_POINTS[step]);
+  syncGrade(s);
+}
+
+function claimOptional(s: GameState, kind: "rush" | "lounge"): void {
+  if (kind === "rush" && !s.clearedRush) {
+    s.clearedRush = true;
+    s.objectiveBonus += RUSH_BONUS;
+    bank(s, RUSH_BONUS);
+  } else if (kind === "lounge" && !s.clearedLounge) {
+    s.clearedLounge = true;
+    s.objectiveBonus += LOUNGE_BONUS;
+    bank(s, LOUNGE_BONUS);
+  }
+}
+
+/** Side goal. Never replaces the job that owns E. */
+export function optionalObjective(s: GameState): string {
+  if (s.phase !== "shift") return "";
+  if (s.disruption === "rush") return "OPT · CLEAR RUSH";
+  if (s.disruption === "lounge") return "OPT · SERVE LOUNGE";
+  if (s.heatBroke || s.heat >= HEAT_CAP) return "OPT · HEAT BLOWN";
+  return `OPT · HEAT UNDER ${HEAT_CAP}`;
+}
+
+export function gradeStars(grade: ShiftGrade): string {
+  const n = grade === "A" ? 4 : grade === "B" ? 3 : grade === "C" ? 2 : 1;
+  return `${"★".repeat(n)}${"☆".repeat(4 - n)}`;
+}
+
+/** Throughput, misses, and lounge merch. Live letters are the pace; 04:00 is final. */
+export function projectGrade(s: GameState): ShiftGrade {
+  if (s.phase === "lose" || s.walkaways >= WALKAWAY_LOSE) return "D";
+  const throughput = s.sessionsDone + s.autochargeSignups + s.queueWaves;
+  const clean = s.walkaways === 0;
+  const heatOk = !s.heatBroke && s.heat < HEAT_CAP;
+  const merch = s.hospitality;
+  if (s.phase === "grade") {
+    if (clean && heatOk && throughput >= 3 && merch >= 1) return "A";
+    if (s.walkaways <= 1 && throughput >= 2) return "B";
+    if (s.walkaways <= 2 && throughput >= 1) return "C";
+    return "D";
+  }
+  if (!clean) return s.walkaways >= 2 ? "D" : "C";
+  if (!heatOk) return throughput >= 2 ? "B" : "C";
+  if (throughput >= 3 || (throughput >= 1 && merch >= 1)) return "A";
+  if (throughput >= 1 || merch >= 1) return "B";
+  return "B";
+}
+
+export function syncGrade(s: GameState): void {
+  s.grade = projectGrade(s);
 }
 
 export function earlyShift(s: GameState): boolean {
@@ -127,11 +232,18 @@ export function waveQueue(s: GameState, bayId?: number): boolean {
   s.queueWaves += 1;
   s.justUnplugged = false;
   s.justPaid = false;
-  if (s.disruption === "lounge") s.hospitality += 1;
-  if (s.disruption === "rush" || s.disruption === "lounge") {
+  noteChain(s, "wave");
+  const optional = s.disruption;
+  if (optional === "lounge") {
+    s.hospitality += 1;
+    bank(s, MERCH_POINTS);
+  }
+  if (optional === "rush" || optional === "lounge") {
+    claimOptional(s, optional);
     s.disruption = "";
     s.rushIds = [];
   }
+  syncGrade(s);
   speak(s, `WAVE · ${g.name.toUpperCase()} → BAY ${g.assignedBay}. Queue moving.`);
   return true;
 }
@@ -198,6 +310,7 @@ export function unplugInlet(s: GameState, guestId: string): boolean {
     g.served = true;
     s.sessionsDone += 1;
     s.justUnplugged = true;
+    noteChain(s, "zip");
     if (s.fullAlertId === g.id) s.fullAlertId = null;
     if (g.assignedBay != null) {
       const bay = s.bays.find((b) => b.id === g.assignedBay);
@@ -221,10 +334,12 @@ export function payKiosk(s: GameState, guestId: string): boolean {
   }
   if (g.authorized) return false;
   g.authorized = true;
+  noteChain(s, "pay");
   if (!g.enrolled) {
     g.enrolled = true;
     g.auth = "auto";
     s.autochargeSignups += 1;
+    noteChain(s, "auto");
   }
   s.justPaid = true;
   if (s.disruption === "glare") s.disruption = "";
@@ -240,11 +355,15 @@ export function serveRelax(s: GameState): boolean {
     return false;
   }
   s.hospitality += 1;
+  bank(s, MERCH_POINTS);
   s.relaxUntil = s.timeMin + 10;
   if (s.disruption === "lounge") {
+    claimOptional(s, "lounge");
     s.disruption = "";
     s.hospitality += 1;
+    bank(s, MERCH_POINTS);
   }
+  syncGrade(s);
   speak(s, `RELAX · merch +1. Hospitality ${s.hospitality}.`, 6);
   s.sfxCue = "relax";
   return true;
@@ -315,6 +434,7 @@ function maybeEvents(s: GameState): void {
   else if (!s.firedLounge && elapsed >= LOUNGE_AT) startLounge(s);
   else if (!s.firedGlare && elapsed >= GLARE_AT) startGlare(s);
   if (s.disruption && s.timeMin >= s.disruptionUntil) {
+    breakCombo(s);
     s.disruption = "";
     s.rushIds = [];
   } else if (s.disruption === "rush") {
@@ -334,15 +454,26 @@ export function enrollAuto(s: GameState, guestId: string): boolean {
   g.enrolled = true;
   g.auth = "auto";
   s.autochargeSignups += 1;
+  noteChain(s, "auto");
   speak(s, `AUTOCHARGE · ${g.name.toUpperCase()} — full power.`);
   return true;
 }
 
 function finish(s: GameState, phase: "grade" | "lose"): void {
+  if (
+    phase === "grade" &&
+    !s.heatHeld &&
+    !s.heatBroke &&
+    s.heat < HEAT_CAP &&
+    s.walkaways < WALKAWAY_LOSE
+  ) {
+    s.heatHeld = true;
+    s.objectiveBonus += HEAT_BONUS;
+    s.score += HEAT_BONUS;
+  }
   s.phase = phase;
-  const score = s.sessionsDone * 2 + s.autochargeSignups + s.hospitality - s.walkaways - Math.floor(s.heat);
-  const rank = score >= 8 ? "GOLD" : score >= 5 ? "SILVER" : score >= 2 ? "BRONZE" : "FAIL";
-  s.gradeLine = `${rank}  ·  ${s.plugs} plugs  ·  ${s.autochargeSignups} Auto  ·  ${s.queueWaves} waves  ·  ${s.walkaways} walkaways  ·  ${s.hospitality} relax`;
+  syncGrade(s);
+  s.gradeLine = `${s.grade}  ·  SCORE ${s.score}  ·  x${s.bestMul}  ·  ${s.sessionsDone} ZIP  ·  ${s.autochargeSignups} AUTO  ·  ${s.queueWaves} WAVE  ·  ${s.walkaways} MISS  ·  ${s.hospitality} MERCH`;
 }
 
 export function tick(s: GameState, dtMin: number): void {
@@ -362,6 +493,8 @@ export function tick(s: GameState, dtMin: number): void {
     if (s.timeMin > g.arriveMin + patience) {
       g.walked = true;
       s.walkaways += 1;
+      s.score = Math.max(0, s.score - MISS_PENALTY);
+      breakCombo(s);
       speak(s, `${g.name} walked.`);
     }
   }
@@ -390,7 +523,10 @@ export function tick(s: GameState, dtMin: number): void {
   }
   if (early) s.heat = Math.max(0, s.heat - dtMin * 0.35);
   else s.heat = Math.min(9, s.heat + dtMin * (0.04 + fullWaiting * 0.12));
+  if (s.heat >= HEAT_CAP) s.heatBroke = true;
+  if (s.combo > 0 && s.timeMin - s.lastChainMin > COMBO_GAP) breakCombo(s);
   maybeEvents(s);
+  syncGrade(s);
 
   const payPending = pendingPayGuest(s);
   const eventToast =
