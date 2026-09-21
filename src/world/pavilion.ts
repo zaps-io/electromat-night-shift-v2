@@ -555,13 +555,13 @@ export function addPavilion(root: THREE.Group): THREE.Box3[] {
   const east = W / 2;
   const west = -W / 2;
 
-  const wall = mat(0xd4c6ae, {
-    roughness: 0.62,
+  const wall = mat(0xe6d8c2, {
+    roughness: 0.58,
     metalness: 0.03,
-    envMapIntensity: 0.22,
-    map: stucco("#D4C6AE"),
-    emissive: 0x2a2014,
-    emissiveIntensity: 0.04,
+    envMapIntensity: 0.2,
+    map: stucco("#E6D8C2"),
+    emissive: 0x2c2418,
+    emissiveIntensity: 0.035,
   });
   const plinth = mat(C.charcoal, { roughness: 0.62, metalness: 0.08, envMapIntensity: 0.2 });
   const mullion = mat(0xb8bcc0, { roughness: 0.34, metalness: 0.62, envMapIntensity: 0.48 });

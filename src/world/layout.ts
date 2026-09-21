@@ -729,15 +729,15 @@ export const CANOPY_SHOT = {
   fov: 38,
 } as const;
 
-/** Street-level apron: pavilion + thin floating canopies. eyeY > sky so place() stays off-lot. */
+/** Street-level apron: pavilion as civic hero, thin canopies as wings. */
 export const LOT_HERO_SHOT = {
-  x: -16.4,
-  z: -17.15,
+  x: -6.2,
+  z: -16.55,
   eyeY: 3.38,
-  yaw: 0.22,
-  pitch: -0.08,
-  lookAt: { x: -9.6, y: 2.28, z: 1.55 },
-  fov: 48,
+  yaw: 0.85,
+  pitch: -0.06,
+  lookAt: { x: -16.8, y: 2.22, z: 0.45 },
+  fov: 50,
 } as const;
 
 /** Under the left canopy — cinematic eye so pitch clamp stays off. Coffers + pavilion. */
@@ -762,15 +762,15 @@ export const BOARD_SHOT = {
   fov: 58,
 } as const;
 
-/** Slim Zeus 3/4: alum body, charcoal recess, twin holsters, cyan ring, stall badge. */
+/** Slim Zeus 3/4 south of stall 1 — face, holsters, cyan ring, parking stop. */
 export const ZEUS_SHOT = {
-  x: -2.35,
-  z: -2.55,
-  eyeY: 1.22,
-  yaw: 0.85,
-  pitch: -0.05,
-  lookAt: { x: -7.85, y: 0.86, z: -3.85 },
-  fov: 38,
+  x: -6.28,
+  z: -8.22,
+  eyeY: 1.14,
+  yaw: 0.42,
+  pitch: 0.04,
+  lookAt: { x: -8.02, y: 0.96, z: -6.52 },
+  fov: 40,
 } as const;
 
 /** Inside the lounge, sofa in frame, looking out the east storefront toward the lot. */
