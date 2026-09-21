@@ -1,8 +1,9 @@
 import "./style.css";
 import * as THREE from "three";
-import { playOn, playPay, playPlug, playTalk, resumeAudio, setHum } from "./audio";
+import { playCue, playOn, playPay, playPlug, playStamp, playTalk, resumeAudio, setHum } from "./audio";
 import { clockLabel, MS_PER_GAME_MIN } from "./game/state";
 import {
+  earlyShift,
   enrollAuto,
   greetDriver,
   guestAction,
@@ -12,8 +13,13 @@ import {
   nextQueueGuest,
   pendingPayGuest,
   plugInlet,
+  pressureLabel,
   resetNight,
   seedOpeningLot,
+  serveRelax,
+  startGlare,
+  startLounge,
+  startRush,
   tick,
   unplugInlet,
   waitingParker,
@@ -23,10 +29,14 @@ import {
   collectCandidates,
   doorApproachHint,
   doorHintBesidePrompt,
+  formatHandoff,
   hudActionPrompt,
   jobHint,
+  jobLabel,
+  jobNeedLocked,
   jobReadyFallback,
   nextJob,
+  reachScale,
   resolveInteract,
   toastConflictsJob,
   type InteractCandidate,
@@ -48,6 +58,8 @@ import {
   LOUNGE_WIDE_SHOT,
   PAY_POINTS,
   PROMPT_SHOT,
+  RELAX_POINT,
+  RELAX_REACH,
   REAR_SHOT,
   STALL_DETAIL_SHOT,
   START_SHOT,
@@ -65,7 +77,7 @@ import {
 } from "./world/layout";
 import { addBrandSignage } from "./world/branding";
 import { makeAttendantHand, tickHand } from "./world/hand";
-import { makeTargetMark, makeWalkPuck } from "./world/icons";
+import { makeTargetMark, makeWalkPuck, makeWaveIcon } from "./world/icons";
 import { buildSkyline } from "./world/skyline";
 import { duskSky } from "./world/tex";
 import { addLotMirror, buildStation } from "./world/station";
@@ -84,6 +96,8 @@ const promptEl = document.querySelector("#prompt")!;
 const doorLineEl = document.querySelector("#door-line")!;
 const objectiveEl = document.querySelector("#objective")!;
 const toastEl = document.querySelector("#toast")!;
+const heatEl = document.querySelector("#heat")!;
+const flashEl = document.querySelector<HTMLElement>("#flash")!;
 const gradeEl = document.querySelector("#grade")!;
 const crossEl = document.querySelector("#cross")!;
 const startBtn = document.querySelector("#start")!;
@@ -117,7 +131,11 @@ scene.add(walker.camera);
 const brandingReady = addBrandSignage(station.root);
 const targetMark = makeTargetMark();
 const walkPuck = makeWalkPuck();
-scene.add(targetMark, walkPuck);
+const loungeMark = makeWaveIcon();
+loungeMark.position.set(-20.05, 2.35, 7.95);
+loungeMark.scale.set(1.35, 0.52, 1);
+loungeMark.visible = false;
+scene.add(targetMark, walkPuck, loungeMark);
 
 scene.environment = createDuskEnvironment(renderer);
 const pipeline = createPipeline(renderer, scene, walker.camera);
@@ -244,6 +262,7 @@ function currentCandidates(): InteractCandidate[] {
       z: bay.z,
       open: !state.bays.find((b) => b.id === bay.playable)?.guestId,
     })),
+    { x: RELAX_POINT.x, z: RELAX_POINT.z, reach: RELAX_REACH },
   );
 }
 
@@ -266,15 +285,31 @@ function refreshTarget(): InteractResult {
     aimedCandidateId(aim()),
     currentCandidates(),
     nextJob(state),
+    reachScale(state.timeMin),
   );
   return lockedTarget;
+}
+
+/** Papers stamp: toast names the next job in the same beat the last one clears. */
+function punch(verb: "PAID" | "WAVE" | "ZIP", name: string): void {
+  const job = nextJob(state);
+  const line = formatHandoff(verb, name, job);
+  state.toast = line;
+  state.toastUntil = state.timeMin + 7;
+  toastEl.textContent = line;
+  toastEl.classList.add("loud");
+  if (job) objectiveEl.textContent = jobNeedLocked(job) ? jobLabel(job.need, job.name) : jobHint(job);
+  flashEl.classList.remove("on");
+  void flashEl.offsetWidth;
+  flashEl.classList.add("on");
+  playStamp();
 }
 
 function tryPay(id?: string): boolean {
   const g = id ? state.guests.find((x) => x.id === id) : pendingPayGuest(state);
   if (!g) return false;
   if (payKiosk(state, g.id)) {
-    playPay();
+    punch("PAID", g.name);
     return true;
   }
   return false;
@@ -285,7 +320,7 @@ function useGuest(id: string): boolean {
   if (!g) return false;
   const need = guestAction(g);
   if (need === "unplug" && unplugInlet(state, id)) {
-    playPlug();
+    punch("ZIP", g.name);
     return true;
   }
   if (need === "auto" && enrollAuto(state, id)) {
@@ -319,9 +354,15 @@ function parkIntoBay(bayId: number): boolean {
 }
 
 function applyReady(ready: InteractCandidate): boolean {
+  if (ready.need === "relax") {
+    if (jobNeedLocked(nextJob(state))) return false;
+    serveRelax(state);
+    return true;
+  }
   if (ready.need === "wave") {
+    const name = ready.name || nextQueueGuest(state)?.name || "Queue";
     if (waveQueue(state)) {
-      playTalk();
+      punch("WAVE", name);
       return true;
     }
     return false;
@@ -338,14 +379,14 @@ function applyLockedJob(): boolean {
   if (job.need === "pay") return tryPay(job.guestId);
   if (job.need === "wave") {
     if (waveQueue(state)) {
-      playTalk();
+      punch("WAVE", job.name);
       return true;
     }
     return false;
   }
   if (job.need === "unplug" && job.guestId) {
     if (unplugInlet(state, job.guestId)) {
-      playPlug();
+      punch("ZIP", job.name);
       return true;
     }
   }
@@ -393,7 +434,15 @@ function paintHud(): void {
   autoEl.textContent = `AUTO ${state.autochargeSignups}`;
   wavesEl.textContent = `WAVE ${state.queueWaves}`;
   zipsEl.textContent = `ZIP ${state.sessionsDone}`;
+  heatEl.textContent = pressureLabel(state);
+  heatEl.classList.toggle("hot", !earlyShift(state) && state.heat >= 1);
   pips.forEach((el, i) => el.classList.toggle("off", i < state.walkaways));
+  if (state.sfxCue) {
+    playCue(state.sfxCue);
+    state.sfxCue = "";
+  }
+  station.payGlare.opacity = state.disruption === "glare" ? 0.82 : 0;
+  loungeMark.visible = live && state.disruption === "lounge";
   const pending = pendingPayGuest(state);
   station.kioskAlerts.forEach((spr, i) => {
     spr.visible = i === 1 || !!pending;
@@ -402,14 +451,21 @@ function paintHud(): void {
   const waveLive = job?.need === "wave";
   station.waveAlert.visible = waveLive || (!!nextQueueGuest(state) && state.bays.some((b) => !b.guestId));
   station.waveAlert.scale.set(waveLive ? 1.7 : 1.05, waveLive ? 0.64 : 0.4, 1);
-  station.waveGuide.visible = waveLive;
+  station.waveGuide.visible = waveLive || state.disruption === "rush";
   const resolved = refreshTarget();
   walker.camera.getWorldDirection(lookDir);
   const hud = hudActionPrompt(walker.position, lookDir, resolved.prompt);
   promptEl.textContent = hud.prompt;
   promptEl.classList.toggle("door-hint", hud.doorHint);
   doorLineEl.textContent = hud.doorLine;
-  objectiveEl.textContent = resolved.objective;
+  let objective = resolved.objective;
+  if (job && jobNeedLocked(job)) {
+    const text = objective.toUpperCase();
+    if (!text.includes(job.need.toUpperCase()) || !text.includes(job.name.toUpperCase())) {
+      objective = resolved.prompt ? jobLabel(job.need, job.name) : jobHint(job);
+    }
+  }
+  objectiveEl.textContent = objective;
   const toastLive = live && state.toastUntil > state.timeMin ? state.toast : "";
   promptEl.classList.toggle("ack", /PAID|ZIPPED|QUEUE MOVING|AUTOCHARGE|PLUG/i.test(toastLive));
   if (live && toastConflictsJob(state.toast, job)) {
@@ -417,6 +473,7 @@ function paintHud(): void {
     state.toastUntil = state.timeMin + 8;
   }
   toastEl.textContent = live && state.toastUntil > state.timeMin ? state.toast : "";
+  toastEl.classList.toggle("loud", /NEXT ·/.test(toastEl.textContent ?? ""));
   crossEl.classList.toggle("ready", !!resolved.prompt);
   const markAt = resolved.focus;
   targetMark.visible = live && !!markAt;
@@ -784,6 +841,18 @@ window.__electromat = {
   },
   step(dt = 0.05) {
     walker.tick(dt, station.colliders);
+  },
+  triggerRush() {
+    startRush(state);
+    paintHud();
+  },
+  triggerLounge() {
+    startLounge(state);
+    paintHud();
+  },
+  triggerGlare() {
+    startGlare(state);
+    paintHud();
   },
   advance(dtMin: number) {
     if (state.phase === "shift") tick(state, dtMin);

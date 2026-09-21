@@ -54,11 +54,14 @@ Private-repo Pages also needs a GitHub plan that includes Pages (org GitHub Team
 6. **E PLUG** the inlet. AutoCharge cars take power immediately. Paying a kiosk guest enrolls AutoCharge (HUD AUTO increments) so they pull full power and zip sooner.
 7. **How to pay (QA repro):**
    1. Start night. Objective: `PAY · PECK — walk to the car or a PAY stand`. No E prompt until Peck or a PAY stand is in range / aimed.
-   2. **At the car:** walk to the dark Tesla on the **right island** (cyan arrow + amber `!`). Objective and prompt both read `PAY · PECK`. Press **E**. Toast `PAID · PECK · AUTOCHARGE ON.`
+   2. **At the car:** walk to the dark Tesla on the **right island** (cyan arrow + amber `!`). Objective and prompt both read `PAY · PECK`. Press **E**. Toast stamps `PAID · PECK. NEXT · WAVE · NG` and the objective flips to WAVE in the same beat.
    3. **At the kiosk (operator path):** after any first-visit **E PLUG**, walk **west** (left of the left canopy) or to the lounge south door. Both stands have a floating **PAY** badge; the lounge stand is a taller totem with a pole flag. When the prompt reads `E PAY · NAME`, **E** pays that guest.
    4. Payment is not gated on a full battery. Paying Peck (car or PAY stand) enrolls AutoCharge — HUD **AUTO** goes to 1 and they zip sooner. Later queue cars: talk → park → plug → same pay, or WAVE from the aisle.
-8. When the **current job** is UNPLUG, toast `NAME is full — E UNPLUG`. Objective, cyan target, and E all stay on that car. A sibling full-car never overwrites PAY / WAVE. Walk to the marked car and press **E**. HUD **ZIP** increments.
-9. Cyan battery icons mark occupancy. Three walkaways end the night. 04:00 grades the shift.
+8. When the **current job** is UNPLUG, toast `NAME is full — E UNPLUG`. Objective, cyan target, and E all stay on that car. A sibling full-car never overwrites PAY / WAVE. Walk to the marked car and press **E**. HUD **ZIP** increments, then the toast names the next job.
+9. Stall plaques: amber **PAY**, cyan **CHG**, cream **FULL**, red **ZIP** on the way out. The Zeus disc tints to match. HUD **EASY** for the first minute (one hot queue car, wider talk/park/plug reach). Later HUD **HEAT** and overlapping stall reads. Locked PAY / WAVE / UNPLUG keep lot-range E.
+10. Mid-shift events, each under 15s: **RUSH** (two aisle cars — WAVE clears it), **LOUNGE** (guest needs a WAVE), **GLARE** (PAY stand washes out; E PAY still works). They never retarget WASD, E, or pointer lock.
+11. With no live PAY / UNPLUG / WAVE, **E RELAX** at the lounge board scores hospitality. It does not steal E from a lot job.
+12. Three walkaways end the night. 04:00 grades the shift.
 
 Site line: **DRIVE IN. CHARGE UP. ZIP OUT.**
 

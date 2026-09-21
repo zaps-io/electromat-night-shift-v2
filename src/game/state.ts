@@ -8,6 +8,10 @@ export type Phase = "title" | "shift" | "grade" | "lose";
 export type AuthMode = "auto" | "kiosk";
 export type Pose = "wait" | "charge" | "pay" | "leave";
 export type HullKind = "sedan" | "suv";
+export type Disruption = "" | "rush" | "lounge" | "glare";
+/** Stall read: unpaid / charging / full / departing. Idle = empty bay. */
+export type LotRead = "idle" | "unpaid" | "charging" | "full" | "departing";
+export type SfxCue = "" | LotRead | "stamp" | "rush" | "lounge" | "glare" | "relax";
 
 export interface Guest {
   id: string;
@@ -54,6 +58,21 @@ export interface GameState {
   justUnplugged: boolean;
   /** After PAY, WAVE the aisle before a sibling full-car can steal E. */
   justPaid: boolean;
+  /** Short mid-shift event. Never retargets a locked PAY / UNPLUG / WAVE. */
+  disruption: Disruption;
+  disruptionUntil: number;
+  firedRush: boolean;
+  firedLounge: boolean;
+  firedGlare: boolean;
+  /** Up to two aisle cars highlighted during a rush. */
+  rushIds: string[];
+  /** Optional lounge merch / RELAX board, scored only when the lot job is quiet. */
+  hospitality: number;
+  relaxUntil: number;
+  /** Late-shift score pressure. Early minute stays at 0. */
+  heat: number;
+  /** One-shot cue the renderer plays, then clears. */
+  sfxCue: SfxCue;
 }
 
 export function clockLabel(timeMin: number): string {

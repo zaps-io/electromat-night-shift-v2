@@ -321,6 +321,52 @@ export function makeBatteryIcon(): THREE.Sprite {
   return sprite(new THREE.CanvasTexture(c), 0.92, 0.58, "battery");
 }
 
+const LOT_COLORS: Record<string, { fill: string; ink: string; label: string }> = {
+  unpaid: { fill: "#E89A2E", ink: "#1E1E24", label: "PAY" },
+  charging: { fill: "#00D4F5", ink: "#041418", label: "CHG" },
+  full: { fill: "#F5F0E8", ink: "#1E1E24", label: "FULL" },
+  departing: { fill: "#E63225", ink: "#F5F0E8", label: "ZIP" },
+};
+
+const lotTexCache = new Map<string, THREE.CanvasTexture>();
+
+function lotTexture(read: string): THREE.CanvasTexture {
+  const hit = lotTexCache.get(read);
+  if (hit) return hit;
+  const spec = LOT_COLORS[read] ?? LOT_COLORS.charging;
+  const c = document.createElement("canvas");
+  c.width = 320;
+  c.height = 200;
+  const ctx = c.getContext("2d")!;
+  ctx.clearRect(0, 0, 320, 200);
+  ctx.fillStyle = spec.fill;
+  round(ctx, 36, 36, 248, 128, 22);
+  ctx.fill();
+  ctx.lineWidth = 10;
+  ctx.strokeStyle = spec.ink;
+  round(ctx, 36, 36, 248, 128, 22);
+  ctx.stroke();
+  ctx.fillStyle = spec.ink;
+  ctx.font = "900 72px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(spec.label, 160, 108);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.needsUpdate = true;
+  lotTexCache.set(read, tex);
+  return tex;
+}
+
+/** Swap a car plaque to unpaid / charging / full / departing. */
+export function applyLotIcon(spr: THREE.Sprite, read: "unpaid" | "charging" | "full" | "departing"): void {
+  const mat = spr.material as THREE.SpriteMaterial;
+  mat.map = lotTexture(read);
+  mat.needsUpdate = true;
+  const scale = read === "full" || read === "departing" ? 1.12 : 1;
+  spr.scale.set(1.42 * scale, 0.88 * scale, 1);
+}
+
 function round(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
   ctx.beginPath();
   ctx.moveTo(x + r, y);

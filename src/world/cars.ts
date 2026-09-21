@@ -9,8 +9,8 @@ import {
   OPAQUE_SUV_INLET,
   paintMaterial,
 } from "../cars/opaque";
-import type { GameState, Guest, HullKind } from "../game/state";
-import { arrivedGuests, guestAction } from "../game/shift";
+import type { GameState, Guest, HullKind, LotRead } from "../game/state";
+import { arrivedGuests, earlyShift, guestAction, lotRead } from "../game/shift";
 import { jobNeedLocked, nextJob } from "../game/interact";
 import {
   BAYS,
@@ -22,8 +22,8 @@ import {
   WAIT_SLOTS,
 } from "./layout";
 import { ccsLeadPoints, tubeFromPoints } from "./cables";
-import { makeAttentionIcon, makeBatteryIcon } from "./icons";
-import { setZeusHolsterPlugged } from "./zeus";
+import { applyLotIcon, makeAttentionIcon, makeBatteryIcon } from "./icons";
+import { setZeusHolsterPlugged, tintStallBadge } from "./zeus";
 
 export const FULL_PBR_IDS = new Set(["hale", "ruiz", "vora", "chen", "peck"]);
 
@@ -550,7 +550,7 @@ export function addLodFillers(scene: THREE.Object3D, count = lodFillerBudget): v
     root.rotation.y = spec.yaw;
     root.userData.kind = "lod-filler";
     const battery = makeBatteryIcon();
-    battery.position.set(0.1, 1.92, 0.08);
+    battery.position.set(0.1, 2.55, 0.08);
     root.add(battery);
     scene.add(root);
     lodFillerRoots.push(root);
@@ -658,7 +658,7 @@ function finishCar(root: THREE.Group, guest: Guest, inletPos: { x: number; y: nu
   root.add(attention);
 
   const battery = makeBatteryIcon();
-  battery.position.set(0.1, kind === "suv" ? 2.26 : 1.92, 0.08);
+  battery.position.set(0.1, kind === "suv" ? 2.85 : 2.55, 0.08);
   battery.visible = false;
   root.add(battery);
 
@@ -691,6 +691,100 @@ export function spawnCar(guest: Guest): CarView {
   return finishCar(root, guest, inletByKind[kind]);
 }
 
+const readPrev = new Map<string, LotRead>();
+
+type Depart = {
+  view: CarView;
+  t0: number;
+  x: number;
+  z: number;
+  stallId: number | null;
+};
+const departs: Depart[] = [];
+
+function stallNear(x: number, z: number): number | null {
+  let best: { id: number; d: number } | null = null;
+  for (const stall of BAYS) {
+    const d = Math.hypot(stall.x - x, stall.z - z);
+    if (!best || d < best.d) best = { id: stall.id, d };
+  }
+  return best && best.d < 1.6 ? best.id : null;
+}
+
+function paintRead(view: CarView, read: LotRead): void {
+  if (read === "idle") {
+    view.battery.visible = false;
+    return;
+  }
+  applyLotIcon(view.battery, read);
+  view.battery.visible = true;
+  const glow = view.portGlow.material as THREE.MeshBasicMaterial;
+  if (read === "unpaid") glow.color.setHex(0xe89a2e);
+  else if (read === "full") glow.color.setHex(0xf5f0e8);
+  else if (read === "departing") glow.color.setHex(0xe63225);
+  else glow.color.setHex(0x00d4f5);
+}
+
+const stallPosts = new Map<number, THREE.Mesh>();
+
+function ensureStallPosts(scene: THREE.Scene): void {
+  if (stallPosts.size) return;
+  for (const stall of BAYS) {
+    const towardAisle = Math.sign(-stall.x) || 1;
+    const post = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.16, 0.16, 1.65, 10),
+      new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false }),
+    );
+    post.position.set(stall.x + towardAisle * 1.55, 0.84, stall.z);
+    post.name = "stall-read";
+    post.visible = false;
+    scene.add(post);
+    stallPosts.set(stall.id, post);
+  }
+}
+
+function syncStallBadges(state: GameState, scene: THREE.Scene): void {
+  ensureStallPosts(scene);
+  const readByStall = new Map<number, LotRead>();
+  for (const bay of state.bays) {
+    const stall = BAYS[bay.id - 1];
+    if (!stall) continue;
+    const guest = bay.guestId ? state.guests.find((g) => g.id === bay.guestId) : undefined;
+    readByStall.set(stall.id, guest ? lotRead(guest) : "idle");
+  }
+  for (const d of departs) {
+    if (d.stallId != null) readByStall.set(d.stallId, "departing");
+  }
+  for (const stall of BAYS) {
+    const read = readByStall.get(stall.id) ?? "idle";
+    tintStallBadge(stall.id, read);
+    const post = stallPosts.get(stall.id);
+    if (!post) continue;
+    const mat = post.material as THREE.MeshBasicMaterial;
+    mat.color.setHex(
+      read === "unpaid" ? 0xe89a2e : read === "charging" ? 0x00d4f5 : read === "full" ? 0xf5f0e8 : read === "departing" ? 0xe63225 : 0xffffff,
+    );
+    post.visible = read !== "idle";
+  }
+}
+
+function stepDeparts(now: number, scene: THREE.Scene): void {
+  for (let i = departs.length - 1; i >= 0; i--) {
+    const d = departs[i]!;
+    const u = (now - d.t0) / 1.15;
+    if (u >= 1) {
+      scene.remove(d.view.root);
+      departs.splice(i, 1);
+      continue;
+    }
+    const towardAisle = Math.sign(-d.x) || 1;
+    d.view.root.position.x = d.x + towardAisle * u * 4.2;
+    d.view.root.position.z = d.z + u * 1.5;
+    paintRead(d.view, "departing");
+    d.view.attention.visible = false;
+  }
+}
+
 export function placeGuest(view: CarView, guest: Guest, now: number, state?: GameState): void {
   if (guest.assignedBay != null) {
     const bay = BAYS[guest.assignedBay - 1];
@@ -704,16 +798,25 @@ export function placeGuest(view: CarView, guest: Guest, now: number, state?: Gam
     view.root.rotation.y = wait.yaw;
   }
   const need = guestAction(guest);
-  const onCharge = guest.plugged && guest.authorized && guest.delivered < guest.targetKwh && !guest.served;
+  const read = lotRead(guest);
+  const prev = readPrev.get(guest.id);
+  if (state && prev && prev !== read && (read === "unpaid" || read === "charging")) state.sfxCue = read;
+  readPrev.set(guest.id, read);
   const showNeed = need === "talk" || need === "park" || need === "plug" || need === "pay" || need === "unplug";
   const job = state ? nextJob(state) : null;
+  const late = !!state && !earlyShift(state);
+  const rushed = !!state?.rushIds.includes(guest.id);
+  const jobMark =
+    showNeed && !!job && need === job.need && (job.guestId == null || guest.id === job.guestId);
   if (jobNeedLocked(job)) {
-    if (job?.need === "wave") view.attention.visible = false;
-    else view.attention.visible = showNeed && need === job?.need && (job.guestId == null || guest.id === job.guestId);
+    if (job?.need === "wave") view.attention.visible = rushed;
+    else view.attention.visible = jobMark || rushed || (late && showNeed && !jobMark);
   } else {
-    view.attention.visible = showNeed;
+    view.attention.visible = showNeed || rushed;
   }
-  view.battery.visible = onCharge;
+  if (rushed || jobMark) view.attention.scale.set(0.9, 0.9, 1);
+  else if (view.attention.visible) view.attention.scale.set(0.62, 0.62, 1);
+  paintRead(view, read === "idle" ? "idle" : read);
   view.cable.visible = guest.plugged && !guest.served;
   view.portGlow.visible = guest.plugged && !guest.served;
   if (guest.assignedBay != null) {
@@ -728,7 +831,21 @@ export function syncCars(map: Map<string, CarView>, scene: THREE.Scene, state: G
     if (!live.has(id)) {
       const gone = state.guests.find((g) => g.id === id);
       if (gone?.assignedBay != null) setZeusHolsterPlugged(BAYS[gone.assignedBay - 1]?.id, false);
-      scene.remove(view.root);
+      readPrev.delete(id);
+      if (gone?.served) {
+        const stallId = stallNear(view.root.position.x, view.root.position.z);
+        if (stallId != null) setZeusHolsterPlugged(stallId, false);
+        departs.push({
+          view,
+          t0: now,
+          x: view.root.position.x,
+          z: view.root.position.z,
+          stallId,
+        });
+        state.sfxCue = "departing";
+      } else {
+        scene.remove(view.root);
+      }
       map.delete(id);
     }
   }
@@ -741,4 +858,6 @@ export function syncCars(map: Map<string, CarView>, scene: THREE.Scene, state: G
     }
     placeGuest(view, guest, now, state);
   }
+  stepDeparts(now, scene);
+  syncStallBadges(state, scene);
 }

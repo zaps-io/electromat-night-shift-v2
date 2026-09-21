@@ -17,6 +17,9 @@ interface ElectromatApi {
   release: (code: string) => void;
   step: (dt?: number) => void;
   advance: (dtMin: number) => void;
+  triggerRush: () => void;
+  triggerLounge: () => void;
+  triggerGlare: () => void;
   ready: boolean;
   destination: { x: number; z: number } | null;
   doorHint: string;

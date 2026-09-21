@@ -8,11 +8,12 @@ import {
   onDoorMat,
 } from "../world/layout";
 import type { GuestAction } from "./shift";
-import { guestAction, nextQueueGuest, pendingPayGuest, waitingParker } from "./shift";
+import { EARLY_MIN, guestAction, nextQueueGuest, pendingPayGuest, waitingParker } from "./shift";
+import { SHIFT_START } from "./state";
 import type { GameState } from "./state";
 
-export type InteractKind = "guest" | "kiosk" | "wave" | "bay";
-export type InteractNeed = GuestAction | "wave";
+export type InteractKind = "guest" | "kiosk" | "wave" | "bay" | "relax";
+export type InteractNeed = GuestAction | "wave" | "relax";
 
 export type Vec3 = { x: number; y?: number; z: number };
 
@@ -58,6 +59,15 @@ export const AIM_DOT_JOB = -0.45;
  * and spawn→lot PAY (~15.6) so live start-camera E actually pays.
  */
 export const JOB_LOT_RANGE = 18;
+export const RELAX_CLOSE = 2.4;
+
+/** Early minute reaches a bit farther. Locked PAY / WAVE / UNPLUG stay on JOB_LOT_RANGE. */
+export function reachScale(timeMin: number): number {
+  const elapsed = timeMin - SHIFT_START;
+  if (elapsed < EARLY_MIN) return 1.22;
+  if (elapsed < 120) return 1;
+  return 0.9;
+}
 
 export function xzDist(a: Vec3, b: Vec3): number {
   return Math.hypot(a.x - b.x, a.z - b.z);
@@ -103,6 +113,7 @@ export function promptFor(need: InteractNeed, name = ""): string {
   if (need === "pay") return `E  PAY${who}`;
   if (need === "unplug") return `E  UNPLUG${who}`;
   if (need === "wave") return `E  WAVE${who}`;
+  if (need === "relax") return `E  RELAX${who}`;
   return "";
 }
 
@@ -115,6 +126,7 @@ export function jobLabel(need: InteractNeed, name = ""): string {
   if (need === "pay") return `PAY${who}`;
   if (need === "unplug") return `UNPLUG${who}`;
   if (need === "wave") return `WAVE${who}`;
+  if (need === "relax") return `RELAX${who}`;
   return "";
 }
 
@@ -150,7 +162,23 @@ export function jobHint(job: { need: InteractNeed; name: string } | null): strin
   if (job.need === "talk") return `TALK  ·  ${job.name.toUpperCase()} — walk to the queue`;
   if (job.need === "park") return `PARK  ·  ${job.name.toUpperCase()} — walk to the car or an open bay`;
   if (job.need === "auto") return `AUTOCHARGE  ·  ${job.name.toUpperCase()} — at the car`;
+  if (job.need === "relax") return `RELAX  ·  MERCH — lounge board, lot is quiet`;
   return jobLabel(job.need, job.name);
+}
+
+/** Stamp line: finished verb, then the job that owns E right now. */
+export function formatHandoff(
+  verb: "PAID" | "WAVE" | "ZIP",
+  name: string,
+  job: { need: InteractNeed; name: string } | null,
+): string {
+  const next = job ? jobHint(job) : "Lot is clear";
+  return `${verb} · ${name.toUpperCase()}.  NEXT · ${next}`;
+}
+
+/** RELAX / merch may use E only when PAY, UNPLUG, and WAVE are not the job. */
+export function relaxAllowed(state: GameState): boolean {
+  return !jobNeedLocked(nextJob(state));
 }
 
 function usable(
@@ -159,15 +187,16 @@ function usable(
   look: Vec3,
   aimedId: string | null,
   job: { need: InteractNeed } | null,
+  scale = 1,
 ): { ok: boolean; aimed: boolean; dist: number; dot: number } {
   const dist = planarDist(eye, c);
   const dot = lookDot(eye, look, { x: c.x, y: c.y, z: c.z });
   const facingDot = xzLookDot(eye, look, { x: c.x, y: c.y, z: c.z });
   const ray = aimedId === c.id;
   const aimed = ray || dot >= AIM_DOT;
-  const close = dist <= c.close;
   const locked = jobNeedLocked(job) && c.need === job?.need;
-  const inReach = dist <= (locked ? JOB_LOT_RANGE : c.reach);
+  const close = dist <= c.close * (locked ? 1 : scale);
+  const inReach = dist <= (locked ? JOB_LOT_RANGE : c.reach * scale);
   const facing = ray || facingDot >= (locked ? AIM_DOT_JOB : AIM_DOT_LOOSE);
   // Locked PAY / WAVE / UNPLUG: hull / stand distance only — no center-reticle.
   const ok = locked ? inReach : inReach && (close || aimed || facing);
@@ -178,6 +207,8 @@ function usable(
 export function toastConflictsJob(toast: string, job: { need: InteractNeed; name: string } | null): boolean {
   if (!toast || !job) return false;
   const t = toast.toUpperCase();
+  if (t.includes("NEXT")) return false;
+  if (t.startsWith("RUSH") || t.startsWith("GLARE") || t.startsWith("LOUNGE") || t.startsWith("RELAX")) return false;
   if (
     t.startsWith("PAID") ||
     t.includes("ZIPPED") ||
@@ -305,6 +336,7 @@ export function resolveInteract(
   aimedId: string | null,
   candidates: InteractCandidate[],
   job: { need: InteractNeed; name: string } | null,
+  scale = 1,
 ): InteractResult {
   const empty: InteractResult = {
     ready: null,
@@ -316,7 +348,7 @@ export function resolveInteract(
   };
   if (!candidates.length) return empty;
 
-  const scored = candidates.map((c) => ({ c, ...usable(c, eye, look, aimedId, job) }));
+  const scored = candidates.map((c) => ({ c, ...usable(c, eye, look, aimedId, job, scale) }));
   const liveAll = scored.filter((s) => s.ok);
   const live = liveAll.filter((s) => matchesJob(s.c, job));
   const aimedHit = live.find((s) => s.c.id === aimedId) ?? live.filter((s) => s.aimed).sort((a, b) => a.dist - b.dist)[0];
@@ -378,6 +410,7 @@ export function collectCandidates(
   wave: Vec3,
   waveReach: number,
   bays: readonly { id: number; x: number; z: number; open: boolean }[],
+  relax?: { x: number; z: number; reach: number } | null,
 ): InteractCandidate[] {
   const list: InteractCandidate[] = [];
   const placed = new Set<string>();
@@ -445,6 +478,20 @@ export function collectCandidates(
       z: wave.z,
       reach: waveReach,
       close: WAVE_CLOSE,
+    });
+  }
+
+  if (relax && relaxAllowed(state)) {
+    list.push({
+      id: "relax",
+      kind: "relax",
+      need: "relax",
+      name: "Merch",
+      x: relax.x,
+      y: 1.7,
+      z: relax.z,
+      reach: relax.reach,
+      close: RELAX_CLOSE,
     });
   }
 
