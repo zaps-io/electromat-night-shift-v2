@@ -75,11 +75,20 @@ export interface GameState {
   sfxCue: SfxCue;
 }
 
+/** Shift clock. HH:MM is the readable face; seconds advance with game time. */
+export function clockParts(timeMin: number): { hm: string; sec: string } {
+  const totalSec = Math.floor(timeMin * 60 + 1e-9);
+  const wrapped = ((totalSec % (24 * 3600)) + 24 * 3600) % (24 * 3600);
+  const h = Math.floor(wrapped / 3600);
+  const m = Math.floor((wrapped % 3600) / 60);
+  const s = wrapped % 60;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return { hm: `${pad(h)}:${pad(m)}`, sec: pad(s) };
+}
+
 export function clockLabel(timeMin: number): string {
-  const wrapped = ((timeMin % (24 * 60)) + 24 * 60) % (24 * 60);
-  const h = Math.floor(wrapped / 60);
-  const m = Math.floor(wrapped % 60);
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+  const { hm, sec } = clockParts(timeMin);
+  return `${hm}:${sec}`;
 }
 
 export const MARKET = [

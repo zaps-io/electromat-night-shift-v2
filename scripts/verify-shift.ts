@@ -44,7 +44,7 @@ import {
   WAVE_CLOSE,
   xzLookDot,
 } from "../src/game/interact.ts";
-import { MS_PER_GAME_MIN, SHIFT_START } from "../src/game/state.ts";
+import { clockParts, MS_PER_GAME_MIN, SHIFT_START } from "../src/game/state.ts";
 import { assertOpaqueCarMaterials, glassMaterial, paintMaterial } from "../src/cars/opaque.ts";
 import {
   BAYS,
@@ -91,8 +91,10 @@ import {
   WAVE_SHOT,
   WIDE_SHOT,
   ZEUS_HALF_DEPTH,
+  admitsLoungeEntry,
   aimingAtDoorPortal,
   clampPlayable,
+  inLoungeAttention,
   DOOR_YARD,
   inDoorApproach,
   GAMEPLAY_EYE_Y,
@@ -1269,5 +1271,85 @@ if (ramp.disruption) throw new Error("mid-shift events must not fire during the 
 if (ramp.guests.filter((g) => g.walked).length > 0) throw new Error("easy minute must not walk the queue");
 const fullRead = ramp.guests.find((g) => lotRead(g) === "full");
 if (!fullRead) throw new Error("a seeded auto car should read FULL after 20 minutes");
+
+const openClock = clockParts(SHIFT_START);
+if (openClock.hm !== "22:00" || openClock.sec !== "00") {
+  throw new Error(`shift clock must open at 22:00:00, got ${openClock.hm}:${openClock.sec}`);
+}
+const five = clockParts(SHIFT_START + 5 + 7 / 60);
+if (five.hm !== "22:05" || five.sec !== "07") {
+  throw new Error(`clock must read 22:05:07, got ${five.hm}:${five.sec}`);
+}
+if (clockParts(SHIFT_START + 5 + 8 / 60).sec !== "08") {
+  throw new Error("clock seconds must advance with each game second");
+}
+
+const waved = resetNight();
+seedOpeningLot(waved);
+if (!payKiosk(waved, "peck")) throw new Error("lounge WAVE setup pay failed");
+if (nextJob(waved)?.need !== "wave") throw new Error("after pay the lot job is WAVE");
+const atBoard = { x: RELAX_POINT.x, y: 1.58, z: RELAX_POINT.z - 0.8 };
+if (!inLoungeAttention(atBoard.x, atBoard.z)) throw new Error("RELAX approach must count as lounge");
+const boardCands = collectCandidates(
+  waved,
+  carPos,
+  PAY_POINTS,
+  KIOSK_REACH,
+  WAVE_POINT,
+  WAVE_REACH,
+  bays,
+  { x: RELAX_POINT.x, z: RELAX_POINT.z, reach: RELAX_REACH },
+  atBoard,
+);
+const boardHit = resolveInteract(atBoard, { x: 0, y: 0.05, z: 1 }, "relax", boardCands, nextJob(waved));
+if (!boardHit.ready || boardHit.ready.need !== "relax" || boardHit.prompt !== "E  RELAX  ·  MERCH") {
+  throw new Error(`lounge must offer E RELAX · MERCH while WAVE is distant, got ${boardHit.prompt || boardHit.objective}`);
+}
+if (jobReadyFallback(atBoard, nextJob(waved), boardCands)) {
+  throw new Error("distant WAVE must not own E inside the lounge");
+}
+const boardHud = hudActionPrompt(atBoard, { x: 0, y: 0, z: 1 }, boardHit.prompt);
+if (boardHud.prompt !== "E  RELAX  ·  MERCH" || boardHud.doorLine) {
+  throw new Error(`lounge RELAX must be the only boxed prompt, got ${boardHud.prompt} / ${boardHud.doorLine}`);
+}
+const quietBoard = resetNight();
+seedOpeningLot(quietBoard);
+for (const g of quietBoard.guests) g.served = true;
+quietBoard.justPaid = false;
+quietBoard.justUnplugged = false;
+const quietHit = resolveInteract(
+  atBoard,
+  { x: 0, y: 0, z: 1 },
+  null,
+  collectCandidates(quietBoard, carPos, PAY_POINTS, KIOSK_REACH, WAVE_POINT, WAVE_REACH, bays, {
+    x: RELAX_POINT.x,
+    z: RELAX_POINT.z,
+    reach: RELAX_REACH,
+  }, atBoard),
+  nextJob(quietBoard),
+);
+if (quietHit.prompt !== "E  RELAX  ·  MERCH") {
+  throw new Error(`quiet lounge must show RELAX · MERCH, got ${quietHit.prompt || quietHit.objective}`);
+}
+
+for (let x = -30; x <= -16.6; x += 0.5) {
+  for (let z = -16; z <= -8.7; z += 0.45) {
+    if (inPlayableVolume(x, z)) continue;
+    const look = { x: door.x - x, y: 0, z: door.z - z };
+    const hint = doorApproachHint({ x, y: 1.58, z }, look);
+    if (hint) throw new Error(`door hint on non-playable ${x.toFixed(2)},${z.toFixed(2)}: ${hint}`);
+    if (admitsLoungeEntry(x, z)) throw new Error(`non-playable cell admitted entry ${x.toFixed(2)},${z.toFixed(2)}`);
+  }
+}
+if (!admitsLoungeEntry(westApproach.x, westApproach.z)) {
+  throw new Error("playable west door-yard approach must still admit lounge entry");
+}
+
+const stationPay = readFileSync(new URL("../src/world/station.ts", import.meta.url), "utf8");
+if (stationPay.includes("map: payTex, toneMapped: false, side: THREE.DoubleSide")) {
+  throw new Error("PAY plaque must face the lot, not a mirrored double side");
+}
+const brandSrc = readFileSync(new URL("../src/world/branding.ts", import.meta.url), "utf8");
+if (brandSrc.includes("loungeFront")) throw new Error("south zaps mark must not duplicate over the LOUNGE sign");
 
 console.log("verify-shift ok");
