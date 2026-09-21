@@ -257,7 +257,7 @@ function addInterior(g: THREE.Group, W: number, D: number, H: number): THREE.Box
     emissiveIntensity: 0.4,
   });
   const menu = new THREE.MeshBasicMaterial({ map: menuBoard(), toneMapped: false });
-  const status = new THREE.MeshBasicMaterial({ map: statusBoard(), toneMapped: false });
+  const status = new THREE.MeshBasicMaterial({ map: statusBoard(), toneMapped: false, side: THREE.DoubleSide });
   const coolerMap = new THREE.MeshStandardMaterial({
     map: coolerFace(),
     roughness: 0.28,
@@ -441,10 +441,10 @@ function addInterior(g: THREE.Group, W: number, D: number, H: number): THREE.Box
     g.add(box(0.16, 0.22, 0.12, mat(c, { roughness: 0.38 }), x, 1.16, z));
   }
 
-  const boardBezel = box(0.08, 0.92, 2.15, charcoal, 5.42, 2.18, 0.35);
+  const boardBezel = box(2.15, 0.92, 0.08, charcoal, 2.35, 2.22, D / 2 - 0.22);
   const board = new THREE.Mesh(new THREE.PlaneGeometry(2.05, 0.86), status);
-  board.position.set(5.36, 2.18, 0.35);
-  board.rotation.y = -Math.PI / 2;
+  board.position.set(2.35, 2.22, D / 2 - 0.32);
+  board.rotation.y = Math.PI;
   const menuWall = new THREE.Mesh(new THREE.PlaneGeometry(0.72, 0.9), menu);
   menuWall.position.set(-3.45, 1.95, -5.95);
   g.add(boardBezel, board, menuWall);

@@ -731,34 +731,34 @@ export const CANOPY_SHOT = {
 
 /** Under the left canopy looking up at warm coffers — cinematic eye so pitch clamp stays off. */
 export const COFFER_SHOT = {
-  x: LEFT_CANOPY_X + 1.15,
-  z: -1.15,
+  x: LEFT_CANOPY_X + 2.55,
+  z: -4.35,
   eyeY: 3.55,
-  yaw: 0.08,
-  pitch: -0.72,
-  lookAt: { x: LEFT_CANOPY_X, y: 4.95, z: 0.35 },
-  fov: 52,
+  yaw: 0.18,
+  pitch: -0.42,
+  lookAt: { x: LEFT_CANOPY_X - 0.4, y: 4.85, z: 0.15 },
+  fov: 56,
 } as const;
 
 /** Lounge status board — CHARGE / RELAX / DEPART amber on charcoal. */
 export const BOARD_SHOT = {
-  x: -21.25,
-  z: 3.75,
+  x: -21.05,
+  z: 6.55,
   eyeY: 1.62,
-  yaw: -1.52,
-  pitch: 0.06,
-  lookAt: { x: -18.1, y: 2.18, z: 3.75 },
+  yaw: 0.02,
+  pitch: 0.12,
+  lookAt: { x: -21.05, y: 2.22, z: 9.55 },
   fov: 46,
 } as const;
 
 export const ZEUS_SHOT = {
-  x: -6.12,
-  z: -3.08,
-  eyeY: 1.26,
-  yaw: 0.48,
-  pitch: 0.06,
-  lookAt: { x: -7.62, y: 0.92, z: -1.08 },
-  fov: 42,
+  x: -6.05,
+  z: -3.92,
+  eyeY: 1.28,
+  yaw: 1.52,
+  pitch: 0.04,
+  lookAt: { x: -8.0, y: 1.18, z: -3.9 },
+  fov: 40,
 } as const;
 
 /** Inside the lounge, sofa in frame, looking out the east storefront toward the lot. */
