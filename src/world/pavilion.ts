@@ -257,7 +257,7 @@ function addInterior(g: THREE.Group, W: number, D: number, H: number): THREE.Box
     emissiveIntensity: 0.4,
   });
   const menu = new THREE.MeshBasicMaterial({ map: menuBoard(), toneMapped: false });
-  const status = new THREE.MeshBasicMaterial({ map: statusBoard(), toneMapped: false, side: THREE.DoubleSide });
+  const status = new THREE.MeshBasicMaterial({ map: statusBoard(), toneMapped: false });
   const coolerMap = new THREE.MeshStandardMaterial({
     map: coolerFace(),
     roughness: 0.28,

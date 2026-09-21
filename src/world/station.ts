@@ -447,11 +447,13 @@ function addOneKiosk(
     new THREE.MeshBasicMaterial({ map: payTex, toneMapped: false }),
   );
   glow.position.set(x, headY, z - 0.25);
+  glow.rotation.y = Math.PI;
   const wash = new THREE.Mesh(
     new THREE.PlaneGeometry(lounge ? 0.74 : 0.66, lounge ? 0.5 : 0.44),
     glareMat ?? new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }),
   );
   wash.position.set(x, headY, z - 0.28);
+  wash.rotation.y = Math.PI;
   wash.userData.payGlare = true;
   const ghost = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
   const hit = new THREE.Mesh(new THREE.BoxGeometry(2.6, 2.6, 2.2), ghost);
@@ -465,9 +467,10 @@ function addOneKiosk(
     const pole = box(0.08, 2.6, 0.08, mat(C.charcoal, { metalness: 0.28, roughness: 0.4 }), x + 0.42, 1.3, z + 0.02);
     const flag = new THREE.Mesh(
       new THREE.PlaneGeometry(0.95, 0.42),
-      new THREE.MeshBasicMaterial({ map: payTex, toneMapped: false, side: THREE.DoubleSide }),
+      new THREE.MeshBasicMaterial({ map: payTex, toneMapped: false }),
     );
     flag.position.set(x + 0.92, 2.55, z + 0.02);
+    flag.rotation.y = Math.PI;
     const beacon = new THREE.Mesh(
       new THREE.SphereGeometry(0.09, 12, 10),
       new THREE.MeshBasicMaterial({ color: 0xe89a2e, toneMapped: false }),

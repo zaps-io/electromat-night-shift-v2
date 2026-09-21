@@ -1,7 +1,9 @@
 import {
+  admitsLoungeEntry,
   aimingAtDoorPortal,
   DOOR_YARD,
   inDoorApproach,
+  inLoungeAttention,
   inLoungeSide,
   inPlayableVolume,
   inRect,
@@ -181,6 +183,11 @@ export function relaxAllowed(state: GameState): boolean {
   return !jobNeedLocked(nextJob(state));
 }
 
+/** Inside the lounge / on the mat, locked jobs use their own reach — not the 18m lot range. */
+function lotRangeHere(eye: Vec3): boolean {
+  return !inLoungeAttention(eye.x, eye.z);
+}
+
 function usable(
   c: InteractCandidate,
   eye: Vec3,
@@ -195,8 +202,9 @@ function usable(
   const ray = aimedId === c.id;
   const aimed = ray || dot >= AIM_DOT;
   const locked = jobNeedLocked(job) && c.need === job?.need;
+  const lot = locked && lotRangeHere(eye);
   const close = dist <= c.close * (locked ? 1 : scale);
-  const inReach = dist <= (locked ? JOB_LOT_RANGE : c.reach * scale);
+  const inReach = dist <= (lot ? JOB_LOT_RANGE : c.reach * (locked ? 1 : scale));
   const facing = ray || facingDot >= (locked ? AIM_DOT_JOB : AIM_DOT_LOOSE);
   // Locked PAY / WAVE / UNPLUG: hull / stand distance only — no center-reticle.
   const ok = locked ? inReach : inReach && (close || aimed || facing);
@@ -235,10 +243,11 @@ export function jobReadyFallback(
   candidates: InteractCandidate[],
 ): InteractCandidate | null {
   if (!job || !jobNeedLocked(job)) return null;
+  const home = inLoungeAttention(eye.x, eye.z);
   const hits = candidates
     .filter((c) => matchesJob(c, job))
     .map((c) => ({ c, dist: planarDist(eye, c) }))
-    .filter((s) => s.dist <= JOB_LOT_RANGE)
+    .filter((s) => s.dist <= (home ? s.c.reach : JOB_LOT_RANGE))
     .sort((a, b) => a.dist - b.dist);
   return hits[0]?.c ?? null;
 }
@@ -287,12 +296,12 @@ export function jobFocusCandidate(
   return candidates.find((c) => c.need === job.need) ?? null;
 }
 
-/** Near-door affordance. Position on the playable throat, or aiming at the portal from the yard. */
+/** Near-door affordance. Only the playable throat that actually admits entry. */
 export function doorApproachHint(eye: Vec3, look?: Vec3): string {
   if (!inPlayableVolume(eye.x, eye.z)) return "";
-  const onThroat = inDoorApproach(eye.x, eye.z);
-  const approachAim =
-    !!look && aimingAtDoorPortal(eye, look) && (onThroat || inRect(eye.x, eye.z, DOOR_YARD));
+  if (!admitsLoungeEntry(eye.x, eye.z)) return "";
+  const onThroat = inDoorApproach(eye.x, eye.z) || onDoorMat(eye.x, eye.z);
+  const approachAim = !!look && aimingAtDoorPortal(eye, look) && inRect(eye.x, eye.z, DOOR_YARD);
   if (!onThroat && !approachAim) return "";
   return inLoungeSide(eye.x, eye.z) ? "WALK OUT" : "WALK IN";
 }
@@ -306,6 +315,7 @@ export function doorTakesPrompt(eye: Vec3, look?: Vec3): boolean {
 /** Secondary HUD line — door hint beside a live job, only when the job still owns #prompt. */
 export function doorHintBesidePrompt(eye: Vec3, prompt: string, look?: Vec3): string {
   if (!prompt) return "";
+  if (inLoungeAttention(eye.x, eye.z)) return "";
   if (doorTakesPrompt(eye, look)) return "";
   const hint = doorApproachHint(eye, look);
   if (!hint) return "";
@@ -348,9 +358,15 @@ export function resolveInteract(
   };
   if (!candidates.length) return empty;
 
-  const scored = candidates.map((c) => ({ c, ...usable(c, eye, look, aimedId, job, scale) }));
+  const home = inLoungeAttention(eye.x, eye.z);
+  const localLock =
+    !!job &&
+    jobNeedLocked(job) &&
+    candidates.some((c) => matchesJob(c, job) && planarDist(eye, c) <= c.reach);
+  const filterJob = jobNeedLocked(job) && (!home || localLock) ? job : null;
+  const scored = candidates.map((c) => ({ c, ...usable(c, eye, look, aimedId, filterJob, scale) }));
   const liveAll = scored.filter((s) => s.ok);
-  const live = liveAll.filter((s) => matchesJob(s.c, job));
+  const live = liveAll.filter((s) => matchesJob(s.c, filterJob));
   const aimedHit = live.find((s) => s.c.id === aimedId) ?? live.filter((s) => s.aimed).sort((a, b) => a.dist - b.dist)[0];
   const nearest = live.slice().sort((a, b) => a.dist - b.dist)[0];
   const pick = aimedHit ?? nearest;
@@ -411,6 +427,7 @@ export function collectCandidates(
   waveReach: number,
   bays: readonly { id: number; x: number; z: number; open: boolean }[],
   relax?: { x: number; z: number; reach: number } | null,
+  eye?: Vec3 | null,
 ): InteractCandidate[] {
   const list: InteractCandidate[] = [];
   const placed = new Set<string>();
@@ -481,7 +498,8 @@ export function collectCandidates(
     });
   }
 
-  if (relax && relaxAllowed(state)) {
+  const home = !!eye && inLoungeAttention(eye.x, eye.z);
+  if (relax && (relaxAllowed(state) || home)) {
     list.push({
       id: "relax",
       kind: "relax",

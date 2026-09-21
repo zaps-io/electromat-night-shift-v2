@@ -1,7 +1,7 @@
 import "./style.css";
 import * as THREE from "three";
 import { playCue, playOn, playPay, playPlug, playStamp, playTalk, resumeAudio, setHum } from "./audio";
-import { clockLabel, MS_PER_GAME_MIN } from "./game/state";
+import { clockParts, MS_PER_GAME_MIN } from "./game/state";
 import {
   earlyShift,
   enrollAuto,
@@ -70,6 +70,7 @@ import {
   WAVE_SHOT,
   WIDE_SHOT,
   ZEUS_SHOT,
+  inLoungeAttention,
   inPlayableVolume,
   pickWalkDestination,
   pavilionDoorWorld,
@@ -88,7 +89,10 @@ const titleEl = document.querySelector("#title")!;
 const hudEl = document.querySelector("#hud")!;
 const hudMark = document.querySelector("#hud-mark");
 const endEl = document.querySelector("#end")!;
-const clockEl = document.querySelector("#clock")!;
+const clockPlate = document.querySelector<HTMLElement>("#clock-plate")!;
+const clockHmEl = document.querySelector("#clock-hm")!;
+const clockSecEl = document.querySelector("#clock-sec")!;
+const metersEl = document.querySelector<HTMLElement>("#meters")!;
 const autoEl = document.querySelector("#auto")!;
 const wavesEl = document.querySelector("#waves")!;
 const zipsEl = document.querySelector("#zips")!;
@@ -263,6 +267,7 @@ function currentCandidates(): InteractCandidate[] {
       open: !state.bays.find((b) => b.id === bay.playable)?.guestId,
     })),
     { x: RELAX_POINT.x, z: RELAX_POINT.z, reach: RELAX_REACH },
+    walker.position,
   );
 }
 
@@ -355,7 +360,8 @@ function parkIntoBay(bayId: number): boolean {
 
 function applyReady(ready: InteractCandidate): boolean {
   if (ready.need === "relax") {
-    if (jobNeedLocked(nextJob(state))) return false;
+    const home = inLoungeAttention(walker.position.x, walker.position.z);
+    if (jobNeedLocked(nextJob(state)) && !home) return false;
     serveRelax(state);
     return true;
   }
@@ -405,10 +411,11 @@ function act(): void {
   const job = nextJob(state);
   const cands = currentCandidates();
   const resolved = refreshTarget();
-  let ready = resolved.ready ?? jobReadyFallback(walker.position, job, cands);
+  const home = inLoungeAttention(walker.position.x, walker.position.z);
+  let ready = resolved.ready ?? (home ? null : jobReadyFallback(walker.position, job, cands));
   if (ready && applyReady(ready)) return;
-  if (ready && applyLockedJob()) return;
-  if (!ready && jobReadyFallback(walker.position, job, cands) && applyLockedJob()) return;
+  if (!home && ready && applyLockedJob()) return;
+  if (!home && !ready && jobReadyFallback(walker.position, job, cands) && applyLockedJob()) return;
   if (pendingPayGuest(state)) nudgePay(state);
   else if (job?.need === "unplug") {
     state.toast = `${job.name} is full — walk to the car.`;
@@ -430,7 +437,12 @@ function paintHud(): void {
   titleEl.classList.toggle("hidden", live || state.phase === "grade" || state.phase === "lose");
   endEl.classList.toggle("hidden", state.phase !== "grade" && state.phase !== "lose");
   if (state.phase === "grade" || state.phase === "lose") gradeEl.textContent = state.gradeLine;
-  clockEl.textContent = clockLabel(state.timeMin);
+  const face = clockParts(state.timeMin);
+  clockHmEl.textContent = face.hm;
+  clockSecEl.textContent = face.sec;
+  const showClock = state.phase === "title" || (live && !cinematic);
+  clockPlate.classList.toggle("hidden", !showClock);
+  metersEl.classList.toggle("hidden", !live || cinematic);
   autoEl.textContent = `AUTO ${state.autochargeSignups}`;
   wavesEl.textContent = `WAVE ${state.queueWaves}`;
   zipsEl.textContent = `ZIP ${state.sessionsDone}`;

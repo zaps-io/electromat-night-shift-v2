@@ -347,9 +347,28 @@ export function onDoorMat(x: number, z: number): boolean {
   return inRect(x, z, DOOR_MAT);
 }
 
+/**
+ * Inside the lounge, or on the mat committing through the south door.
+ * Distant lot PAY / WAVE must not own E here.
+ */
+export function inLoungeAttention(x: number, z: number): boolean {
+  return inLoungeSide(x, z) || onDoorMat(x, z);
+}
+
 /** Playable door throat — WALK IN / WALK OUT by position, never the west sidewalk. */
 export function inDoorApproach(x: number, z: number): boolean {
   return inPlayableVolume(x, z) && (inRect(x, z, DOOR_CORRIDOR) || inRect(x, z, DOOR_MAT));
+}
+
+/**
+ * Same stance WASD / walk-to uses to enter. False on the west sidewalk and
+ * any cell outside the playable volume, even if a look ray hits the portal.
+ */
+export function admitsLoungeEntry(x: number, z: number): boolean {
+  if (!inPlayableVolume(x, z)) return false;
+  if (inLoungeSide(x, z) || inDoorApproach(x, z) || onDoorMat(x, z)) return true;
+  if (!inRect(x, z, DOOR_YARD)) return false;
+  return playableWalkPath(x, z, LOUNGE_ARRIVE.x, LOUNGE_ARRIVE.z) != null;
 }
 
 export function nearDoor(x: number, z: number, range = DOOR_HINT_RANGE): boolean {

@@ -125,47 +125,75 @@ body {
   left: 1.2rem;
 }
 
-#clock {
+#clock-plate {
   position: absolute;
-  top: 1.1rem;
-  right: 1.2rem;
+  top: 0.7rem;
+  right: 0.75rem;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.38rem;
+  min-width: 9.2rem;
+  padding: 0.42rem 0.72rem 0.5rem;
+  background: rgba(12, 13, 18, 0.9);
+  border: 1px solid rgba(232, 154, 46, 0.62);
+  box-shadow: inset 0 0 0 1px rgba(245, 240, 232, 0.08), 0 8px 22px rgba(8, 8, 12, 0.45);
+  pointer-events: none;
+}
+
+#clock {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 0.28rem;
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.28em;
-  font-weight: 600;
+  font-weight: 700;
+  line-height: 0.9;
   color: var(--amber);
+  text-shadow: 0 0 14px rgba(232, 154, 46, 0.35);
+}
+
+#clock-hm {
+  font-size: 2.35rem;
+  letter-spacing: 0.08em;
+}
+
+#clock-sec {
+  font-size: 0.95rem;
+  letter-spacing: 0.12em;
+  color: var(--cream);
+  font-weight: 600;
+}
+
+#clock-sec::before {
+  content: ":";
+  margin-right: 0.12rem;
+}
+
+#meters {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.14rem;
+  width: 100%;
+  padding-top: 0.28rem;
+  border-top: 1px solid rgba(232, 154, 46, 0.35);
 }
 
 #auto,
 #waves,
-#zips {
-  position: absolute;
-  right: 1.2rem;
-  letter-spacing: 0.18em;
+#zips,
+#heat {
+  letter-spacing: 0.16em;
   color: var(--amber);
-  font-size: 0.85rem;
+  font-size: 0.74rem;
   font-variant-numeric: tabular-nums;
-}
-
-#auto {
-  top: 2.6rem;
-}
-
-#waves {
-  top: 3.85rem;
-}
-
-#zips {
-  top: 5.1rem;
+  line-height: 1.15;
 }
 
 #heat {
-  position: absolute;
-  right: 1.2rem;
-  top: 6.35rem;
-  letter-spacing: 0.18em;
   color: var(--cream);
-  font-size: 0.85rem;
-  font-variant-numeric: tabular-nums;
 }
 
 #heat.hot {
