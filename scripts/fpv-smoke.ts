@@ -38,6 +38,8 @@ type Hud = {
   doorLine: string;
   hudPrompt: string;
   hudObjective: string;
+  hudAside: string;
+  hudToast: string;
 };
 
 type ChromePage = {
@@ -109,6 +111,8 @@ async function hud(page: ChromePage): Promise<Hud> {
           doorLine: string;
           hudPrompt: string;
           hudObjective: string;
+          hudAside: string;
+          hudToast: string;
         };
       }
     ).__electromat;
@@ -131,6 +135,8 @@ async function hud(page: ChromePage): Promise<Hud> {
       doorLine: api.doorLine,
       hudPrompt: api.hudPrompt,
       hudObjective: api.hudObjective,
+      hudAside: api.hudAside,
+      hudToast: api.hudToast,
     };
   });
 }
@@ -275,17 +281,27 @@ async function main(): Promise<void> {
       );
       const doorPay = await waitHud(
         page,
-        (s) => s.hudPrompt === "WALK IN" && s.hudObjective.includes("PAY") && s.doorLine === "",
+        (s) =>
+          s.hudPrompt === "WALK IN" &&
+          s.hudObjective === "WALK IN" &&
+          s.doorLine === "" &&
+          s.hudAside.includes("PAY") &&
+          s.hudAside.includes("PECK"),
         8000,
       );
       if (doorPay.doorHint !== "WALK IN") {
         throw new Error(`door aiming at portal must hint WALK IN, hint=${doorPay.doorHint}`);
       }
-      if (doorPay.hudPrompt !== "WALK IN" || doorPay.doorLine) {
-        throw new Error(`door must show one primary WALK IN, prompt=${doorPay.hudPrompt} line=${doorPay.doorLine}`);
+      if (doorPay.hudPrompt !== "WALK IN" || doorPay.hudObjective !== "WALK IN" || doorPay.doorLine) {
+        throw new Error(
+          `door must show one WALK IN primary, prompt=${doorPay.hudPrompt} obj=${doorPay.hudObjective} line=${doorPay.doorLine}`,
+        );
       }
-      if (!doorPay.hudObjective.includes("PAY") || !doorPay.objective.includes("PAY")) {
-        throw new Error(`WALK IN must not wipe PAY objective, obj=${doorPay.hudObjective}`);
+      if (!doorPay.objective.includes("PAY") || !doorPay.hudAside.includes("PAY") || doorPay.hudAside.startsWith("PAY")) {
+        throw new Error(`job must stay secondary, aside=${doorPay.hudAside} sim=${doorPay.objective}`);
+      }
+      if (doorPay.hudToast && /\bPAY\b/i.test(doorPay.hudToast)) {
+        throw new Error(`toast competes with WALK IN: ${doorPay.hudToast}`);
       }
       await page.screenshot({ path: `${OUT}/fpv_door_single_walkin.png` });
 

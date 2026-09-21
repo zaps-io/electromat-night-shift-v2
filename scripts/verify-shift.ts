@@ -44,8 +44,10 @@ import {
   planarDist,
   reachScale,
   relaxAllowed,
+  presentHud,
   resolveInteract,
   toastConflictsJob,
+  toastYieldsToDoor,
   WAVE_CLOSE,
   xzLookDot,
 } from "../src/game/interact.ts";
@@ -433,7 +435,35 @@ const doorHud = hudActionPrompt(DOOR_SHOT, doorLook, "E  PAY  ·  PECK");
 if (doorHud.prompt !== "WALK IN" || doorHud.doorLine !== "") {
   throw new Error(`DOOR_SHOT must be a single WALK IN primary, got ${doorHud.prompt} / ${doorHud.doorLine}`);
 }
+const payJob = { need: "pay" as const, name: "Peck" };
+const presented = presentHud(DOOR_SHOT, doorLook, "E  PAY  ·  PECK", "PAY  ·  PECK", payJob);
+if (presented.prompt !== "WALK IN" || presented.objective !== "WALK IN" || presented.doorLine !== "") {
+  throw new Error(`door present must agree on WALK IN, got ${presented.prompt} / ${presented.objective}`);
+}
+if (!presented.aside.includes("PAY") || !presented.aside.includes("PECK") || presented.aside.startsWith("PAY")) {
+  throw new Error(`job must stay secondary at the door, got ${presented.aside}`);
+}
+const matPresented = presentHud(onMat, intoDoor, "E  PAY  ·  PECK", "PAY  ·  PECK", payJob);
+if (matPresented.prompt !== "WALK IN" || matPresented.objective !== "WALK IN" || matPresented.doorLine) {
+  throw new Error(`door mat must be a single WALK IN primary, got ${matPresented.prompt} / ${matPresented.objective}`);
+}
+if (!matPresented.aside.includes("PECK")) throw new Error("door mat must keep the job as secondary text");
+if (!toastYieldsToDoor("Peck is plugged — pay at the car or a PAY stand.", true, payJob)) {
+  throw new Error("door commit must hide the PAY toast");
+}
+if (toastYieldsToDoor("Peck is plugged — pay at the car or a PAY stand.", false, payJob)) {
+  throw new Error("PAY toast stays while the job owns the prompt");
+}
+if (toastYieldsToDoor("RUSH · two cars in the aisle. WAVE them through.", true, payJob)) {
+  throw new Error("rush banner must stay visible at the door");
+}
 const awayLook = { x: 1, y: 0, z: 0 };
+const awayPresented = presentHud(DOOR_SHOT, awayLook, "E  PAY  ·  PECK", "PAY  ·  PECK", payJob);
+if (awayPresented.prompt !== "E  PAY  ·  PECK" || awayPresented.objective !== "PAY  ·  PECK" || awayPresented.aside) {
+  throw new Error(
+    `off-door job must own prompt and objective, got ${awayPresented.prompt} / ${awayPresented.objective} / ${awayPresented.aside}`,
+  );
+}
 if (doorApproachHint(DOOR_SHOT, awayLook) !== "") {
   throw new Error("DOOR_SHOT looking away from the portal must keep the job prompt only");
 }

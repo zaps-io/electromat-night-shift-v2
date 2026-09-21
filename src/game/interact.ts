@@ -323,7 +323,7 @@ export function doorHintBesidePrompt(eye: Vec3, prompt: string, look?: Vec3): st
   return hint;
 }
 
-/** What #prompt should read. Objective stays on the live job even when the door takes the line. */
+/** What #prompt should read. One boxed primary — the door or the job, never both. */
 export function hudActionPrompt(eye: Vec3, look: Vec3 | undefined, jobPrompt: string): {
   prompt: string;
   doorHint: boolean;
@@ -337,6 +337,62 @@ export function hudActionPrompt(eye: Vec3, look: Vec3 | undefined, jobPrompt: st
     return { prompt: jobPrompt, doorHint: false, doorLine: doorHintBesidePrompt(eye, jobPrompt, look) };
   }
   return { prompt: hint, doorHint: !!hint, doorLine: "" };
+}
+
+export type PresentedHud = {
+  prompt: string;
+  doorHint: boolean;
+  doorLine: string;
+  /** Agrees with the boxed prompt. WALK IN / OUT when the door owns the beat. */
+  objective: string;
+  /** Locked job, only while the door owns the box. Never a second command. */
+  aside: string;
+};
+
+/**
+ * One primary. On the mat or aimed at the portal, WALK IN / OUT owns the box
+ * and the objective line. The live job may sit underneath as secondary text.
+ * Off the door, a locked lot job owns the prompt and the objective.
+ */
+export function presentHud(
+  eye: Vec3,
+  look: Vec3 | undefined,
+  jobPrompt: string,
+  jobObjective: string,
+  job: { need: InteractNeed; name: string } | null,
+): PresentedHud {
+  const hud = hudActionPrompt(eye, look, jobPrompt);
+  if (hud.doorHint) {
+    const aside = job && jobNeedLocked(job) ? `JOB  ·  ${jobLabel(job.need, job.name)}` : "";
+    return { prompt: hud.prompt, doorHint: true, doorLine: "", objective: hud.prompt, aside };
+  }
+  let objective = jobObjective;
+  if (job && jobNeedLocked(job)) {
+    const text = objective.toUpperCase();
+    if (!text.includes(job.need.toUpperCase()) || !text.includes(job.name.toUpperCase())) {
+      objective = jobPrompt ? jobLabel(job.need, job.name) : jobHint(job);
+    }
+  }
+  return { prompt: hud.prompt, doorHint: false, doorLine: hud.doorLine, objective, aside: "" };
+}
+
+/**
+ * Job-instruction toasts compete with WALK IN / OUT. Hide them while the door
+ * owns the box; completion stamps and shift banners stay.
+ */
+export function toastYieldsToDoor(
+  toast: string,
+  doorOwns: boolean,
+  job: { need: InteractNeed; name: string } | null,
+): boolean {
+  if (!doorOwns || !toast) return false;
+  const t = toast.toUpperCase();
+  if (/^(RUSH|GLARE|LOUNGE|RELAX)\b/.test(t)) return false;
+  if (/\b(PAID|ZIPPED|QUEUE MOVING|AUTOCHARGE ON|WALKED)\b/.test(t)) return false;
+  if (job && jobNeedLocked(job)) {
+    return t.includes(job.need.toUpperCase()) || t.includes(job.name.toUpperCase());
+  }
+  return /\b(PAY|WAVE|UNPLUG)\b/.test(t);
 }
 
 /** Single nearest live target. Prompt only when the action is available and in range / aimed. */

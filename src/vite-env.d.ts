@@ -26,6 +26,8 @@ interface ElectromatApi {
   doorLine: string;
   hudPrompt: string;
   hudObjective: string;
+  hudAside: string;
+  hudToast: string;
   inPlayable: (x: number, z: number) => boolean;
   capture: (w?: number, h?: number) => string;
   carProbe: (w?: number, h?: number) => string;
