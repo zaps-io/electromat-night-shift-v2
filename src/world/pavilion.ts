@@ -288,11 +288,11 @@ function addInterior(g: THREE.Group, W: number, D: number, H: number): THREE.Box
   wood.receiveShadow = true;
   wood.userData.walkGround = true;
   const runner = new THREE.Mesh(
-    new THREE.PlaneGeometry(1.55, 5.4),
+    new THREE.PlaneGeometry(2.05, 5.6),
     new THREE.MeshStandardMaterial({ color: 0x3a2a24, roughness: 0.82, metalness: 0.03 }),
   );
   runner.rotation.x = -Math.PI / 2;
-  runner.position.set(0.8, 0.034, -2.15);
+  runner.position.set(0.8, 0.034, -2.05);
   runner.userData.walkGround = true;
   const ceiling = new THREE.Mesh(
     new THREE.PlaneGeometry(W - 0.28, D - 0.28),
@@ -308,25 +308,25 @@ function addInterior(g: THREE.Group, W: number, D: number, H: number): THREE.Box
   ceiling.position.y = H - 0.1;
   g.add(crete, wood, runner, ceiling);
 
-  const counter = new THREE.Mesh(new RoundedBoxGeometry(3.1, 0.96, 0.78, 2, 0.05), cream);
-  counter.position.set(-3.25, 0.58, -5.72);
-  const top = new THREE.Mesh(new THREE.BoxGeometry(3.18, 0.05, 0.84), charcoal);
-  top.position.set(-3.25, 1.08, -5.72);
-  const pos = box(0.28, 0.32, 0.08, charcoal, -1.95, 1.32, -6.02);
+  const counter = new THREE.Mesh(new RoundedBoxGeometry(2.85, 0.96, 0.78, 2, 0.05), cream);
+  counter.position.set(-3.55, 0.58, -5.72);
+  const top = new THREE.Mesh(new THREE.BoxGeometry(2.92, 0.05, 0.84), charcoal);
+  top.position.set(-3.55, 1.08, -5.72);
+  const pos = box(0.28, 0.32, 0.08, charcoal, -2.35, 1.32, -6.02);
   const posGlow = new THREE.Mesh(new THREE.PlaneGeometry(0.22, 0.24), amber);
-  posGlow.position.set(-1.95, 1.32, -6.07);
-  const groupHead = box(0.46, 0.42, 0.3, charcoal, -4.05, 1.36, -5.68);
-  const groupCup = box(0.08, 0.1, 0.08, mat(C.cream, { roughness: 0.4 }), -3.72, 1.2, -5.5);
+  posGlow.position.set(-2.35, 1.32, -6.07);
+  const groupHead = box(0.46, 0.42, 0.3, charcoal, -4.25, 1.36, -5.68);
+  const groupCup = box(0.08, 0.1, 0.08, mat(C.cream, { roughness: 0.4 }), -3.92, 1.2, -5.5);
   const pitcher = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.05, 0.16, 8), chrome);
-  pitcher.position.set(-3.52, 1.22, -5.55);
+  pitcher.position.set(-3.72, 1.22, -5.55);
   const cafeScreen = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.42), menu);
-  cafeScreen.position.set(-4.05, 1.82, -5.55);
+  cafeScreen.position.set(-4.25, 1.82, -5.55);
   g.add(counter, top, pos, posGlow, groupHead, groupCup, pitcher, cafeScreen);
 
-  const pastry = new THREE.Mesh(new RoundedBoxGeometry(0.95, 0.96, 0.78, 2, 0.04), charcoal);
-  pastry.position.set(-3.95, 0.54, -4.15);
-  const pastryGlass = new THREE.Mesh(new THREE.BoxGeometry(0.84, 0.48, 0.68), caseGlass);
-  pastryGlass.position.set(-3.95, 0.92, -4.15);
+  const pastry = new THREE.Mesh(new RoundedBoxGeometry(0.9, 0.96, 0.78, 2, 0.04), charcoal);
+  pastry.position.set(-4.15, 0.54, -4.15);
+  const pastryGlass = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.48, 0.68), caseGlass);
+  pastryGlass.position.set(-4.15, 0.92, -4.15);
   g.add(pastry, pastryGlass);
   for (const [dx, dz, c] of [
     [-0.22, 0.1, C.red],
@@ -334,12 +334,12 @@ function addInterior(g: THREE.Group, W: number, D: number, H: number): THREE.Box
     [0.22, 0.08, C.cream],
     [-0.1, -0.12, C.cyan],
   ] as const) {
-    g.add(box(0.12, 0.08, 0.12, mat(c, { roughness: 0.42 }), -3.95 + dx, 0.64, -4.08 + dz));
+    g.add(box(0.12, 0.08, 0.12, mat(c, { roughness: 0.42 }), -4.15 + dx, 0.64, -4.08 + dz));
   }
   const robotHead = new THREE.Mesh(new RoundedBoxGeometry(0.34, 0.28, 0.28, 2, 0.04), charcoal);
-  robotHead.position.set(-3.55, 1.38, -4.05);
+  robotHead.position.set(-3.75, 1.38, -4.05);
   const robotEye = new THREE.Mesh(new THREE.PlaneGeometry(0.22, 0.1), amber);
-  robotEye.position.set(-3.38, 1.4, -4.05);
+  robotEye.position.set(-3.58, 1.4, -4.05);
   robotEye.rotation.y = Math.PI / 2;
   g.add(robotHead, robotEye);
 
@@ -408,7 +408,7 @@ function addInterior(g: THREE.Group, W: number, D: number, H: number): THREE.Box
   board.position.set(4.55, 2.18, 0.35);
   board.rotation.y = Math.PI / 2;
   const menuWall = new THREE.Mesh(new THREE.PlaneGeometry(0.72, 0.9), menu);
-  menuWall.position.set(-3.15, 1.95, -5.95);
+  menuWall.position.set(-3.45, 1.95, -5.95);
   g.add(board, menuWall);
 
   const plantPot = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.16, 0.22, 8), charcoal);
@@ -430,7 +430,7 @@ function addInterior(g: THREE.Group, W: number, D: number, H: number): THREE.Box
 
   addPerson(g, 3.35, 4.55, 3.2, 1.18, true);
   addPerson(g, 4.55, 1.15, 1.2, 1.22, true);
-  addPerson(g, -3.15, -4.85, 0.15, 1.48);
+  addPerson(g, -3.45, -4.85, 0.15, 1.48);
 
   addPendant(g, -3.2, -5.35, H, lamp, chrome);
   addPendant(g, -2.2, -5.45, H, lamp, chrome);
@@ -601,11 +601,12 @@ export function addPavilion(root: THREE.Group): THREE.Box3[] {
   );
   spill.position.set(doorX, doorH * 0.5, south + 0.01);
   const matRun = new THREE.Mesh(
-    new THREE.PlaneGeometry(doorW + 0.55, 2.45),
+    new THREE.PlaneGeometry(doorW + 0.75, 2.85),
     new THREE.MeshStandardMaterial({ color: 0x4a2c1c, roughness: 0.86, metalness: 0.02 }),
   );
   matRun.rotation.x = -Math.PI / 2;
   matRun.position.set(doorX, 0.025, south - 0.85);
+  matRun.userData.walkGround = true;
   const warmSpill = new THREE.Mesh(
     new THREE.PlaneGeometry(doorW + 0.35, 2.1),
     new THREE.MeshBasicMaterial({

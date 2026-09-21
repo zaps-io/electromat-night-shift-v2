@@ -1,14 +1,29 @@
 import * as THREE from "three";
-import { clampPlayable, inPlayableVolume, playableWalkPath, segmentPlayable } from "../world/layout";
+import {
+  clampPlayable,
+  GAMEPLAY_EYE_Y,
+  GAMEPLAY_SKY_Y,
+  inPlayableVolume,
+  lookHitsUnlitVoid,
+  playableWalkPath,
+  recoverPlayableCamera,
+  segmentPlayable,
+} from "../world/layout";
 
 export const WALK_RADIUS = 0.34;
-/** Gameplay look — zenith / nadir dump the lot into a black void. */
-export const PITCH_MIN = -0.52;
-export const PITCH_MAX = 0.38;
+/** Gameplay look — keep the lot horizon in frame (no zenith / asphalt dump). */
+export const PITCH_MIN = -0.32;
+export const PITCH_MAX = 0.22;
 
-export function clampGameplayPitch(pitch: number, eyeY = 1.64): number {
-  if (eyeY > 3.2) return pitch;
+export function clampGameplayPitch(pitch: number, eyeY = GAMEPLAY_EYE_Y): number {
+  if (eyeY > GAMEPLAY_SKY_Y) return pitch;
   return THREE.MathUtils.clamp(pitch, PITCH_MIN, PITCH_MAX);
+}
+
+/** True when a gameplay pitch still shows the lot horizon in a ~16:9 62° FPV. */
+export function horizonInView(pitch: number, eyeY = GAMEPLAY_EYE_Y): boolean {
+  if (eyeY > GAMEPLAY_SKY_Y) return true;
+  return pitch >= PITCH_MIN && pitch <= PITCH_MAX;
 }
 
 export type WalkStep = {
@@ -138,7 +153,7 @@ export class Walker {
   }
 
   constructor() {
-    this.camera = new THREE.PerspectiveCamera(62, 1, 0.08, 220);
+    this.camera = new THREE.PerspectiveCamera(62, 1, 0.12, 220);
     this.bind();
     this.sync();
   }
@@ -225,12 +240,12 @@ export class Walker {
     this.sync();
   }
 
-  place(x: number, z: number, yaw = 0, pitch = 0, eyeY = 1.64): void {
+  place(x: number, z: number, yaw = 0, pitch = 0, eyeY = GAMEPLAY_EYE_Y): void {
     this.position.set(x, eyeY, z);
     this.yaw = yaw;
     this.pitch = pitch;
     this.clearWalk();
-    if (eyeY <= 3.2) {
+    if (eyeY <= GAMEPLAY_SKY_Y) {
       this.applyPlayable();
       this.applyPitch();
     }
@@ -291,40 +306,34 @@ export class Walker {
 
   /** Keep the walker on asphalt ∪ lounge; recover to lot spawn if already in the void. */
   confine(colliders: THREE.Box3[] = []): void {
-    if (this.position.y > 3.2) return;
+    if (this.position.y > GAMEPLAY_SKY_Y) return;
     this.applyPlayable();
     resolveColliders(this.position, colliders);
     this.applyPlayable();
   }
 
   private applyPlayable(): void {
-    const held = clampPlayable(this.position.x, this.position.z);
-    this.position.x = held.x;
-    this.position.z = held.z;
+    const held = recoverPlayableCamera(this.position.x, this.position.y, this.position.z);
+    this.position.set(held.x, held.y, held.z);
     if (held.teleported) {
       this.clearWalk();
       this.lookAtLot();
     }
   }
 
-  /** Soft-recover look when a walk ends facing the west void or a canopy slab. */
+  /** Soft-recover look when a walk ends facing unlit void, sky-black, or a canopy slab. */
   keepLookSafe(): void {
-    if (this.position.y > 3.2) return;
+    if (this.position.y > GAMEPLAY_SKY_Y) return;
     this.applyPitch();
-    const lookX = -Math.sin(this.yaw);
-    const lookZ = -Math.cos(this.yaw);
-    const westVoid = this.position.x < -12.6 && lookX < -0.28;
-    const southVoid = this.position.z < -20.4 && lookZ < -0.5;
-    const northVoid = this.position.z > 15.8 && lookZ > 0.5;
-    if (westVoid || southVoid || northVoid) {
+    if (lookHitsUnlitVoid(this.position.x, this.position.z, this.yaw)) {
       this.lookAtLot();
       return;
     }
-    if (!this.locked && this.pitch > 0.14) this.lookAtLot();
+    if (!this.locked && this.pitch > 0.12) this.lookAtLot();
   }
 
   lookAtLot(): void {
-    if (this.position.y > 3.2) return;
+    if (this.position.y > GAMEPLAY_SKY_Y) return;
     this.lookAt(1.6, 1.2, -3.2);
     this.pitch = THREE.MathUtils.clamp(this.pitch, -0.1, 0.1);
     this.sync();

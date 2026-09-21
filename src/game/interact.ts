@@ -248,11 +248,16 @@ export function jobFocusCandidate(
   return candidates.find((c) => c.need === job.need) ?? null;
 }
 
-/** Near-door affordance. Empty when a ready E prompt (PAY included) already owns the HUD. */
-export function doorApproachHint(eye: Vec3, prompt: string): string {
-  if (prompt) return "";
+/** Near-door affordance. Stays available even when PAY / WAVE / UNPLUG owns E. */
+export function doorApproachHint(eye: Vec3, _prompt?: string): string {
   if (!nearDoor(eye.x, eye.z)) return "";
   return inLoungeSide(eye.x, eye.z) ? "WALK OUT" : "WALK IN";
+}
+
+/** Secondary HUD line — door hint beside a live job prompt. Empty when E is free (hint owns #prompt). */
+export function doorHintBesidePrompt(eye: Vec3, prompt: string): string {
+  if (!prompt) return "";
+  return doorApproachHint(eye);
 }
 
 /** Single nearest live target. Prompt only when the action is available and in range / aimed. */

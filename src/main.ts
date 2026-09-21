@@ -22,6 +22,7 @@ import {
 import {
   collectCandidates,
   doorApproachHint,
+  doorHintBesidePrompt,
   jobHint,
   jobReadyFallback,
   nextJob,
@@ -56,6 +57,8 @@ import {
   ZEUS_SHOT,
   inPlayableVolume,
   pickWalkDestination,
+  rayHitsDoorPortal,
+  pavilionDoorWorld,
 } from "./world/layout";
 import { addBrandSignage } from "./world/branding";
 import { makeAttendantHand, tickHand } from "./world/hand";
@@ -74,6 +77,7 @@ const autoEl = document.querySelector("#auto")!;
 const wavesEl = document.querySelector("#waves")!;
 const zipsEl = document.querySelector("#zips")!;
 const promptEl = document.querySelector("#prompt")!;
+const doorLineEl = document.querySelector("#door-line")!;
 const objectiveEl = document.querySelector("#objective")!;
 const toastEl = document.querySelector("#toast")!;
 const gradeEl = document.querySelector("#grade")!;
@@ -391,9 +395,10 @@ function paintHud(): void {
   station.waveAlert.scale.set(waveLive ? 1.7 : 1.05, waveLive ? 0.64 : 0.4, 1);
   station.waveGuide.visible = waveLive;
   const resolved = refreshTarget();
-  const doorHint = doorApproachHint(walker.position, resolved.prompt);
+  const doorHint = doorApproachHint(walker.position);
   promptEl.textContent = resolved.prompt || doorHint;
   promptEl.classList.toggle("door-hint", !resolved.prompt && !!doorHint);
+  doorLineEl.textContent = doorHintBesidePrompt(walker.position, resolved.prompt);
   objectiveEl.textContent = resolved.objective;
   if (live && toastConflictsJob(state.toast, job)) {
     state.toast = jobHint(job);
@@ -424,7 +429,9 @@ function groundWalk(clientX: number, clientY: number): void {
     -((clientY - rect.top) / rect.height) * 2 + 1,
   );
   ray.setFromCamera(ndc, walker.camera);
-  const dirY = ray.ray.direction.y;
+  const dir = ray.ray.direction;
+  const origin = ray.ray.origin;
+  const dirY = dir.y;
   const meshHit = ray.intersectObjects(station.walkGrounds, true)[0];
   let hitX = 0;
   let hitZ = 0;
@@ -437,6 +444,11 @@ function groundWalk(clientX: number, clientY: number): void {
     hitX = walkHit.x;
     hitZ = walkHit.z;
     hitDist = walker.position.distanceTo(walkHit);
+  } else if (rayHitsDoorPortal(origin.x, origin.y, origin.z, dir.x, dir.y, dir.z)) {
+    const door = pavilionDoorWorld();
+    hitX = door.x;
+    hitZ = door.z - 0.85;
+    hitDist = Math.hypot(origin.x - door.x, origin.z - door.z);
   } else {
     return;
   }
@@ -762,7 +774,10 @@ window.__electromat = {
     return walker.destination ? { x: walker.destination.x, z: walker.destination.z } : null;
   },
   get doorHint() {
-    return doorApproachHint(walker.position, refreshTarget().prompt);
+    return doorApproachHint(walker.position);
+  },
+  get doorLine() {
+    return doorHintBesidePrompt(walker.position, refreshTarget().prompt);
   },
   inPlayable(x: number, z: number) {
     return inPlayableVolume(x, z);
