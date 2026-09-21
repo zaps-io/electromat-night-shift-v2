@@ -44,6 +44,12 @@ export const AIM_DOT = 0.58;
 export const AIM_DOT_LOOSE = 0.12;
 /** Locked PAY / UNPLUG / WAVE: any XZ facing while in reach still shows E. */
 export const AIM_DOT_JOB = -0.45;
+/**
+ * Hull / stand distance for locked PAY · WAVE · UNPLUG. No reticle.
+ * Floor is the requested 8–12m; 18m covers opening spawn→Peck hull (~16.3)
+ * and spawn→lot PAY (~15.6) so live start-camera E actually pays.
+ */
+export const JOB_LOT_RANGE = 18;
 
 export function xzDist(a: Vec3, b: Vec3): number {
   return Math.hypot(a.x - b.x, a.z - b.z);
@@ -152,10 +158,11 @@ function usable(
   const ray = aimedId === c.id;
   const aimed = ray || dot >= AIM_DOT;
   const close = dist <= c.close;
-  const inReach = dist <= c.reach;
   const locked = jobNeedLocked(job) && c.need === job?.need;
+  const inReach = dist <= (locked ? JOB_LOT_RANGE : c.reach);
   const facing = ray || facingDot >= (locked ? AIM_DOT_JOB : AIM_DOT_LOOSE);
-  const ok = inReach && (close || aimed || facing || locked);
+  // Locked PAY / WAVE / UNPLUG: hull / stand distance only — no center-reticle.
+  const ok = locked ? inReach : inReach && (close || aimed || facing);
   return { ok, aimed: aimed && inReach, dist, dot };
 }
 
@@ -182,18 +189,19 @@ export function toastConflictsJob(toast: string, job: { need: InteractNeed; name
   return false;
 }
 
-/** E fallback: locked job target is in reach even if the aim cone missed. */
+/** E fallback: locked job is ready on hull / stand distance, any matching target. */
 export function jobReadyFallback(
   eye: Vec3,
   job: { need: InteractNeed; guestId?: string } | null,
   candidates: InteractCandidate[],
 ): InteractCandidate | null {
   if (!job || !jobNeedLocked(job)) return null;
-  const focus = jobFocusCandidate(job, candidates);
-  if (!focus || !matchesJob(focus, job)) return null;
-  const slack = focus.kind === "guest" ? 8.0 : 3.2;
-  if (planarDist(eye, focus) > focus.reach + slack) return null;
-  return focus;
+  const hits = candidates
+    .filter((c) => matchesJob(c, job))
+    .map((c) => ({ c, dist: planarDist(eye, c) }))
+    .filter((s) => s.dist <= JOB_LOT_RANGE)
+    .sort((a, b) => a.dist - b.dist);
+  return hits[0]?.c ?? null;
 }
 
 /** While PAY is the live job, talk / wave / park cannot steal E, the prompt, or the objective. */
@@ -281,6 +289,18 @@ export function resolveInteract(
       aimed: pick.aimed,
       prompt: promptFor(pick.c.need, pick.c.name),
       objective: label,
+    };
+  }
+
+  const lotReady = jobReadyFallback(eye, job, candidates);
+  if (lotReady) {
+    return {
+      ready: lotReady,
+      focus: lotReady,
+      dist: planarDist(eye, lotReady),
+      aimed: false,
+      prompt: promptFor(lotReady.need, lotReady.name),
+      objective: jobLabel(lotReady.need, lotReady.name),
     };
   }
 
