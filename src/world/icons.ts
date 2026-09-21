@@ -143,14 +143,18 @@ export function makeOpenSign(): THREE.Sprite {
   c.height = 140;
   const ctx = c.getContext("2d")!;
   ctx.clearRect(0, 0, 320, 140);
-  ctx.fillStyle = "#E63225";
+  ctx.fillStyle = "#0c0d12";
   round(ctx, 16, 18, 288, 104, 14);
   ctx.fill();
-  ctx.fillStyle = "#F5F0E8";
-  ctx.font = "900 64px sans-serif";
+  ctx.strokeStyle = "#E89A2E";
+  ctx.lineWidth = 6;
+  round(ctx, 16, 18, 288, 104, 14);
+  ctx.stroke();
+  ctx.fillStyle = "#E89A2E";
+  ctx.font = "800 52px monospace";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText("OPEN", 160, 76);
+  ctx.fillText("LOUNGE", 160, 76);
   return sprite(new THREE.CanvasTexture(c), 1.62, 0.7, "door");
 }
 

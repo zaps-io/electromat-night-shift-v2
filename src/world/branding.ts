@@ -78,20 +78,20 @@ export async function addBrandSignage(root: THREE.Group): Promise<void> {
   const red = await loadBrandTexture("zaps-wordmark-only-red.svg");
 
   for (const canopy of CANOPIES) {
-    const fasciaZ = canopy.z - canopy.d * 0.5 - 0.24;
-    const mark = signPlate(5.05, 0.86, red);
-    mark.position.set(canopy.x, canopy.y + 0.1, fasciaZ);
+    const fasciaZ = canopy.z - canopy.d * 0.5 - 0.14;
+    const mark = signPlate(3.85, 0.38, red);
+    mark.position.set(canopy.x, canopy.y + 0.02, fasciaZ);
     mark.rotation.y = Math.PI;
     root.add(mark);
   }
 
-  const loungeMark = signPlate(3.4, 0.76, red);
-  loungeMark.position.set(-17.55, 2.85, 3.4);
+  const loungeMark = signPlate(2.6, 0.48, red);
+  loungeMark.position.set(-17.52, 3.05, 3.4);
   loungeMark.rotation.y = Math.PI / 2;
   root.add(loungeMark);
 
-  const loungeFront = signPlate(2.8, 0.62, red);
-  loungeFront.position.set(-23.4, 2.95, -3.35);
+  const loungeFront = signPlate(2.15, 0.42, red);
+  loungeFront.position.set(-23.4, 3.08, -3.38);
   loungeFront.rotation.y = Math.PI;
   root.add(loungeFront);
 
@@ -105,8 +105,8 @@ export async function addBrandSignage(root: THREE.Group): Promise<void> {
   waveMark.position.set(WAVE_POINT.x, 2.08, WAVE_POINT.z - 0.12);
   root.add(waveMark);
 
-  const monument = signPlate(0.82, 0.3, red);
-  monument.position.set(-11.95, 1.18, -15.4);
+  const monument = signPlate(0.78, 0.32, red);
+  monument.position.set(-11.92, 2.55, -15.4);
   monument.rotation.y = Math.PI / 2;
   root.add(monument);
 

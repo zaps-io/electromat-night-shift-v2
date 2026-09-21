@@ -469,6 +469,27 @@ export function fabric(): THREE.CanvasTexture {
   }, { repeatX: 4, repeatY: 6, srgb: true });
 }
 
+/** Walnut / cognac leather grain for banquettes. */
+export function leather(): THREE.CanvasTexture {
+  return canvasTex(128, 128, (ctx, w, h) => {
+    ctx.fillStyle = "#8B4513";
+    ctx.fillRect(0, 0, w, h);
+    for (let i = 0; i < 2400; i++) {
+      const n = 90 + Math.random() * 50;
+      ctx.fillStyle = `rgba(${n + 40},${n - 10},${n - 40},${0.28 + Math.random() * 0.25})`;
+      ctx.fillRect(Math.random() * w, Math.random() * h, 2, 1);
+    }
+    ctx.strokeStyle = "rgba(40,18,8,0.18)";
+    ctx.lineWidth = 1;
+    for (let y = 8; y < h; y += 16) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.quadraticCurveTo(w * 0.5, y + 3, w, y);
+      ctx.stroke();
+    }
+  }, { repeatX: 3, repeatY: 3, aniso: 6 });
+}
+
 export function brushMetal(): { map: THREE.CanvasTexture; rough: THREE.CanvasTexture; normal: THREE.CanvasTexture } {
   const map = canvasTex(128, 512, (ctx, w, h) => {
     ctx.fillStyle = "#D8DCE2";
@@ -585,38 +606,46 @@ export function coolerFace(): THREE.CanvasTexture {
 }
 
 export function statusBoard(): THREE.CanvasTexture {
-  return canvasTex(512, 256, (ctx, w, h) => {
-    ctx.fillStyle = "#14161C";
+  return canvasTex(640, 320, (ctx, w, h) => {
+    ctx.fillStyle = "#0c0d12";
     ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = "#14161c";
+    for (let y = 8; y < h; y += 5) {
+      for (let x = 8; x < w; x += 5) ctx.fillRect(x, y, 1, 1);
+    }
     ctx.fillStyle = "#E63225";
-    ctx.font = "800 26px Arial";
+    ctx.font = "800 22px monospace";
     ctx.textAlign = "left";
-    ctx.fillText("ELECTROMAT", 22, 36);
-    ctx.fillStyle = "#F5F0E8";
-    ctx.font = "600 15px Arial";
-    ctx.fillText("BAY STATUS", 22, 58);
+    ctx.fillText("ZAPS ELECTROMAT", 22, 32);
+    ctx.fillStyle = "#E89A2E";
+    ctx.font = "700 16px monospace";
+    ctx.textAlign = "right";
+    ctx.fillText("CHARGE   RELAX   DEPART", w - 22, 32);
+    ctx.textAlign = "left";
+    ctx.font = "600 13px monospace";
+    ctx.fillText("STATUS    BAY    TIME     kWh    PRICE", 22, 58);
     const rows = [
-      ["01  HALE", "#00D4F5", "88%"],
-      ["04  PECK", "#E89A2E", "PAY"],
-      ["05  —", "#6a6e74", "OPEN"],
-      ["06  —", "#6a6e74", "OPEN"],
+      ["CHARGE", "01", "12 MIN", "18.4", "4.20"],
+      ["CHARGE", "02", "08 MIN", "11.2", "2.55"],
+      ["RELAX", "04", "PAY", "0.8", "—"],
+      ["DEPART", "05", "READY", "28.0", "6.40"],
     ];
     rows.forEach((row, i) => {
-      const y = 96 + i * 36;
-      ctx.fillStyle = "#2a2e34";
-      ctx.fillRect(18, y - 20, w - 36, 30);
-      ctx.fillStyle = row[1];
-      ctx.beginPath();
-      ctx.arc(36, y - 5, 5, 0, Math.PI * 2);
-      ctx.fill();
+      const y = 92 + i * 48;
+      ctx.fillStyle = i % 2 === 0 ? "#161820" : "#12141a";
+      ctx.fillRect(16, y - 22, w - 32, 40);
+      ctx.fillStyle = "#E89A2E";
+      ctx.font = "700 15px monospace";
+      ctx.fillText(row[0], 26, y);
       ctx.fillStyle = "#F5F0E8";
-      ctx.font = "600 16px Arial";
-      ctx.textAlign = "left";
-      ctx.fillText(row[0], 52, y);
-      ctx.textAlign = "right";
-      ctx.fillStyle = row[1];
-      ctx.fillText(row[2], w - 28, y);
+      ctx.fillText(row[1], 150, y);
+      ctx.fillText(row[2], 230, y);
+      ctx.fillText(row[3], 370, y);
+      ctx.fillText(row[4], 500, y);
     });
+    ctx.fillStyle = "#E89A2E";
+    ctx.font = "600 13px monospace";
+    ctx.fillText("ENERGY DELIVERED TODAY   412 kWh", 22, h - 18);
   }, { wrap: false });
 }
 
@@ -658,7 +687,7 @@ export function menuBoard(): THREE.CanvasTexture {
     rows.forEach((row, i) => {
       ctx.fillStyle = "#F5F0E8";
       ctx.fillText(row[0], 28, 118 + i * 36);
-      ctx.fillStyle = "#00D4F5";
+      ctx.fillStyle = "#E89A2E";
       ctx.textAlign = "right";
       ctx.fillText(row[1], w - 28, 118 + i * 36);
       ctx.textAlign = "left";

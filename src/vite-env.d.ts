@@ -20,6 +20,7 @@ interface ElectromatApi {
   ready: boolean;
   destination: { x: number; z: number } | null;
   doorHint: string;
+  doorLine: string;
   inPlayable: (x: number, z: number) => boolean;
   capture: (w?: number, h?: number) => string;
   carProbe: (w?: number, h?: number) => string;
