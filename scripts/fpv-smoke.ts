@@ -5,7 +5,19 @@
  */
 import { existsSync, mkdirSync } from "node:fs";
 import { createServer } from "vite";
-import { BAYS, DOOR_IN_SHOT, DOOR_SHOT, INTERIOR_SHOT, START_SHOT, WAVE_SHOT } from "../src/world/layout.ts";
+import { PITCH_MAX } from "../src/input/walker.ts";
+import {
+  BAYS,
+  DOOR_IN_SHOT,
+  DOOR_SHOT,
+  DOOR_YARD,
+  INTERIOR_SHOT,
+  LEFT_CANOPY_X,
+  START_SHOT,
+  WAVE_SHOT,
+  WEST_APRON_X,
+  pavilionDoorWorld,
+} from "../src/world/layout.ts";
 
 type Hud = {
   prompt: string;
@@ -24,6 +36,8 @@ type Hud = {
   eHeard: number;
   doorHint: string;
   doorLine: string;
+  hudPrompt: string;
+  hudObjective: string;
 };
 
 type ChromePage = {
@@ -93,6 +107,8 @@ async function hud(page: ChromePage): Promise<Hud> {
           eHeard: number;
           doorHint: string;
           doorLine: string;
+          hudPrompt: string;
+          hudObjective: string;
         };
       }
     ).__electromat;
@@ -113,6 +129,8 @@ async function hud(page: ChromePage): Promise<Hud> {
       eHeard: api.eHeard,
       doorHint: api.doorHint,
       doorLine: api.doorLine,
+      hudPrompt: api.hudPrompt,
+      hudObjective: api.hudObjective,
     };
   });
 }
@@ -255,11 +273,21 @@ async function main(): Promise<void> {
           lookAt: { ...DOOR_SHOT.lookAt },
         },
       );
-      const doorPay = await waitHud(page, (s) => s.prompt.includes("PAY") && s.doorHint === "WALK IN", 8000);
-      if (doorPay.doorLine !== "WALK IN") {
-        throw new Error(`door must keep WALK IN beside PAY, got line=${doorPay.doorLine} prompt=${doorPay.prompt}`);
+      const doorPay = await waitHud(
+        page,
+        (s) => s.hudPrompt === "WALK IN" && s.hudObjective.includes("PAY") && s.doorLine === "",
+        8000,
+      );
+      if (doorPay.doorHint !== "WALK IN") {
+        throw new Error(`door aiming at portal must hint WALK IN, hint=${doorPay.doorHint}`);
       }
-      await page.screenshot({ path: `${OUT}/fpv_door_walkin_beside_pay.png` });
+      if (doorPay.hudPrompt !== "WALK IN" || doorPay.doorLine) {
+        throw new Error(`door must show one primary WALK IN, prompt=${doorPay.hudPrompt} line=${doorPay.doorLine}`);
+      }
+      if (!doorPay.hudObjective.includes("PAY") || !doorPay.objective.includes("PAY")) {
+        throw new Error(`WALK IN must not wipe PAY objective, obj=${doorPay.hudObjective}`);
+      }
+      await page.screenshot({ path: `${OUT}/fpv_door_single_walkin.png` });
 
       await page.evaluate(
         (shot: { x: number; z: number; yaw: number; pitch: number; eyeY: number; lookAt: { x: number; y: number; z: number } }) => {
@@ -369,9 +397,35 @@ async function main(): Promise<void> {
       });
       await new Promise((r) => setTimeout(r, 250));
       const sky = await hud(page);
-      if (sky.pitch > 0.2) throw new Error(`zenith look not clamped, pitch=${sky.pitch}`);
+      if (sky.pitch > PITCH_MAX + 0.01) throw new Error(`zenith look not clamped, pitch=${sky.pitch}`);
       if (!sky.playable) throw new Error("look-up left playable volume");
       await page.screenshot({ path: `${OUT}/fpv_look_up_clamped.png` });
+
+      await page.evaluate(
+        (pose: { x: number; z: number; look: { x: number; y: number; z: number } }) => {
+          const api = (
+            window as unknown as {
+              __electromat: {
+                place: (x: number, z: number, yaw?: number, pitch?: number, eyeY?: number) => void;
+                lookAt: (x: number, y: number, z: number) => void;
+              };
+            }
+          ).__electromat;
+          api.place(pose.x, pose.z, 0.4, 0.5, 1.64);
+          api.lookAt(pose.look.x, pose.look.y, pose.look.z);
+        },
+        { x: LEFT_CANOPY_X + 3.2, z: -6.4, look: { x: LEFT_CANOPY_X - 1.1, y: 5.22, z: -1.8 } },
+      );
+      await new Promise((r) => setTimeout(r, 250));
+      const canopyUp = await hud(page);
+      if (canopyUp.pitch <= 0.16) {
+        throw new Error(`canopy inspect still clamped to old ±0.16, pitch=${canopyUp.pitch}`);
+      }
+      if (canopyUp.pitch > PITCH_MAX + 0.01) {
+        throw new Error(`canopy inspect exceeded geometry clamp, pitch=${canopyUp.pitch}`);
+      }
+      if (!canopyUp.playable) throw new Error("canopy inspect left playable volume");
+      await page.screenshot({ path: `${OUT}/fpv_canopy_lookup_no_void.png` });
       await page.evaluate(() => {
         const api = (window as unknown as { __electromat: { lookAt: (x: number, y: number, z: number) => void; position: { x: number; z: number } } }).__electromat;
         api.lookAt(api.position.x, -40, api.position.z + 0.15);
@@ -425,6 +479,63 @@ async function main(): Promise<void> {
       if (!lounge.playable) throw new Error("lounge walk-to ended off playable");
       if (lounge.y < 1.2) throw new Error("lounge camera went underground");
       await page.screenshot({ path: `${OUT}/fpv_lounge_after_doormat.png` });
+
+      const westDoor = pavilionDoorWorld();
+      const westPose = { x: WEST_APRON_X - 0.35, z: DOOR_YARD.zmin + 0.4 };
+      await page.evaluate(
+        (pose: { x: number; z: number; look: { x: number; y: number; z: number } }) => {
+          const api = (
+            window as unknown as {
+              __electromat: {
+                place: (x: number, z: number, yaw?: number, pitch?: number, eyeY?: number) => void;
+                lookAt: (x: number, y: number, z: number) => void;
+              };
+            }
+          ).__electromat;
+          api.place(pose.x, pose.z, 0.8, 0.04, 1.58);
+          api.lookAt(pose.look.x, pose.look.y, pose.look.z);
+        },
+        { x: westPose.x, z: westPose.z, look: { x: westDoor.x, y: 1.4, z: westDoor.z } },
+      );
+      const westHint = await waitHud(page, (s) => s.hudPrompt === "WALK IN" || s.doorHint === "WALK IN", 8000);
+      if (westHint.hudPrompt === "WALK IN" && westHint.doorLine) {
+        throw new Error(`west approach must not stack WALK IN on a job line, line=${westHint.doorLine}`);
+      }
+      if (!westHint.playable) throw new Error("WALK IN west approach must be playable");
+      await page.screenshot({ path: `${OUT}/fpv_west_approach_walkin.png` });
+      const westEnter = await page.evaluate(
+        (inside: { x: number; z: number }) => {
+          const api = (
+            window as unknown as {
+              __electromat: {
+                walkTo: (x: number, z: number) => void;
+                step: (dt?: number) => void;
+                destination: { x: number; z: number } | null;
+                position: { x: number; y: number; z: number };
+                inPlayable: (x: number, z: number) => boolean;
+              };
+            }
+          ).__electromat;
+          api.walkTo(inside.x, inside.z);
+          for (let i = 0; i < 720; i++) {
+            api.step(0.05);
+            if (!api.destination) break;
+          }
+          return {
+            x: api.position.x,
+            z: api.position.z,
+            playable: api.inPlayable(api.position.x, api.position.z),
+            dest: api.destination != null,
+          };
+        },
+        { x: INTERIOR_SHOT.x, z: INTERIOR_SHOT.z },
+      );
+      if (westEnter.dest) throw new Error("west-approach WALK IN walk-to did not finish");
+      if (westEnter.z < DOOR_IN_SHOT.z - 1.6) {
+        throw new Error(`west approach with WALK IN did not enter lounge z=${westEnter.z}`);
+      }
+      if (!westEnter.playable) throw new Error("west-approach entry left playable volume");
+      await page.screenshot({ path: `${OUT}/fpv_west_approach_entered.png` });
 
       const west = await page.evaluate(() => {
         const api = (
@@ -480,9 +591,9 @@ async function main(): Promise<void> {
     if ((result.zip ?? 0) < 1) throw new Error(`FPV smoke ZIP ${result.zip} prompt=${result.unplugPrompt}`);
     if (result.westCancelled === false) throw new Error("west sidewalk walk-to must cancel");
     if (!result.prompt.includes("PAY")) throw new Error(`expected E PAY before keyboard E, got ${result.prompt}`);
-    if (result.doorHint !== "WALK IN" || result.doorLine !== "WALK IN") {
-      throw new Error(`expected WALK IN beside PAY at the door, hint=${result.doorHint} line=${result.doorLine}`);
-    }
+      if (result.doorHint !== "WALK IN" || result.doorLine) {
+        throw new Error(`expected single WALK IN at the door, hint=${result.doorHint} line=${result.doorLine}`);
+      }
     if ((result.loungeZ ?? -99) < DOOR_IN_SHOT.z - 1.6) {
       throw new Error(`expected lounge interior after door walk-to, z=${result.loungeZ}`);
     }

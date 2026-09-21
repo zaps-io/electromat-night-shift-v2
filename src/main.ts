@@ -23,6 +23,7 @@ import {
   collectCandidates,
   doorApproachHint,
   doorHintBesidePrompt,
+  hudActionPrompt,
   jobHint,
   jobReadyFallback,
   nextJob,
@@ -403,10 +404,11 @@ function paintHud(): void {
   station.waveAlert.scale.set(waveLive ? 1.7 : 1.05, waveLive ? 0.64 : 0.4, 1);
   station.waveGuide.visible = waveLive;
   const resolved = refreshTarget();
-  const doorHint = doorApproachHint(walker.position);
-  promptEl.textContent = resolved.prompt || doorHint;
-  promptEl.classList.toggle("door-hint", !resolved.prompt && !!doorHint);
-  doorLineEl.textContent = doorHintBesidePrompt(walker.position, resolved.prompt);
+  walker.camera.getWorldDirection(lookDir);
+  const hud = hudActionPrompt(walker.position, lookDir, resolved.prompt);
+  promptEl.textContent = hud.prompt;
+  promptEl.classList.toggle("door-hint", hud.doorHint);
+  doorLineEl.textContent = hud.doorLine;
   objectiveEl.textContent = resolved.objective;
   const toastLive = live && state.toastUntil > state.timeMin ? state.toast : "";
   promptEl.classList.toggle("ack", /PAID|ZIPPED|QUEUE MOVING|AUTOCHARGE|PLUG/i.test(toastLive));
@@ -795,10 +797,18 @@ window.__electromat = {
     return walker.destination ? { x: walker.destination.x, z: walker.destination.z } : null;
   },
   get doorHint() {
-    return doorApproachHint(walker.position);
+    walker.camera.getWorldDirection(lookDir);
+    return doorApproachHint(walker.position, lookDir);
   },
   get doorLine() {
-    return doorHintBesidePrompt(walker.position, refreshTarget().prompt);
+    walker.camera.getWorldDirection(lookDir);
+    return doorHintBesidePrompt(walker.position, refreshTarget().prompt, lookDir);
+  },
+  get hudPrompt() {
+    return promptEl.textContent ?? "";
+  },
+  get hudObjective() {
+    return objectiveEl.textContent ?? "";
   },
   inPlayable(x: number, z: number) {
     return inPlayableVolume(x, z);

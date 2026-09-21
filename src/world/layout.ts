@@ -196,11 +196,11 @@ export const LOUNGE_WALK: XZRect = {
   zmax: PAVILION.z + PAVILION.d * 0.5 - LOUNGE_WALL,
 };
 
-/** South-door throat: full opening plus a short lot-side funnel. */
+/** South-door throat: opening width plus a lot-side funnel that reaches the door yard. */
 export const DOOR_CORRIDOR: XZRect = {
   xmin: DOOR_WORLD_X - PAVILION_DOOR.width * 0.5 - 0.28,
   xmax: DOOR_WORLD_X + PAVILION_DOOR.width * 0.5 + 0.28,
-  zmin: DOOR_WORLD_Z - 2.85,
+  zmin: DOOR_WORLD_Z - 4.95,
   zmax: DOOR_WORLD_Z + 2.75,
 };
 
@@ -215,11 +215,11 @@ export const DOOR_YARD: XZRect = {
   zmax: DOOR_CORRIDOR.zmax,
 };
 
-/** Lot-side mat + threshold. Clicks here commit to walking through the portal. */
+/** Lot-side mat + threshold, aligned with the opening so WASD and walk-to both enter. */
 export const DOOR_MAT: XZRect = {
   xmin: DOOR_CORRIDOR.xmin,
   xmax: DOOR_CORRIDOR.xmax,
-  zmin: DOOR_WORLD_Z - 2.55,
+  zmin: DOOR_WORLD_Z - 4.7,
   zmax: DOOR_WORLD_Z + 0.72,
 };
 
@@ -341,8 +341,27 @@ export function onDoorMat(x: number, z: number): boolean {
   return inRect(x, z, DOOR_MAT);
 }
 
+/** Playable door throat — WALK IN / WALK OUT by position, never the west sidewalk. */
+export function inDoorApproach(x: number, z: number): boolean {
+  return inPlayableVolume(x, z) && (inRect(x, z, DOOR_CORRIDOR) || inRect(x, z, DOOR_MAT));
+}
+
 export function nearDoor(x: number, z: number, range = DOOR_HINT_RANGE): boolean {
   return Math.hypot(x - DOOR_WORLD_X, z - DOOR_WORLD_Z) <= range;
+}
+
+/** Plan-facing the south door — west-yard approach can miss a tight portal AABB. */
+export function facingDoorPortal(
+  eye: { x: number; z: number },
+  look: { x: number; z: number },
+): boolean {
+  const door = pavilionDoorWorld();
+  const llen = Math.hypot(look.x, look.z);
+  if (llen < 1e-5) return false;
+  const tx = door.x - eye.x;
+  const tz = door.z - eye.z;
+  const tlen = Math.hypot(tx, tz) || 1;
+  return (look.x / llen) * (tx / tlen) + (look.z / llen) * (tz / tlen) >= 0.55;
 }
 
 /**
@@ -379,10 +398,10 @@ export function doorPortalBox(): Aabb3 {
   const door = pavilionDoorWorld();
   return {
     xmin: door.x - door.width * 0.5 - 0.45,
-    xmax: door.x + door.width * 0.5 + 0.45,
+    xmax: door.x + door.width * 0.5 + 0.85,
     ymin: 0,
     ymax: door.height + 0.95,
-    zmin: door.z - 2.65,
+    zmin: door.z - 4.35,
     zmax: door.z + 1.4,
   };
 }
@@ -433,6 +452,31 @@ export function rayHitsDoorPortal(
   maxDist = 22,
 ): boolean {
   return rayHitsAabb(ox, oy, oz, dx, dy, dz, doorPortalBox(), maxDist);
+}
+
+/** Ray on the OPEN portal, or facing it from the playable yard / throat. */
+export function aimingAtDoorPortal(
+  eye: { x: number; y?: number; z: number },
+  look: { x: number; y?: number; z: number },
+  maxDist = 18,
+): boolean {
+  const llen = Math.hypot(look.x, look.y ?? 0, look.z);
+  if (llen < 1e-5) return false;
+  if (
+    rayHitsDoorPortal(
+      eye.x,
+      eye.y ?? GAMEPLAY_EYE_Y,
+      eye.z,
+      look.x / llen,
+      (look.y ?? 0) / llen,
+      look.z / llen,
+      maxDist,
+    )
+  ) {
+    return true;
+  }
+  const onApproach = inDoorApproach(eye.x, eye.z) || inRect(eye.x, eye.z, DOOR_YARD);
+  return onApproach && facingDoorPortal(eye, look);
 }
 
 export function pickWalkDestination(

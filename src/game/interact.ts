@@ -1,4 +1,12 @@
-import { inLoungeSide, nearDoor } from "../world/layout";
+import {
+  aimingAtDoorPortal,
+  DOOR_YARD,
+  inDoorApproach,
+  inLoungeSide,
+  inPlayableVolume,
+  inRect,
+  onDoorMat,
+} from "../world/layout";
 import type { GuestAction } from "./shift";
 import { guestAction, nextQueueGuest, pendingPayGuest, waitingParker } from "./shift";
 import type { GameState } from "./state";
@@ -248,16 +256,46 @@ export function jobFocusCandidate(
   return candidates.find((c) => c.need === job.need) ?? null;
 }
 
-/** Near-door affordance. Stays available even when PAY / WAVE / UNPLUG owns E. */
-export function doorApproachHint(eye: Vec3): string {
-  if (!nearDoor(eye.x, eye.z)) return "";
+/** Near-door affordance. Position on the playable throat, or aiming at the portal from the yard. */
+export function doorApproachHint(eye: Vec3, look?: Vec3): string {
+  if (!inPlayableVolume(eye.x, eye.z)) return "";
+  const onThroat = inDoorApproach(eye.x, eye.z);
+  const approachAim =
+    !!look && aimingAtDoorPortal(eye, look) && (onThroat || inRect(eye.x, eye.z, DOOR_YARD));
+  if (!onThroat && !approachAim) return "";
   return inLoungeSide(eye.x, eye.z) ? "WALK OUT" : "WALK IN";
 }
 
-/** Secondary HUD line — door hint beside a live job prompt. Empty when E is free (hint owns #prompt). */
-export function doorHintBesidePrompt(eye: Vec3, prompt: string): string {
+/** On the mat or aiming at the OPEN portal — WALK IN / OUT may own #prompt for one beat. */
+export function doorTakesPrompt(eye: Vec3, look?: Vec3): boolean {
+  if (!doorApproachHint(eye, look)) return false;
+  return onDoorMat(eye.x, eye.z) || (!!look && aimingAtDoorPortal(eye, look));
+}
+
+/** Secondary HUD line — door hint beside a live job, only when the job still owns #prompt. */
+export function doorHintBesidePrompt(eye: Vec3, prompt: string, look?: Vec3): string {
   if (!prompt) return "";
-  return doorApproachHint(eye);
+  if (doorTakesPrompt(eye, look)) return "";
+  const hint = doorApproachHint(eye, look);
+  if (!hint) return "";
+  if (look && !aimingAtDoorPortal(eye, look) && !onDoorMat(eye.x, eye.z)) return "";
+  return hint;
+}
+
+/** What #prompt should read. Objective stays on the live job even when the door takes the line. */
+export function hudActionPrompt(eye: Vec3, look: Vec3 | undefined, jobPrompt: string): {
+  prompt: string;
+  doorHint: boolean;
+  doorLine: string;
+} {
+  const hint = doorApproachHint(eye, look);
+  if (doorTakesPrompt(eye, look) && hint) {
+    return { prompt: hint, doorHint: true, doorLine: "" };
+  }
+  if (jobPrompt) {
+    return { prompt: jobPrompt, doorHint: false, doorLine: doorHintBesidePrompt(eye, jobPrompt, look) };
+  }
+  return { prompt: hint, doorHint: !!hint, doorLine: "" };
 }
 
 /** Single nearest live target. Prompt only when the action is available and in range / aimed. */
