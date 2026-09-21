@@ -11,9 +11,15 @@ import {
 } from "../world/layout";
 
 export const WALK_RADIUS = 0.34;
-/** Gameplay look — keep the lot horizon in the frame (no zenith / asphalt dump). */
+/**
+ * Gameplay look — no zenith / asphalt dump, but wide enough to inspect
+ * canopy coffers / fascia and Slim Zeus tops from FPV eye height.
+ * Cinematic stills (eyeY > GAMEPLAY_SKY_Y) stay unclamped.
+ */
 export const PITCH_MIN = -0.18;
-export const PITCH_MAX = 0.16;
+export const PITCH_MAX = 0.58;
+/** Typical under-canopy look-up at coffers ~6 m ahead from gameplay eye. */
+export const CANOPY_INSPECT_PITCH = Math.atan2(5.22 - GAMEPLAY_EYE_Y, 6);
 
 export function clampGameplayPitch(pitch: number, eyeY = GAMEPLAY_EYE_Y): number {
   if (eyeY > GAMEPLAY_SKY_Y) return pitch;
@@ -329,11 +335,10 @@ export class Walker {
       this.lookAtLot();
       return;
     }
-    if (this.pitch <= PITCH_MIN + 0.01 || this.pitch >= PITCH_MAX - 0.01) {
+    if (this.pitch <= PITCH_MIN + 0.01) {
       this.lookAtLot();
       return;
     }
-    if (!this.locked && this.pitch > 0.08) this.lookAtLot();
   }
 
   lookAtLot(): void {
