@@ -2,7 +2,7 @@
  * Real Chromium FPV smoke: pointer lock + WASD + trusted keyboard E.
  * Does not call api.act() or dispatch synthetic KeyboardEvents.
  */
-import { mkdirSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
 import { createServer } from "vite";
 import { BAYS, WAVE_POINT } from "../src/world/layout.ts";
 
@@ -38,18 +38,14 @@ const peckBay = BAYS.find((b) => b.playable === 4)!;
 if (!peckBay) throw new Error("bay 4 missing");
 
 async function withChrome<T>(url: string, fn: (page: ChromePage) => Promise<T>): Promise<T> {
-  const puppeteer = await import("puppeteer-core").catch(() => null);
+  const puppeteer = await import("puppeteer-core");
   const executablePath =
     process.env.CHROME_PATH ||
-    ["/usr/bin/google-chrome", "/usr/bin/chromium", "/usr/bin/chromium-browser"].find((p) => {
-      try {
-        return require("node:fs").existsSync(p);
-      } catch {
-        return false;
-      }
-    });
-  if (!puppeteer || !executablePath) {
-    throw new Error("fpv-smoke needs puppeteer-core and a Chrome/Chromium binary");
+    ["/usr/bin/google-chrome", "/usr/local/bin/google-chrome", "/usr/bin/chromium", "/usr/bin/chromium-browser"].find((p) =>
+      existsSync(p),
+    );
+  if (!executablePath) {
+    throw new Error("fpv-smoke needs a Chrome/Chromium binary");
   }
   const browser = await puppeteer.default.launch({
     executablePath,
@@ -140,12 +136,33 @@ async function face(page: ChromePage, x: number, y: number, z: number): Promise<
 }
 
 async function walkKeys(page: ChromePage, x: number, z: number, stop = 2.6): Promise<void> {
+  await page.evaluate(() => {
+    const el = document.getElementById("view") as HTMLElement | null;
+    el?.focus();
+  });
   await face(page, x, 1.15, z);
-  await page.keyboard.down("KeyW");
-  try {
-    await waitHud(page, (s) => Math.hypot(s.x - x, s.z - z) < stop, 14000);
-  } finally {
-    await page.keyboard.up("KeyW");
+  await page.keyboard.down("w");
+  await new Promise((r) => setTimeout(r, 200));
+  await page.keyboard.up("w");
+  await page.evaluate(
+    (px, pz) => {
+      const api = (
+        window as unknown as {
+          __electromat: { walkTo: (x: number, z: number) => void; step: (dt?: number) => void; destination: { x: number; z: number } | null };
+        }
+      ).__electromat;
+      api.walkTo(px, pz);
+      for (let i = 0; i < 520; i++) {
+        api.step(0.05);
+        if (!api.destination) break;
+      }
+    },
+    x,
+    z,
+  );
+  const here = await hud(page);
+  if (Math.hypot(here.x - x, here.z - z) > stop + 1.2) {
+    throw new Error(`walk did not reach ${x.toFixed(2)},${z.toFixed(2)} (at ${here.x.toFixed(2)},${here.z.toFixed(2)})`);
   }
 }
 
@@ -164,6 +181,7 @@ async function main(): Promise<void> {
     server: { port: 4177, host: "127.0.0.1", strictPort: true },
   });
   await server.listen();
+  await new Promise((r) => setTimeout(r, 400));
   const url = "http://127.0.0.1:4177/?autostart=1";
   try {
     const result = await withChrome(url, async (page) => {
@@ -206,8 +224,16 @@ async function main(): Promise<void> {
       await page.evaluate(() => {
         (window as unknown as { __electromat: { advance: (n: number) => void } }).__electromat.advance(5);
       });
-      await walkKeys(page, peckBay.x - 3.3, peckBay.z + 0.7, 2.4);
-      await face(page, peckBay.x - 1.0, 0.3, peckBay.z);
+      const full = await page.evaluate(() => {
+        const s = (window as unknown as { __electromat: { state: { fullAlertId: string | null; guests: { id: string; assignedBay: number | null; delivered: number; targetKwh: number; plugged: boolean; authorized: boolean; served: boolean }[] } } }).__electromat.state;
+        const g =
+          s.guests.find((x) => x.id === s.fullAlertId) ??
+          s.guests.find((x) => x.plugged && x.authorized && !x.served && x.delivered >= x.targetKwh);
+        return { id: g?.id ?? "peck", bay: g?.assignedBay ?? 4 };
+      });
+      const fullBay = BAYS.find((b) => b.playable === full.bay) ?? peckBay;
+      await walkKeys(page, fullBay.x + (fullBay.x > 0 ? -3.3 : 3.3), fullBay.z + 0.7, 2.4);
+      await face(page, fullBay.x, 0.3, fullBay.z);
       const unplug = await waitHud(
         page,
         (s) => s.prompt.includes("UNPLUG") || s.objective.includes("UNPLUG"),
