@@ -90,7 +90,7 @@ import {
 } from "../src/world/layout.ts";
 import { cableHitsCarBody, ccsLeadPoints, holsterRestPoints } from "../src/world/cables.ts";
 import { OPAQUE_SEDAN_INLET } from "../src/cars/opaque.ts";
-import { beginWalk, clampGameplayPitch, PITCH_MAX, PITCH_MIN, resolveColliders, stepWalk, WALK_RADIUS } from "../src/input/walker.ts";
+import { beginWalk, clampGameplayPitch, keyToken, PITCH_MAX, PITCH_MIN, resolveColliders, stepWalk, WALK_RADIUS } from "../src/input/walker.ts";
 import * as THREE from "three";
 
 for (const name of [
@@ -942,5 +942,15 @@ if (lostLook.x !== SAFE_LOT_SPAWN.x || lostLook.z !== SAFE_LOT_SPAWN.z) {
 }
 if (PITCH_MAX > 0.45) throw new Error("pitch max still high enough to dump zenith");
 if (PITCH_MIN < -0.62) throw new Error("pitch min still low enough to dump nadir");
+
+const ghostKey = { code: "KeyE" } as KeyboardEvent;
+if (!keyToken(ghostKey).includes("KeyE")) throw new Error("KeyE code must map without e.key");
+const noFields = {} as KeyboardEvent;
+keyToken(noFields);
+if (keyToken({ key: "e", code: "", keyCode: 0 } as KeyboardEvent).includes("KeyE") !== true) {
+  throw new Error("letter e must map to KeyE when code is empty");
+}
+const spawnPayFb = jobReadyFallback(START_SHOT, fpvJob, fpvCands);
+if (spawnPayFb) throw new Error("spawn must not PAY via E fallback");
 
 console.log("verify-shift ok");

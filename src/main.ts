@@ -319,6 +319,26 @@ function applyReady(ready: InteractCandidate): boolean {
   return false;
 }
 
+function applyLockedJob(): boolean {
+  const job = nextJob(state);
+  if (!job) return false;
+  if (job.need === "pay") return tryPay(job.guestId);
+  if (job.need === "wave") {
+    if (waveQueue(state)) {
+      playTalk();
+      return true;
+    }
+    return false;
+  }
+  if (job.need === "unplug" && job.guestId) {
+    if (unplugInlet(state, job.guestId)) {
+      playPlug();
+      return true;
+    }
+  }
+  return false;
+}
+
 function act(): void {
   if (state.phase === "title") {
     beginShift(true);
@@ -328,28 +348,24 @@ function act(): void {
     restart();
     return;
   }
+  const job = nextJob(state);
+  const cands = currentCandidates();
   const resolved = refreshTarget();
-  let ready = resolved.ready;
-  if (!ready) {
-    ready = jobReadyFallback(walker.position, nextJob(state), currentCandidates());
+  let ready = resolved.ready ?? jobReadyFallback(walker.position, job, cands);
+  if (ready && applyReady(ready)) return;
+  if (ready && applyLockedJob()) return;
+  if (!ready && jobReadyFallback(walker.position, job, cands) && applyLockedJob()) return;
+  if (pendingPayGuest(state)) nudgePay(state);
+  else if (job?.need === "unplug") {
+    state.toast = `${job.name} is full — walk to the car.`;
+    state.toastUntil = state.timeMin + 6;
+  } else if (job?.need === "wave") {
+    state.toast = `Walk to the aisle WAVE stand — ${job.name}.`;
+    state.toastUntil = state.timeMin + 6;
+  } else {
+    state.toast = "Walk closer · look at the marker.";
+    state.toastUntil = state.timeMin + 6;
   }
-  if (!ready) {
-    const job = nextJob(state);
-    if (pendingPayGuest(state)) nudgePay(state);
-    else if (job?.need === "unplug") {
-      state.toast = `${job.name} is full — walk to the car.`;
-      state.toastUntil = state.timeMin + 6;
-    } else if (job?.need === "wave") {
-      state.toast = `Walk to the aisle WAVE stand — ${job.name}.`;
-      state.toastUntil = state.timeMin + 6;
-    } else {
-      state.toast = "Walk closer · look at the marker.";
-      state.toastUntil = state.timeMin + 6;
-    }
-    return;
-  }
-  if (applyReady(ready)) return;
-  if (ready.need === "pay") nudgePay(state);
 }
 
 function paintHud(): void {
@@ -478,26 +494,31 @@ startBtn.addEventListener("click", (e) => {
 });
 
 function isUseKey(e: KeyboardEvent): boolean {
+  if (e.code === "KeyE") return true;
   const key = typeof e.key === "string" ? e.key.toLowerCase() : "";
-  return e.code === "KeyE" || key === "e";
+  if (key === "e") return true;
+  const code = typeof e.keyCode === "number" ? e.keyCode : typeof e.which === "number" ? e.which : 0;
+  return code === 69;
 }
 
-let useArmed = false;
-function onUseDown(e: KeyboardEvent): void {
-  if (!isUseKey(e)) return;
-  if (e.repeat) return;
-  e.preventDefault();
-  if (useArmed) return;
-  useArmed = true;
+let lastUseAt = 0;
+let eHeard = 0;
+function onUseKey(e: Event): void {
+  const ke = e as KeyboardEvent;
+  if (!isUseKey(ke)) return;
+  if (ke.type === "keydown" && ke.repeat) return;
+  ke.preventDefault();
+  const now = performance.now();
+  if (now - lastUseAt < 80) return;
+  lastUseAt = now;
+  eHeard += 1;
   act();
 }
-function onUseUp(e: KeyboardEvent): void {
-  if (!isUseKey(e)) return;
-  if (!useArmed) act();
-  useArmed = false;
+
+for (const target of [canvas, document, window]) {
+  target.addEventListener("keydown", onUseKey, true);
+  target.addEventListener("keyup", onUseKey, true);
 }
-document.addEventListener("keydown", onUseDown, true);
-document.addEventListener("keyup", onUseUp, true);
 window.addEventListener("keydown", (e) => {
   if (e.code === "KeyF") lockFromGesture();
 });
@@ -695,6 +716,9 @@ window.__electromat = {
   },
   lock() {
     lockFromGesture();
+  },
+  get eHeard() {
+    return eHeard;
   },
   get target() {
     return refreshTarget();

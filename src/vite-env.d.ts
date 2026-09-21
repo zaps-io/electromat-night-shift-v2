@@ -9,6 +9,7 @@ interface ElectromatApi {
   pitch: number;
   locked: boolean;
   lock: () => void;
+  eHeard: number;
   target: import("./game/interact").InteractResult;
   walkTo: (x: number, z: number) => void;
   clickWalk: (clientX: number, clientY: number) => void;

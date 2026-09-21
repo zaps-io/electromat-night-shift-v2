@@ -191,7 +191,7 @@ export function jobReadyFallback(
   if (!job || !jobNeedLocked(job)) return null;
   const focus = jobFocusCandidate(job, candidates);
   if (!focus || !matchesJob(focus, job)) return null;
-  const slack = focus.kind === "guest" ? 1.4 : 0.8;
+  const slack = focus.kind === "guest" ? 8.0 : 3.2;
   if (planarDist(eye, focus) > focus.reach + slack) return null;
   return focus;
 }

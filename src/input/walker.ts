@@ -99,13 +99,23 @@ export function resolveColliders(pos: THREE.Vector3, colliders: THREE.Box3[], ra
 
 const MOVE = new Set(["KeyW", "KeyA", "KeyS", "KeyD", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
 
-function keyToken(e: KeyboardEvent): string[] {
-  const tokens = [e.code];
-  const letter = e.key.length === 1 ? e.key.toLowerCase() : "";
+/** Safe under pointer lock — Chrome may omit `key` / `code`. Must never throw. */
+export function keyToken(e: KeyboardEvent): string[] {
+  const tokens: string[] = [];
+  if (typeof e.code === "string" && e.code) tokens.push(e.code);
+  const raw = typeof e.key === "string" ? e.key : "";
+  const letter = raw.length === 1 ? raw.toLowerCase() : "";
   if (letter === "w") tokens.push("KeyW");
   if (letter === "a") tokens.push("KeyA");
   if (letter === "s") tokens.push("KeyS");
   if (letter === "d") tokens.push("KeyD");
+  if (letter === "e") tokens.push("KeyE");
+  const code = typeof e.keyCode === "number" ? e.keyCode : typeof e.which === "number" ? e.which : 0;
+  if (code === 87) tokens.push("KeyW");
+  if (code === 65) tokens.push("KeyA");
+  if (code === 83) tokens.push("KeyS");
+  if (code === 68) tokens.push("KeyD");
+  if (code === 69) tokens.push("KeyE");
   return tokens;
 }
 

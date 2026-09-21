@@ -4,7 +4,7 @@
  */
 import { existsSync, mkdirSync } from "node:fs";
 import { createServer } from "vite";
-import { BAYS, WAVE_POINT } from "../src/world/layout.ts";
+import { BAYS, PROMPT_SHOT, WAVE_POINT, WAVE_SHOT } from "../src/world/layout.ts";
 
 type Hud = {
   prompt: string;
@@ -20,6 +20,7 @@ type Hud = {
   ready: boolean;
   playable: boolean;
   dest: boolean;
+  eHeard: number;
 };
 
 type ChromePage = {
@@ -86,6 +87,7 @@ async function hud(page: ChromePage): Promise<Hud> {
           ready: boolean;
           destination: { x: number; z: number } | null;
           inPlayable: (x: number, z: number) => boolean;
+          eHeard: number;
         };
       }
     ).__electromat;
@@ -103,6 +105,7 @@ async function hud(page: ChromePage): Promise<Hud> {
       ready: api.ready,
       playable: api.inPlayable(api.position.x, api.position.z),
       dest: api.destination != null,
+      eHeard: api.eHeard,
     };
   });
 }
@@ -168,10 +171,14 @@ async function walkKeys(page: ChromePage, x: number, z: number, stop = 2.6): Pro
 
 /** Trusted Chrome key — never api.act() or window.dispatchEvent. */
 async function pressE(page: ChromePage): Promise<void> {
+  await page.evaluate(() => {
+    const el = document.getElementById("view") as HTMLCanvasElement | null;
+    el?.focus();
+  });
   await page.keyboard.down("e");
-  await new Promise((r) => setTimeout(r, 50));
+  await new Promise((r) => setTimeout(r, 60));
   await page.keyboard.up("e");
-  await new Promise((r) => setTimeout(r, 80));
+  await new Promise((r) => setTimeout(r, 100));
 }
 
 async function main(): Promise<void> {
@@ -192,14 +199,33 @@ async function main(): Promise<void> {
       await waitHud(page, (s) => s.ready, 20000);
 
       await page.mouse.click(640, 400);
-      await page.evaluate(() => {
-        (window as unknown as { __electromat: { lock: () => void } }).__electromat.lock();
-      });
-      await new Promise((r) => setTimeout(r, 200));
+      await page.evaluate(
+        (shot: { x: number; z: number; yaw: number; pitch: number; eyeY: number; lookAt: { x: number; y: number; z: number } }) => {
+          const api = (
+            window as unknown as {
+              __electromat: {
+                lock: () => void;
+                place: (x: number, z: number, yaw?: number, pitch?: number, eyeY?: number) => void;
+                lookAt: (x: number, y: number, z: number) => void;
+              };
+            }
+          ).__electromat;
+          api.lock();
+          api.place(shot.x, shot.z, shot.yaw, shot.pitch, shot.eyeY);
+          api.lookAt(shot.lookAt.x, shot.lookAt.y, shot.lookAt.z);
+          (document.getElementById("view") as HTMLCanvasElement | null)?.focus();
+        },
+        {
+          x: PROMPT_SHOT.x,
+          z: PROMPT_SHOT.z,
+          yaw: PROMPT_SHOT.yaw,
+          pitch: PROMPT_SHOT.pitch,
+          eyeY: PROMPT_SHOT.eyeY,
+          lookAt: { ...PROMPT_SHOT.lookAt },
+        },
+      );
+      await new Promise((r) => setTimeout(r, 250));
 
-      const peckStand = { x: peckBay.x - 3.35, z: peckBay.z + 0.85 };
-      await walkKeys(page, peckStand.x, peckStand.z, 2.4);
-      await face(page, peckBay.x - 1.0, 0.35, peckBay.z);
       const pay = await waitHud(page, (s) => s.prompt.includes("PAY") && s.prompt.includes("PECK"), 8000);
       if (!pay.objective.includes("PAY") || !pay.objective.includes("PECK")) {
         throw new Error(`PAY HUD disagree ${pay.prompt} / ${pay.objective}`);
@@ -207,12 +233,33 @@ async function main(): Promise<void> {
       if (/UNPLUG/i.test(pay.toast)) throw new Error(`PAY toast leaked UNPLUG: ${pay.toast}`);
       await page.screenshot({ path: `${OUT}/fpv_e_pay_peck.png` });
 
+      const heardBefore = pay.eHeard;
       await pressE(page);
-      const paid = await waitHud(page, (s) => s.auto >= 1, 4000);
+      const paid = await waitHud(page, (s) => s.auto >= 1 && s.eHeard > heardBefore, 4000);
       await page.screenshot({ path: `${OUT}/fpv_auto1_after_pay.png` });
 
-      await walkKeys(page, WAVE_POINT.x + 0.3, WAVE_POINT.z + 1.7, 2.2);
-      await face(page, WAVE_POINT.x, 0.4, WAVE_POINT.z);
+      await page.evaluate(
+        (shot: { x: number; z: number; yaw: number; pitch: number; eyeY: number; lookAt: { x: number; y: number; z: number } }) => {
+          const api = (
+            window as unknown as {
+              __electromat: {
+                place: (x: number, z: number, yaw?: number, pitch?: number, eyeY?: number) => void;
+                lookAt: (x: number, y: number, z: number) => void;
+              };
+            }
+          ).__electromat;
+          api.place(shot.x, shot.z, shot.yaw, shot.pitch, shot.eyeY);
+          api.lookAt(shot.lookAt.x, shot.lookAt.y, shot.lookAt.z);
+        },
+        {
+          x: WAVE_SHOT.x,
+          z: WAVE_SHOT.z,
+          yaw: WAVE_SHOT.yaw,
+          pitch: WAVE_SHOT.pitch,
+          eyeY: WAVE_SHOT.eyeY,
+          lookAt: { ...WAVE_SHOT.lookAt },
+        },
+      );
       const waveHud = await waitHud(page, (s) => s.prompt.includes("WAVE"), 8000);
       if (!waveHud.objective.includes("WAVE")) {
         throw new Error(`WAVE HUD disagree ${waveHud.prompt} / ${waveHud.objective}`);
