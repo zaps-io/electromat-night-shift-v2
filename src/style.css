@@ -191,7 +191,7 @@ body {
 }
 
 #shift-grade {
-  font-size: 2.15rem;
+  font-size: 2.45rem;
   letter-spacing: 0.04em;
 }
 
@@ -217,11 +217,11 @@ body {
   color: var(--red);
 }
 
-#stars,
-#grade-stars {
-  letter-spacing: 0.12em;
-  color: var(--amber);
-  font-size: 1.05rem;
+#stars {
+  letter-spacing: 0.04em;
+  color: rgba(232, 154, 46, 0.55);
+  font-size: 0.62rem;
+  font-weight: 500;
   line-height: 1;
 }
 
@@ -387,6 +387,21 @@ body {
   text-shadow: 0 1px 8px rgba(16, 16, 24, 0.9);
 }
 
+#objective.with-aside {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.12rem;
+}
+
+#objective-aside {
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  font-weight: 500;
+  color: rgba(245, 240, 232, 0.42);
+  text-shadow: none;
+}
+
 #prompt {
   position: absolute;
   bottom: 2.55rem;
@@ -497,8 +512,12 @@ body {
 }
 
 #grade-stars {
-  margin: 0.2rem 0 0;
-  font-size: 1.6rem;
+  margin: 0.15rem 0 0;
+  letter-spacing: 0.08em;
+  color: rgba(232, 154, 46, 0.62);
+  font-size: 1.05rem;
+  font-weight: 500;
+  line-height: 1;
 }
 
 #grade {

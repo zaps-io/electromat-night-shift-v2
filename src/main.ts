@@ -33,16 +33,18 @@ import {
   collectCandidates,
   doorApproachHint,
   doorHintBesidePrompt,
+  doorTakesPrompt,
   formatHandoff,
-  hudActionPrompt,
   jobHint,
   jobLabel,
   jobNeedLocked,
   jobReadyFallback,
   nextJob,
+  presentHud,
   reachScale,
   resolveInteract,
   toastConflictsJob,
+  toastYieldsToDoor,
   type InteractCandidate,
   type InteractResult,
 } from "./game/interact";
@@ -423,6 +425,8 @@ function act(): void {
     restart();
     return;
   }
+  walker.camera.getWorldDirection(lookDir);
+  if (doorTakesPrompt(walker.position, lookDir)) return;
   const job = nextJob(state);
   const cands = currentCandidates();
   const resolved = refreshTarget();
@@ -502,27 +506,33 @@ function paintHud(): void {
   station.waveGuide.visible = waveLive || state.disruption === "rush";
   const resolved = refreshTarget();
   walker.camera.getWorldDirection(lookDir);
-  const hud = hudActionPrompt(walker.position, lookDir, resolved.prompt);
-  promptEl.textContent = hud.prompt;
-  promptEl.classList.toggle("door-hint", hud.doorHint);
-  doorLineEl.textContent = hud.doorLine;
-  let objective = resolved.objective;
-  if (job && jobNeedLocked(job)) {
-    const text = objective.toUpperCase();
-    if (!text.includes(job.need.toUpperCase()) || !text.includes(job.name.toUpperCase())) {
-      objective = resolved.prompt ? jobLabel(job.need, job.name) : jobHint(job);
-    }
+  const presented = presentHud(walker.position, lookDir, resolved.prompt, resolved.objective, job);
+  promptEl.textContent = presented.prompt;
+  promptEl.classList.toggle("door-hint", presented.doorHint);
+  doorLineEl.textContent = presented.doorLine;
+  objectiveEl.classList.toggle("with-aside", !!presented.aside);
+  objectiveEl.replaceChildren();
+  if (presented.aside) {
+    const main = document.createElement("span");
+    main.id = "objective-main";
+    main.textContent = presented.objective;
+    const aside = document.createElement("span");
+    aside.id = "objective-aside";
+    aside.textContent = presented.aside;
+    objectiveEl.append(main, aside);
+  } else {
+    objectiveEl.textContent = presented.objective;
   }
-  objectiveEl.textContent = objective;
   const toastLive = live && state.toastUntil > state.timeMin ? state.toast : "";
-  promptEl.classList.toggle("ack", /PAID|ZIPPED|QUEUE MOVING|AUTOCHARGE|PLUG/i.test(toastLive));
-  if (live && toastConflictsJob(state.toast, job)) {
+  promptEl.classList.toggle("ack", /PAID|ZIPPED|QUEUE MOVING|AUTOCHARGE|PLUG/i.test(toastLive) && !presented.doorHint);
+  if (live && !presented.doorHint && toastConflictsJob(state.toast, job)) {
     state.toast = jobHint(job);
     state.toastUntil = state.timeMin + 8;
   }
-  toastEl.textContent = live && state.toastUntil > state.timeMin ? state.toast : "";
+  const shownToast = live && state.toastUntil > state.timeMin ? state.toast : "";
+  toastEl.textContent = toastYieldsToDoor(shownToast, presented.doorHint, job) ? "" : shownToast;
   toastEl.classList.toggle("loud", /NEXT ·/.test(toastEl.textContent ?? ""));
-  crossEl.classList.toggle("ready", !!resolved.prompt);
+  crossEl.classList.toggle("ready", !!resolved.prompt && !presented.doorHint);
   const markAt = resolved.focus;
   targetMark.visible = live && !!markAt;
   if (markAt) {
@@ -925,7 +935,14 @@ window.__electromat = {
     return promptEl.textContent ?? "";
   },
   get hudObjective() {
-    return objectiveEl.textContent ?? "";
+    const main = objectiveEl.querySelector("#objective-main");
+    return (main?.textContent || objectiveEl.textContent) ?? "";
+  },
+  get hudAside() {
+    return objectiveEl.querySelector("#objective-aside")?.textContent ?? "";
+  },
+  get hudToast() {
+    return toastEl.textContent ?? "";
   },
   inPlayable(x: number, z: number) {
     return inPlayableVolume(x, z);
