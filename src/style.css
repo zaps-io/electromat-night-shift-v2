@@ -45,6 +45,10 @@ body {
   pointer-events: none;
 }
 
+#end {
+  z-index: 5;
+}
+
 #title button {
   pointer-events: auto;
   background: transparent;
@@ -127,16 +131,16 @@ body {
 
 #clock-plate {
   position: absolute;
-  top: 0.7rem;
-  right: 0.75rem;
+  top: 0.55rem;
+  right: 0.65rem;
   z-index: 4;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 0.38rem;
-  min-width: 9.2rem;
-  padding: 0.42rem 0.72rem 0.5rem;
-  background: rgba(12, 13, 18, 0.9);
+  gap: 0.28rem;
+  min-width: 11.5rem;
+  padding: 0.48rem 0.78rem 0.58rem;
+  background: rgba(12, 13, 18, 0.92);
   border: 1px solid rgba(232, 154, 46, 0.62);
   box-shadow: inset 0 0 0 1px rgba(245, 240, 232, 0.08), 0 8px 22px rgba(8, 8, 12, 0.45);
   pointer-events: none;
@@ -149,19 +153,19 @@ body {
   gap: 0.28rem;
   font-variant-numeric: tabular-nums;
   font-weight: 700;
-  line-height: 0.9;
+  line-height: 0.85;
   color: var(--amber);
   text-shadow: 0 0 14px rgba(232, 154, 46, 0.35);
 }
 
 #clock-hm {
-  font-size: 2.35rem;
-  letter-spacing: 0.08em;
+  font-size: 2.85rem;
+  letter-spacing: 0.06em;
 }
 
 #clock-sec {
-  font-size: 0.95rem;
-  letter-spacing: 0.12em;
+  font-size: 1.15rem;
+  letter-spacing: 0.1em;
   color: var(--cream);
   font-weight: 600;
 }
@@ -171,11 +175,108 @@ body {
   margin-right: 0.12rem;
 }
 
+#grade-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 0.45rem;
+  width: 100%;
+}
+
+#shift-grade,
+#grade-mark {
+  font-weight: 700;
+  line-height: 0.8;
+  font-variant-numeric: tabular-nums;
+}
+
+#shift-grade {
+  font-size: 2.15rem;
+  letter-spacing: 0.04em;
+}
+
+#shift-grade.A,
+#grade-mark.A {
+  color: var(--cream);
+  text-shadow: 0 0 16px rgba(245, 240, 232, 0.35);
+}
+
+#shift-grade.B,
+#grade-mark.B {
+  color: var(--amber);
+  text-shadow: 0 0 14px rgba(232, 154, 46, 0.35);
+}
+
+#shift-grade.C,
+#grade-mark.C {
+  color: var(--cyan);
+}
+
+#shift-grade.D,
+#grade-mark.D {
+  color: var(--red);
+}
+
+#stars,
+#grade-stars {
+  letter-spacing: 0.12em;
+  color: var(--amber);
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+#score-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+#score-line .k {
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  color: rgba(245, 240, 232, 0.72);
+  font-weight: 600;
+}
+
+#score {
+  font-size: 1.55rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--cream);
+}
+
+#streak {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  width: 100%;
+}
+
+#streak-mul {
+  font-size: 1.85rem;
+  font-weight: 700;
+  line-height: 0.85;
+  letter-spacing: 0.04em;
+  color: var(--red);
+  text-shadow: 0 0 14px rgba(230, 50, 37, 0.45);
+}
+
+#streak-count {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--cream);
+}
+
 #meters {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 0.14rem;
+  gap: 0.08rem;
   width: 100%;
   padding-top: 0.28rem;
   border-top: 1px solid rgba(232, 154, 46, 0.35);
@@ -183,21 +284,55 @@ body {
 
 #auto,
 #waves,
-#zips,
-#heat {
-  letter-spacing: 0.16em;
-  color: var(--amber);
-  font-size: 0.74rem;
+#zips {
+  letter-spacing: 0.08em;
+  font-size: 1.38rem;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
-  line-height: 1.15;
+  line-height: 1.05;
+}
+
+#auto {
+  color: var(--cyan);
+  text-shadow: 0 0 12px rgba(0, 212, 245, 0.28);
+}
+
+#waves {
+  color: var(--amber);
+  text-shadow: 0 0 12px rgba(232, 154, 46, 0.28);
+}
+
+#zips {
+  color: var(--cream);
 }
 
 #heat {
+  letter-spacing: 0.16em;
   color: var(--cream);
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
 }
 
 #heat.hot {
   color: var(--red);
+}
+
+#opt {
+  letter-spacing: 0.12em;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--amber);
+  line-height: 1.2;
+}
+
+#opt.blown {
+  color: var(--red);
+}
+
+#opt:empty {
+  display: none;
 }
 
 #flash {
@@ -354,8 +489,22 @@ body {
   opacity: 1;
 }
 
+#grade-mark {
+  font-size: 7.5rem;
+  letter-spacing: 0.08em;
+  margin: 0;
+  line-height: 0.8;
+}
+
+#grade-stars {
+  margin: 0.2rem 0 0;
+  font-size: 1.6rem;
+}
+
 #grade {
-  font-size: 1.1rem;
-  letter-spacing: 0.14em;
-  color: var(--amber);
+  font-size: 1.05rem;
+  letter-spacing: 0.12em;
+  color: var(--cream);
+  margin: 0.35rem 0 0;
+  max-width: 46rem;
 }

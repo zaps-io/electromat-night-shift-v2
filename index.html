@@ -26,12 +26,22 @@
       <div id="clock" aria-label="Shift time">
         <span id="clock-hm">22:00</span><span id="clock-sec">00</span>
       </div>
+      <div id="grade-row">
+        <span id="shift-grade" class="B">B</span>
+        <span id="stars" aria-label="Shift stars">★★★☆</span>
+      </div>
+      <div id="score-line"><span class="k">SCORE</span> <span id="score">0</span></div>
+      <div id="streak" class="hidden">
+        <span id="streak-mul">x1</span>
+        <span id="streak-count">STREAK 0</span>
+      </div>
       <div id="meters">
         <div id="auto">AUTO 0</div>
         <div id="waves">WAVE 0</div>
         <div id="zips">ZIP 0</div>
-        <div id="heat">EASY</div>
       </div>
+      <div id="heat">EASY</div>
+      <div id="opt"></div>
     </div>
     <div id="hud" class="hidden">
       <img id="hud-mark" src="./brand/zaps-wordmark-only-red.svg" alt="Zaps" />
@@ -45,6 +55,8 @@
       <div id="cross"></div>
     </div>
     <div id="end" class="hidden">
+      <p id="grade-mark">B</p>
+      <p id="grade-stars"></p>
       <p id="grade"></p>
       <p class="hint">Click to return to title</p>
     </div>
