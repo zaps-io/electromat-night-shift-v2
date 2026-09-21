@@ -1,13 +1,23 @@
 import { readFileSync } from "node:fs";
 import {
+  DISRUPT_MIN,
+  EARLY_MIN,
+  earlyShift,
   greetDriver,
   guestAction,
+  lotRead,
   parkInBay,
   payKiosk,
   pendingPayGuest,
   plugInlet,
+  pressureLabel,
   resetNight,
+  RUSH_AT,
   seedOpeningLot,
+  serveRelax,
+  startGlare,
+  startLounge,
+  startRush,
   tick,
   unplugInlet,
   waitingParker,
@@ -18,6 +28,7 @@ import {
   doorApproachHint,
   doorHintBesidePrompt,
   doorTakesPrompt,
+  formatHandoff,
   hudActionPrompt,
   GUEST_HULL_R,
   GUEST_REACH,
@@ -26,11 +37,14 @@ import {
   jobReadyFallback,
   nextJob,
   planarDist,
+  reachScale,
+  relaxAllowed,
   resolveInteract,
   toastConflictsJob,
   WAVE_CLOSE,
   xzLookDot,
 } from "../src/game/interact.ts";
+import { MS_PER_GAME_MIN, SHIFT_START } from "../src/game/state.ts";
 import { assertOpaqueCarMaterials, glassMaterial, paintMaterial } from "../src/cars/opaque.ts";
 import {
   BAYS,
@@ -49,6 +63,8 @@ import {
   LOUNGE_WALK,
   PAY_POINTS,
   PAVILION,
+  RELAX_POINT,
+  RELAX_REACH,
   PAVILION_DOOR,
   PARK_STOP,
   PAVILION_FOOTPRINT,
@@ -1168,5 +1184,90 @@ const elevenUnplug = resolveInteract(elevenUnplugEye, { x: 0.2, y: -0.9, z: 0.15
 if (!elevenUnplug.ready || elevenUnplug.ready.need !== "unplug" || elevenUnplug.ready.guestId !== full.id) {
   throw new Error(`~11m hull from full car must offer E UNPLUG, got ${elevenUnplug.prompt || elevenUnplug.objective}`);
 }
+
+if (EARLY_MIN < 26) throw new Error("easy minute must cover opening ticks used by the loop proofs");
+if (RUSH_AT <= EARLY_MIN) throw new Error("rush must start after the easy minute");
+if (DISRUPT_MIN * MS_PER_GAME_MIN >= 15000) throw new Error("disruptions must recover inside 15s");
+if (reachScale(SHIFT_START + 5) <= 1) throw new Error("early reach must be generous");
+if (reachScale(SHIFT_START + 200) >= reachScale(SHIFT_START + 5)) throw new Error("late reach must tighten");
+const tightPay = resolveInteract(START_SHOT, startLook, null, fpvCands, fpvJob, 0.5);
+if (!tightPay.ready || tightPay.ready.need !== "pay") {
+  throw new Error("locked PAY must ignore the late reach scale");
+}
+
+const handoff = resetNight();
+seedOpeningLot(handoff);
+if (!payKiosk(handoff, "peck")) throw new Error("handoff pay failed");
+const nextLine = formatHandoff("PAID", "Peck", nextJob(handoff));
+if (!nextLine.startsWith("PAID · PECK")) throw new Error(`handoff must stamp PAY, got ${nextLine}`);
+if (!nextLine.includes("NEXT") || !nextLine.includes("WAVE") || !nextLine.includes("NG")) {
+  throw new Error(`handoff must name the next job, got ${nextLine}`);
+}
+if (toastConflictsJob(nextLine, nextJob(handoff))) throw new Error("NEXT toast must not fight the live job");
+if (pressureLabel(handoff) !== "EASY") throw new Error("opening minute must read EASY");
+
+const glare = resetNight();
+seedOpeningLot(glare);
+startGlare(glare);
+if (nextJob(glare)?.need !== "pay") throw new Error("glare must not retarget PAY");
+if (toastConflictsJob(glare.toast, nextJob(glare)!)) throw new Error("glare toast must not fight PAY");
+if (!payKiosk(glare, "peck")) throw new Error("glare must still take E PAY");
+if (glare.disruption === "glare") throw new Error("a successful PAY clears glare");
+if (!glare.guests.find((g) => g.id === "peck")?.enrolled) throw new Error("glare pay must still enroll");
+
+const rush = resetNight();
+seedOpeningLot(rush);
+startRush(rush);
+if (nextJob(rush)?.need !== "pay") throw new Error("rush must not steal PAY");
+if (rush.rushIds.length < 2) throw new Error(`rush must mark two aisle cars, got ${rush.rushIds.join(",")}`);
+if (toastConflictsJob(rush.toast, nextJob(rush)!)) throw new Error("rush toast must not fight PAY");
+
+const lounge = resetNight();
+seedOpeningLot(lounge);
+if (!payKiosk(lounge, "peck")) throw new Error("lounge setup pay failed");
+startLounge(lounge);
+if (nextJob(lounge)?.need !== "wave") throw new Error("lounge guest must not replace the WAVE job");
+if (!waveQueue(lounge)) throw new Error("WAVE must clear the lounge guest");
+if (lounge.disruption) throw new Error("WAVE should end the lounge event");
+if (lounge.hospitality < 1) throw new Error("lounge WAVE should score hospitality");
+
+if (relaxAllowed(opening)) throw new Error("opening PAY must block the RELAX board");
+const relaxDuringPay = collectCandidates(opening, carPos, PAY_POINTS, KIOSK_REACH, WAVE_POINT, WAVE_REACH, bays, {
+  x: RELAX_POINT.x,
+  z: RELAX_POINT.z,
+  reach: RELAX_REACH,
+});
+if (relaxDuringPay.some((c) => c.need === "relax")) throw new Error("RELAX must not be a candidate during PAY");
+
+const quiet = resetNight();
+seedOpeningLot(quiet);
+for (const g of quiet.guests) g.served = true;
+quiet.justPaid = false;
+quiet.justUnplugged = false;
+if (nextJob(quiet)) throw new Error("served lot should be quiet");
+if (!relaxAllowed(quiet)) throw new Error("quiet lot should allow RELAX");
+if (!serveRelax(quiet)) throw new Error("RELAX should score when the lot is quiet");
+if (quiet.hospitality < 1) throw new Error("hospitality should increment");
+if (!inPlayableVolume(RELAX_POINT.x, RELAX_POINT.z)) throw new Error("RELAX board approach must be walkable");
+for (const f of pavilionFurniture()) {
+  if (Math.abs(RELAX_POINT.x - f.cx) < f.w * 0.5 + 0.3 && Math.abs(RELAX_POINT.z - f.cz) < f.d * 0.5 + 0.3) {
+    throw new Error("RELAX point sits inside furniture");
+  }
+}
+
+const ramp = resetNight();
+seedOpeningLot(ramp);
+if (!earlyShift(ramp)) throw new Error("seeded night must start in the easy minute");
+const peckRead = lotRead(ramp.guests.find((g) => g.id === "peck")!);
+const haleRead = lotRead(ramp.guests.find((g) => g.id === "hale")!);
+if (peckRead !== "unpaid" || haleRead !== "charging") {
+  throw new Error(`opening reads must contrast unpaid/charging, got ${peckRead}/${haleRead}`);
+}
+tick(ramp, 20);
+if (!earlyShift(ramp)) throw new Error("20 game minutes from opening must stay easy");
+if (ramp.disruption) throw new Error("mid-shift events must not fire during the opening proofs");
+if (ramp.guests.filter((g) => g.walked).length > 0) throw new Error("easy minute must not walk the queue");
+const fullRead = ramp.guests.find((g) => lotRead(g) === "full");
+if (!fullRead) throw new Error("a seeded auto car should read FULL after 20 minutes");
 
 console.log("verify-shift ok");

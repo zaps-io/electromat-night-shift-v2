@@ -154,6 +154,12 @@ export const KIOSK_REACH = 7.2;
 
 /** Aisle-mouth WAVE stand — east of the queue so Kim's Tesla does not bury it. */
 export const WAVE_POINT = { x: 4.55, z: -17.55 };
+/**
+ * Approach to the north CHARGE / RELAX / DEPART board.
+ * Optional merch beat — only offered when PAY / UNPLUG / WAVE do not own E.
+ */
+export const RELAX_POINT = { x: -22.35, z: 7.45 };
+export const RELAX_REACH = 3.1;
 /** Aimed reach. Un-aimed close range lives in interact.ts so spawn does not steal PAY. */
 export const WAVE_REACH = 7.2;
 

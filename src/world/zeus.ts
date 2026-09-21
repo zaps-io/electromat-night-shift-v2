@@ -327,6 +327,21 @@ export function addZeusCharger(
 }
 
 /** Hide the port-side holster handle + rest loop while that stall's CCS lead is in the car. */
+const STALL_TINT: Record<string, number> = {
+  idle: 0xffffff,
+  unpaid: 0xe89a2e,
+  charging: 0x00d4f5,
+  full: 0xf5f0e8,
+  departing: 0xe63225,
+};
+
+/** Disc tint only — Slim Zeus geometry stays put. */
+export function tintStallBadge(stallId: number, read: string): void {
+  const mat = badgeCache.get(stallId);
+  if (!mat) return;
+  mat.color.setHex(STALL_TINT[read] ?? 0xffffff);
+}
+
 export function setZeusHolsterPlugged(stallId: number | undefined, plugged: boolean): void {
   if (stallId == null) return;
   const bits = holstersByStall.get(stallId);

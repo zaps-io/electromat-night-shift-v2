@@ -29,6 +29,7 @@ export interface Station {
   waveKiosk: THREE.Object3D;
   waveAlert: THREE.Sprite;
   waveGuide: THREE.Group;
+  payGlare: THREE.MeshBasicMaterial;
   bayAnchors: THREE.Object3D[];
   colliders: THREE.Box3[];
   walkGrounds: THREE.Object3D[];
@@ -431,6 +432,7 @@ function addOneKiosk(
   z: number,
   index: number,
   lounge = false,
+  glareMat?: THREE.Material,
 ): { kiosk: THREE.Group; alert: THREE.Sprite } {
   const kiosk = new THREE.Group();
   kiosk.userData.kind = "kiosk";
@@ -445,6 +447,12 @@ function addOneKiosk(
     new THREE.MeshBasicMaterial({ map: payTex, toneMapped: false }),
   );
   glow.position.set(x, headY, z - 0.25);
+  const wash = new THREE.Mesh(
+    new THREE.PlaneGeometry(lounge ? 0.74 : 0.66, lounge ? 0.5 : 0.44),
+    glareMat ?? new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }),
+  );
+  wash.position.set(x, headY, z - 0.28);
+  wash.userData.payGlare = true;
   const ghost = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
   const hit = new THREE.Mesh(new THREE.BoxGeometry(2.6, 2.6, 2.2), ghost);
   hit.position.set(x, 1.15, z);
@@ -469,7 +477,7 @@ function addOneKiosk(
     lamp.position.set(x + 0.42, 2.55, z);
     kiosk.add(pole, flag, beacon, lamp);
   }
-  kiosk.add(stand, head, glow, hit, alert);
+  kiosk.add(stand, head, glow, wash, hit, alert);
   root.add(kiosk);
   return { kiosk, alert };
 }
@@ -531,15 +539,22 @@ function addWaveKiosk(root: THREE.Group): { kiosk: THREE.Group; alert: THREE.Spr
   return { kiosk, alert, guide };
 }
 
-function addKiosks(root: THREE.Group): { kiosks: THREE.Group[]; alerts: THREE.Sprite[] } {
+function addKiosks(root: THREE.Group): { kiosks: THREE.Group[]; alerts: THREE.Sprite[]; payGlare: THREE.MeshBasicMaterial } {
   const kiosks: THREE.Group[] = [];
   const alerts: THREE.Sprite[] = [];
+  const payGlare = new THREE.MeshBasicMaterial({
+    color: 0xfff6ea,
+    transparent: true,
+    opacity: 0,
+    depthWrite: false,
+    toneMapped: false,
+  });
   PAY_POINTS.forEach((p, i) => {
-    const built = addOneKiosk(root, p.x, p.z, i, i === 1);
+    const built = addOneKiosk(root, p.x, p.z, i, i === 1, payGlare);
     kiosks.push(built.kiosk);
     alerts.push(built.alert);
   });
-  return { kiosks, alerts };
+  return { kiosks, alerts, payGlare };
 }
 
 function addLotRails(root: THREE.Group): void {
@@ -836,7 +851,7 @@ export function buildStation(): Station {
   addLaneMarks(root);
   addCanopies(root);
   const pavilionBoxes = addPavilion(root);
-  const { kiosks, alerts } = addKiosks(root);
+  const { kiosks, alerts, payGlare } = addKiosks(root);
   const wave = addWaveKiosk(root);
   addLotRails(root);
   addPlanters(root);
@@ -875,6 +890,7 @@ export function buildStation(): Station {
     waveKiosk: wave.kiosk,
     waveAlert: wave.alert,
     waveGuide: wave.guide,
+    payGlare,
     bayAnchors,
     colliders: [...pavilionBoxes, ...westLot, ...planters],
     walkGrounds: collectWalkGrounds(root),

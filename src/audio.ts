@@ -39,6 +39,59 @@ export function playPay(): void {
   blip(392, 0.09, 0.04);
 }
 
+/** Papers-style stamp: short stack, louder than a UI blip. */
+export function playStamp(): void {
+  blip(523, 0.045, 0.07);
+  blip(784, 0.08, 0.055);
+  blip(1046, 0.15, 0.04);
+}
+
+export function playCue(kind: string): void {
+  if (kind === "stamp") {
+    playStamp();
+    return;
+  }
+  if (kind === "unpaid") {
+    blip(196, 0.07, 0.05);
+    blip(146, 0.12, 0.04);
+    return;
+  }
+  if (kind === "charging") {
+    blip(349, 0.05, 0.03);
+    blip(523, 0.1, 0.028);
+    return;
+  }
+  if (kind === "full") {
+    blip(698, 0.07, 0.05);
+    blip(880, 0.13, 0.04);
+    return;
+  }
+  if (kind === "departing") {
+    blip(494, 0.05, 0.04);
+    blip(196, 0.16, 0.05);
+    return;
+  }
+  if (kind === "rush") {
+    blip(220, 0.07, 0.055);
+    blip(277, 0.07, 0.045);
+    blip(220, 0.1, 0.04);
+    return;
+  }
+  if (kind === "lounge") {
+    blip(392, 0.08, 0.04);
+    blip(494, 0.12, 0.032);
+    return;
+  }
+  if (kind === "glare") {
+    blip(110, 0.16, 0.04);
+    return;
+  }
+  if (kind === "relax") {
+    blip(440, 0.07, 0.035);
+    blip(554, 0.12, 0.03);
+  }
+}
+
 let hum: OscillatorNode | null = null;
 let humGain: GainNode | null = null;
 
