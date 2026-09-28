@@ -566,12 +566,15 @@ export function addPavilion(root: THREE.Group): THREE.Box3[] {
   const plinth = mat(C.charcoal, { roughness: 0.62, metalness: 0.08, envMapIntensity: 0.2 });
   const mullion = mat(0xb8bcc0, { roughness: 0.34, metalness: 0.62, envMapIntensity: 0.48 });
   const glass = new THREE.MeshPhysicalMaterial({
-    color: 0x4a4038,
-    roughness: 0.12,
+    color: 0xb7c4c8,
+    roughness: 0.04,
     metalness: 0.08,
     transparent: true,
-    opacity: 0.28,
-    envMapIntensity: 0.7,
+    opacity: 0.42,
+    envMapIntensity: 1.65,
+    ior: 1.45,
+    thickness: 0.15,
+    reflectivity: 0.7,
     side: THREE.DoubleSide,
   });
   const paneGlow = new THREE.MeshBasicMaterial({

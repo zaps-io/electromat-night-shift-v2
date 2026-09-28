@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
+import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
 import {
   assertOpaqueCarMaterials,
   forceOpaque,
@@ -38,6 +38,7 @@ export interface CarView {
 }
 
 const loader = new GLTFLoader();
+loader.setMeshoptDecoder(MeshoptDecoder);
 const prototypes: Partial<Record<HullKind, THREE.Group>> = {};
 const inletByKind: Record<HullKind, { x: number; y: number; z: number }> = {
   sedan: OPAQUE_SEDAN_INLET,
@@ -64,181 +65,103 @@ function labelOf(mesh: THREE.Mesh): string {
   return `${mesh.name} ${names}`.toLowerCase();
 }
 
-function eachMat(mesh: THREE.Mesh, fn: (m: THREE.Material) => void): void {
-  const list = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-  for (const mat of list) if (mat) fn(mat);
-}
+const rubberMat = new THREE.MeshStandardMaterial({
+  name: "Rubber",
+  color: 0x141416,
+  roughness: 0.94,
+  metalness: 0.02,
+  transparent: false,
+  opacity: 1,
+  depthWrite: true,
+});
+const chromeMat = new THREE.MeshStandardMaterial({
+  name: "Chrome",
+  color: 0xc5c9ce,
+  metalness: 0.86,
+  roughness: 0.22,
+  envMapIntensity: 1.15,
+  transparent: false,
+  opacity: 1,
+  depthWrite: true,
+});
+const trimMat = new THREE.MeshStandardMaterial({
+  name: "Trim",
+  color: 0x16181c,
+  roughness: 0.58,
+  metalness: 0.22,
+  envMapIntensity: 0.45,
+  transparent: false,
+  opacity: 1,
+  depthWrite: true,
+});
+const lampMat = new THREE.MeshStandardMaterial({
+  name: "Lamp",
+  color: 0xfff1d4,
+  emissive: 0xffe2a8,
+  emissiveIntensity: 1.15,
+  roughness: 0.22,
+  metalness: 0.12,
+  transparent: false,
+  opacity: 1,
+  depthWrite: true,
+  toneMapped: false,
+});
+const tailMat = new THREE.MeshStandardMaterial({
+  name: "Tail",
+  color: 0xb01412,
+  emissive: 0xe63225,
+  emissiveIntensity: 1.6,
+  roughness: 0.32,
+  metalness: 0.08,
+  transparent: false,
+  opacity: 1,
+  depthWrite: true,
+  toneMapped: false,
+});
 
-function isInterior(n: string): boolean {
-  return (
-    n.includes("seat") ||
-    n.includes("carpet") ||
-    n.includes("lcd") ||
-    n.includes("button") ||
-    n.includes("steer") ||
-    n.includes("dvor") ||
-    n.includes("suspensi") ||
-    n.includes("belt") ||
-    n.includes("leather") ||
-    n.includes("alcantara") ||
-    n.includes("stitch") ||
-    n.includes("burmester") ||
-    n.includes("intporsche") ||
-    n.includes("intex") ||
-    n.includes("intgrid") ||
-    n.includes("mirror_inside")
-  );
-}
-
-function isPaint(n: string): boolean {
-  if (n.includes("primary.004") || n.includes("green")) return false;
-  return (
-    n.includes("body_primary") ||
-    n.includes("bodysills") ||
-    n === "primary" ||
-    n.startsWith("primary ") ||
-    n.includes(" primary") ||
-    (n.includes("primary") && !n.includes("004"))
-  );
-}
-
-function isGlass(n: string): boolean {
-  return n.includes("glass") && !n.includes("red") && !n.includes("mat");
-}
-
-function isTail(n: string): boolean {
-  return (
-    n.includes("rear_light") ||
-    n.includes("rear light") ||
-    n.includes("breaklight") ||
-    n.includes("light_night") ||
-    n.includes("satin_red") ||
-    n.includes("tembus") ||
-    n.includes("taillight") ||
-    n.includes("revlight")
-  );
-}
-
-function isHead(n: string): boolean {
-  return (
-    n.includes("front_light") ||
-    n.includes("front light") ||
-    n.includes("foglight") ||
-    n.includes("headlight") ||
-    n.includes("indicator_l") ||
-    n.includes("indicator_r")
-  );
-}
-
-function isWheel(n: string): boolean {
-  return n.includes("wheel") || n.includes("hub_") || n.includes("tire") || n.includes("caliper");
-}
-
-function hideInteriorOnly(root: THREE.Object3D): void {
+function dressSedan(root: THREE.Object3D): void {
   root.traverse((o) => {
     const mesh = o as THREE.Mesh;
     if (!mesh.isMesh) return;
-    const n = labelOf(mesh);
-    if (isPaint(n) || n.includes("chassis") || n.includes("just_black")) return;
-    if (isInterior(n) || n.includes("primary.004")) mesh.visible = false;
-  });
-}
-
-function dressTesla(root: THREE.Object3D): void {
-  const tail = new THREE.MeshStandardMaterial({
-    name: "Tail",
-    color: 0xb01412,
-    emissive: 0xe63225,
-    emissiveIntensity: 1.35,
-    roughness: 0.32,
-    metalness: 0.08,
-    transparent: false,
-    opacity: 1,
-    depthWrite: true,
-    toneMapped: false,
-  });
-  const lamp = new THREE.MeshStandardMaterial({
-    name: "Lamp",
-    color: 0xfff1d4,
-    emissive: 0xffe2a8,
-    emissiveIntensity: 0.85,
-    roughness: 0.22,
-    metalness: 0.12,
-    transparent: false,
-    opacity: 1,
-    depthWrite: true,
-    toneMapped: false,
-  });
-  const rubber = new THREE.MeshStandardMaterial({
-    name: "Rubber",
-    color: 0x141416,
-    roughness: 0.94,
-    metalness: 0.02,
-    transparent: false,
-    opacity: 1,
-    depthWrite: true,
-  });
-  const chrome = new THREE.MeshStandardMaterial({
-    name: "Chrome",
-    color: 0xc5c9ce,
-    metalness: 0.82,
-    roughness: 0.22,
-    envMapIntensity: 0.9,
-    transparent: false,
-    opacity: 1,
-    depthWrite: true,
-  });
-  const trim = new THREE.MeshStandardMaterial({
-    name: "Trim",
-    color: 0x16181c,
-    roughness: 0.55,
-    metalness: 0.18,
-    transparent: false,
-    opacity: 1,
-    depthWrite: true,
-  });
-
-  root.traverse((o) => {
-    const mesh = o as THREE.Mesh;
-    if (!mesh.isMesh || !mesh.visible) return;
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     const n = labelOf(mesh);
-    if (isPaint(n)) {
+    if (n.includes("paint")) {
       mesh.material = paintFor(0xf4f1ea);
       mesh.userData.paint = true;
       return;
     }
-    if (isGlass(n)) {
+    if (n.includes("glass")) {
       mesh.material = sharedGlass;
       return;
     }
-    if (isTail(n)) {
-      mesh.material = tail;
+    if (n.includes("rubber") || n.includes("tire")) {
+      mesh.material = rubberMat;
       return;
     }
-    if (isHead(n)) {
-      mesh.material = lamp;
+    if (n.includes("chrome") || n.includes("wheel") || n.includes("hub")) {
+      mesh.material = chromeMat;
       return;
     }
-    if (isWheel(n) && (n.includes("tire") || n.includes("rubber") || n.includes("wheels.0") || n.includes("wheels.3"))) {
-      mesh.material = rubber;
+    if (n.includes("tail")) {
+      mesh.material = tailMat;
       return;
     }
-    if (isWheel(n) || n.includes("aluminium") || n.includes("chrome") || n.includes("platnomor")) {
-      mesh.material = chrome;
+    if (n.includes("lamp") || n.includes("head")) {
+      mesh.material = lampMat;
       return;
     }
-    eachMat(mesh, (m) => {
-      forceOpaque(m);
-      if ((m as THREE.MeshPhysicalMaterial).metalness > 0.75) {
-        mesh.material = chrome;
-      } else if (!n.includes("paint")) {
-        const hex = (m as THREE.MeshStandardMaterial).color?.getHex?.() ?? 0x222222;
-        if (hex < 0x333333) mesh.material = trim;
-      }
-    });
+    eachOpaque(mesh);
   });
+}
+
+function eachOpaque(mesh: THREE.Mesh): void {
+  const list = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+  for (const mat of list) {
+    if (!mat) continue;
+    forceOpaque(mat);
+  }
+  if (!mesh.userData.paint) mesh.material = trimMat;
 }
 
 function lightBiasZ(root: THREE.Object3D): number {
@@ -253,11 +176,11 @@ function lightBiasZ(root: THREE.Object3D): number {
     const n = labelOf(mesh);
     const b = new THREE.Box3().setFromObject(mesh);
     const cz = (b.min.z + b.max.z) * 0.5;
-    if (isHead(n) || n.includes("foglight") || n.includes("front")) {
+    if (n.includes("lamp") || n.includes("head")) {
       front += cz;
       fn += 1;
     }
-    if (isTail(n) || n.includes("rear") || n.includes("break")) {
+    if (n.includes("tail") || n.includes("rear")) {
       rear += cz;
       rn += 1;
     }
@@ -307,141 +230,6 @@ function fitFacingNegZ(scene: THREE.Group, length = 4.72): THREE.Group {
   return wrap;
 }
 
-type Bucket = "paint" | "glass" | "dark" | "lamp" | "tail" | "chrome";
-
-function bucketOf(mesh: THREE.Mesh): Bucket | "skip" {
-  if (!mesh.visible) return "skip";
-  const n = labelOf(mesh);
-  if (mesh.userData.paint || isPaint(n)) return "paint";
-  if (isGlass(n)) return "glass";
-  if (isTail(n)) return "tail";
-  if (isHead(n)) return "lamp";
-  if (n.includes("chrome") || n.includes("aluminium") || n.includes("platnomor") || (isWheel(n) && !n.includes("tire") && !n.includes("rubber") && !n.includes("wheels.0"))) {
-    return "chrome";
-  }
-  return "dark";
-}
-
-function geoForMerge(mesh: THREE.Mesh): THREE.BufferGeometry | null {
-  if (!mesh.geometry?.getAttribute("position")) return null;
-  let geo = mesh.geometry.clone();
-  geo.applyMatrix4(mesh.matrixWorld);
-  if (geo.index) geo = geo.toNonIndexed();
-  const clean = new THREE.BufferGeometry();
-  clean.setAttribute("position", geo.getAttribute("position"));
-  const nrm = geo.getAttribute("normal");
-  if (nrm) clean.setAttribute("normal", nrm);
-  else clean.computeVertexNormals();
-  return clean;
-}
-
-function mergeHull(src: THREE.Group): THREE.Group {
-  src.updateMatrixWorld(true);
-  const buckets: Record<Bucket, THREE.BufferGeometry[]> = {
-    paint: [],
-    glass: [],
-    dark: [],
-    lamp: [],
-    tail: [],
-    chrome: [],
-  };
-  src.traverse((o) => {
-    const mesh = o as THREE.Mesh;
-    if (!mesh.isMesh) return;
-    const kind = bucketOf(mesh);
-    if (kind === "skip") return;
-    const geo = geoForMerge(mesh);
-    if (geo) buckets[kind].push(geo);
-  });
-
-  const mats: Record<Bucket, THREE.Material> = {
-    paint: paintFor(0xf4f1ea),
-    glass: sharedGlass,
-    dark: new THREE.MeshStandardMaterial({
-      name: "Trim",
-      color: 0x14161a,
-      roughness: 0.62,
-      metalness: 0.12,
-      transparent: false,
-      opacity: 1,
-      depthWrite: true,
-      side: THREE.DoubleSide,
-    }),
-    lamp: new THREE.MeshStandardMaterial({
-      name: "Lamp",
-      color: 0xfff1d4,
-      emissive: 0xffe2a8,
-      emissiveIntensity: 0.85,
-      roughness: 0.22,
-      metalness: 0.12,
-      transparent: false,
-      opacity: 1,
-      depthWrite: true,
-      side: THREE.DoubleSide,
-      toneMapped: false,
-    }),
-    tail: new THREE.MeshStandardMaterial({
-      name: "Tail",
-      color: 0xb01412,
-      emissive: 0xe63225,
-      emissiveIntensity: 1.35,
-      roughness: 0.32,
-      metalness: 0.08,
-      transparent: false,
-      opacity: 1,
-      depthWrite: true,
-      side: THREE.DoubleSide,
-      toneMapped: false,
-    }),
-    chrome: new THREE.MeshStandardMaterial({
-      name: "Chrome",
-      color: 0xc5c9ce,
-      metalness: 0.82,
-      roughness: 0.22,
-      envMapIntensity: 0.9,
-      transparent: false,
-      opacity: 1,
-      depthWrite: true,
-      side: THREE.DoubleSide,
-    }),
-  };
-
-  const merged = new THREE.Group();
-  let paintVerts = 0;
-  for (const kind of Object.keys(buckets) as Bucket[]) {
-    const list = buckets[kind];
-    if (!list.length) continue;
-    const geo = mergeGeometries(list, false);
-    if (!geo) continue;
-    const mesh = new THREE.Mesh(geo, mats[kind]);
-    mesh.name = kind === "paint" ? "Paint" : kind === "glass" ? "Glass" : kind;
-    mesh.castShadow = kind === "paint" || kind === "dark";
-    mesh.receiveShadow = true;
-    if (kind === "paint") {
-      mesh.userData.paint = true;
-      paintVerts += geo.getAttribute("position")?.count ?? 0;
-    }
-    merged.add(mesh);
-    for (const extra of list) extra.dispose();
-  }
-  if (paintVerts < 2000 || merged.children.length < 3) {
-    return src;
-  }
-  return merged;
-}
-
-function addCabinCore(root: THREE.Group): void {
-  const core = new THREE.Mesh(
-    new THREE.BoxGeometry(1.78, 0.78, 3.9),
-    paintFor(0xf4f1ea),
-  );
-  core.name = "Paint";
-  core.userData.paint = true;
-  core.position.set(0, 0.55, 0.02);
-  core.castShadow = false;
-  core.receiveShadow = false;
-  root.add(core);
-}
 
 function addChargePort(root: THREE.Group, inlet: { x: number; y: number; z: number }): void {
   const port = new THREE.Mesh(
@@ -472,40 +260,50 @@ function makeCrossover(sedan: THREE.Group): THREE.Group {
   return wrap;
 }
 
-async function loadTesla(): Promise<THREE.Group> {
-  const url = `${import.meta.env.BASE_URL}models/tesla-model-3-2018.glb`;
+async function loadSedan(): Promise<THREE.Group> {
+  const url = `${import.meta.env.BASE_URL}cars/zaps-ev-sedan.glb`;
   const gltf = await loader.loadAsync(url);
-  hideInteriorOnly(gltf.scene);
-  dressTesla(gltf.scene);
   const fitted = fitFacingNegZ(gltf.scene, 4.72);
-  const hull = mergeHull(fitted);
-  hull.userData.source = "tesla-model-3-2018.glb";
+  dressSedan(fitted);
+  fitted.userData.source = "zaps-ev-sedan.glb";
   let meshes = 0;
   let paint = 0;
-  hull.traverse((o) => {
+  let rubber = 0;
+  fitted.traverse((o) => {
     const mesh = o as THREE.Mesh;
     if (!mesh.isMesh || !mesh.visible) return;
     meshes += 1;
-    if (mesh.userData.paint || mesh.name === "Paint") {
-      paint += mesh.geometry.getAttribute("position")?.count ?? 0;
-    }
+    const n = labelOf(mesh);
+    const count = mesh.geometry.getAttribute("position")?.count ?? 0;
+    if (mesh.userData.paint || n.includes("paint")) paint += count;
+    if (n.includes("rubber")) rubber += count;
   });
-  hull.userData.meshCount = meshes;
-  hull.userData.paintVerts = paint;
-  addCabinCore(hull);
-  addChargePort(hull, OPAQUE_SEDAN_INLET);
-  assertOpaqueCarMaterials(hull);
-  if (paint < 2000) throw new Error(`Tesla paint hull too thin (${paint} verts)`);
-  return hull;
+  fitted.userData.meshCount = meshes;
+  fitted.userData.paintVerts = paint;
+  addChargePort(fitted, OPAQUE_SEDAN_INLET);
+  assertOpaqueCarMaterials(fitted);
+  if (paint < 1500) throw new Error(`sedan paint hull too thin (${paint} verts)`);
+  if (rubber < 200) throw new Error(`sedan tires missing (${rubber} verts)`);
+  if (meshes > 16) throw new Error(`sedan split into ${meshes} meshes`);
+  return fitted;
 }
 
 export async function loadCarPrototypes(): Promise<void> {
-  const sedan = await loadTesla();
+  const sedan = await loadSedan();
   prototypes.sedan = sedan;
   prototypes.suv = makeCrossover(sedan);
   inletByKind.sedan = OPAQUE_SEDAN_INLET;
   inletByKind.suv = OPAQUE_SUV_INLET;
   assertOpaqueCarMaterials(prototypes.suv);
+}
+
+export function parkBackdropCars(root: THREE.Object3D): void {
+  root.traverse((o) => {
+    if (o.userData.kind !== "street-slot") return;
+    const color = (o.userData.paint as number) ?? 0x1e1e24;
+    const hull = makeHull(color, "sedan");
+    o.add(hull);
+  });
 }
 
 function tintPaint(root: THREE.Object3D, color: number): void {

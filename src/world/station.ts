@@ -64,14 +64,14 @@ function makeAsphalt(root: THREE.Group): THREE.Mesh {
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(78, 68),
     new THREE.MeshStandardMaterial({
-      color: 0x1c1b20,
+      color: 0x9a948c,
       map: asphaltColor(),
-      roughness: 0.92,
+      roughness: 0.9,
       roughnessMap: asphaltRough(),
       normalMap: asphaltNormal(),
-      normalScale: new THREE.Vector2(1.05, 1.05),
-      metalness: 0.03,
-      envMapIntensity: 0.22,
+      normalScale: new THREE.Vector2(1.45, 1.45),
+      metalness: 0.04,
+      envMapIntensity: 0.16,
     }),
   );
   ground.rotation.x = -Math.PI / 2;
@@ -130,8 +130,8 @@ function addBayOutline(root: THREE.Group, x: number, z: number, yaw: number, ada
     g.userData.kind = "bay";
     g.userData.bayId = bayId;
   }
-  const paint = mat(ada ? 0x4a8ae8 : 0xd8d4c8, { roughness: 0.8, metalness: 0.02, envMapIntensity: 0.08 });
-  const t = 0.07;
+  const paint = mat(ada ? 0x4a8ae8 : 0xf3eee6, { roughness: 0.72, metalness: 0.02, envMapIntensity: 0.12 });
+  const t = 0.1;
   const { w, d } = BAY_SIZE;
   g.add(box(w, 0.012, t, paint, 0, 0, d / 2));
   g.add(box(w, 0.012, t, paint, 0, 0, -d / 2));
@@ -179,9 +179,11 @@ function addCanopyAt(root: THREE.Group, cx: number, cz: number, w: number, d: nu
     roughnessMap: brush.rough,
     normalMap: brush.normal,
     normalScale: new THREE.Vector2(0.7, 1.8),
-    metalness: 0.7,
-    roughness: 0.38,
-    envMapIntensity: 0.4,
+    metalness: 0.72,
+    roughness: 0.32,
+    clearcoat: 0.28,
+    clearcoatRoughness: 0.18,
+    envMapIntensity: 0.85,
   });
   const panels = creamPanels();
   const fasciaPlate = mat(0xf2ebe0, {
@@ -249,6 +251,15 @@ function addCanopyAt(root: THREE.Group, cx: number, cz: number, w: number, d: nu
   const cyanSideR = cyanSideL.clone();
   cyanSideR.position.x = cx + w * 0.5 - 0.08;
   root.add(cyanSideL, cyanSideR);
+  for (const [ox, oz] of [
+    [-0.22, -0.16],
+    [0.2, 0.18],
+  ] as const) {
+    const pool = new THREE.PointLight(0xffb060, 6.5, 18, 2);
+    pool.position.set(cx + ox * w, y - 0.65, cz + oz * d);
+    pool.castShadow = false;
+    root.add(pool);
+  }
 
   const col = new THREE.MeshPhysicalMaterial({
     color: 0xe4e7ec,

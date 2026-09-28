@@ -19,80 +19,138 @@ export function canvasTex(
   return tex;
 }
 
-const ASPHALT_REPEAT_X = 16;
-const ASPHALT_REPEAT_Y = 14;
+/** Lot plane is 78 x 68, centered. Canvas +Y (top) is world -Z after the ground rotation and flipY. */
+const LOT_W = 78;
+const LOT_D = 68;
+
+function lotPx(x: number, z: number, size: number): [number, number] {
+  return [((x + LOT_W / 2) / LOT_W) * size, ((z + LOT_D / 2) / LOT_D) * size];
+}
 
 function paintAsphaltHeight(ctx: CanvasRenderingContext2D, size: number): void {
-  ctx.fillStyle = "#808080";
+  ctx.fillStyle = "#8a8a8a";
   ctx.fillRect(0, 0, size, size);
-  for (let i = 0; i < 48000; i++) {
-    const v = 96 + Math.random() * 80;
+  for (let i = 0; i < 70000; i++) {
+    const v = 70 + Math.random() * 110;
     ctx.fillStyle = `rgb(${v},${v},${v})`;
-    ctx.fillRect(Math.random() * size, Math.random() * size, 1 + (i % 2), 1);
+    ctx.fillRect(Math.random() * size, Math.random() * size, 1 + (i % 3), 1);
   }
-  for (let i = 0; i < 90; i++) {
-    const v = 70 + Math.random() * 24;
+  for (let i = 0; i < 140; i++) {
+    const v = 60 + Math.random() * 40;
     ctx.fillStyle = `rgb(${v},${v},${v})`;
-    ctx.fillRect(Math.random() * size, Math.random() * size, 16 + Math.random() * 36, 2 + Math.random() * 5);
+    ctx.fillRect(Math.random() * size, Math.random() * size, 10 + Math.random() * 28, 2 + Math.random() * 4);
+  }
+}
+
+function paintLotWear(ctx: CanvasRenderingContext2D, size: number, intoColor: boolean): void {
+  const canopies = [
+    { x: -8.3, z: -0.15, w: 14, d: 20 },
+    { x: 11.5, z: 2.55, w: 16.2, d: 25 },
+  ];
+  for (const c of canopies) {
+    const [px, py] = lotPx(c.x, c.z, size);
+    const rx = (c.w / LOT_W) * size * 0.5;
+    const ry = (c.d / LOT_D) * size * 0.5;
+    const g = ctx.createRadialGradient(px, py, rx * 0.2, px, py, Math.max(rx, ry));
+    g.addColorStop(0, intoColor ? "rgba(4,4,6,0.62)" : "rgba(48,48,48,1)");
+    g.addColorStop(1, intoColor ? "rgba(4,4,6,0)" : "rgba(150,150,150,0)");
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.ellipse(px, py, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  const lanes = [-8.6, -7.9, 7.7, 8.6, 11.2, 1.15, 2.4];
+  for (const x of lanes) {
+    ctx.strokeStyle = intoColor ? "rgba(4,4,6,0.55)" : "rgba(70,70,70,0.95)";
+    ctx.lineWidth = intoColor ? size * 0.016 : size * 0.012;
+    ctx.beginPath();
+    const [x0, y0] = lotPx(x, -30, size);
+    const [, y1] = lotPx(x, 28, size);
+    ctx.moveTo(x0, y0);
+    ctx.lineTo(x0 + size * 0.004, y1);
+    ctx.stroke();
+  }
+  const stains = [
+    [-8.2, -4.2],
+    [8.1, -5.2],
+    [7.6, -2.4],
+    [1.3, -8],
+    [11.4, 2.6],
+    [-8.4, 1.4],
+  ];
+  for (const [x, z] of stains) {
+    const [px, py] = lotPx(x!, z!, size);
+    ctx.fillStyle = intoColor ? "rgba(8,6,4,0.72)" : "rgba(28,28,28,1)";
+    ctx.beginPath();
+    ctx.ellipse(px, py, size * 0.018, size * 0.012, 0.4, 0, Math.PI * 2);
+    ctx.fill();
   }
 }
 
 export function asphaltColor(): THREE.CanvasTexture {
-  return canvasTex(1024, 1024, (ctx, size) => {
-    ctx.fillStyle = "#141318";
+  return canvasTex(2048, 2048, (ctx, size) => {
+    ctx.fillStyle = "#1a181c";
     ctx.fillRect(0, 0, size, size);
-    for (let i = 0; i < 82000; i++) {
+    for (let i = 0; i < 140000; i++) {
       const x = Math.random() * size;
       const y = Math.random() * size;
-      const warm = Math.random() < 0.28;
-      const n = 22 + Math.random() * 48;
+      const warm = Math.random() < 0.34;
+      const n = 18 + Math.random() * 55;
       ctx.fillStyle = warm
-        ? `rgba(${n + 22},${n + 12},${n},${0.4 + Math.random() * 0.42})`
-        : `rgba(${n},${n + 3},${n + 8},${0.32 + Math.random() * 0.46})`;
-      ctx.fillRect(x, y, 1 + (Math.random() < 0.28 ? 2 : 1), 1 + (Math.random() < 0.18 ? 2 : 0));
+        ? `rgba(${n + 28},${n + 14},${n},${0.45 + Math.random() * 0.4})`
+        : `rgba(${n},${n + 2},${n + 6},${0.35 + Math.random() * 0.45})`;
+      ctx.fillRect(x, y, 1 + (Math.random() < 0.22 ? 2 : 1), 1);
     }
-    for (let i = 0; i < 28; i++) {
-      const x = Math.random() * size;
-      const y = Math.random() * size;
-      ctx.fillStyle = `rgba(8,8,10,${0.22 + Math.random() * 0.28})`;
-      ctx.beginPath();
-      ctx.ellipse(x, y, 36 + Math.random() * 70, 14 + Math.random() * 22, Math.random() * Math.PI, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    for (let i = 0; i < 180; i++) {
-      const x = Math.random() * size;
-      const y = Math.random() * size;
-      ctx.fillStyle = `rgba(6,6,8,${0.2 + Math.random() * 0.26})`;
-      ctx.fillRect(x, y, 12 + Math.random() * 32, 2 + Math.random() * 7);
-    }
-    for (let i = 0; i < 48; i++) {
-      ctx.strokeStyle = `rgba(28,24,20,${0.22 + Math.random() * 0.24})`;
-      ctx.lineWidth = 1 + Math.random() * 1.4;
+    for (let i = 0; i < 90; i++) {
+      ctx.strokeStyle = `rgba(32,28,24,${0.25 + Math.random() * 0.3})`;
+      ctx.lineWidth = 1 + Math.random() * 1.6;
       ctx.beginPath();
       ctx.moveTo(Math.random() * size, Math.random() * size);
       ctx.quadraticCurveTo(Math.random() * size, Math.random() * size, Math.random() * size, Math.random() * size);
       ctx.stroke();
     }
-  }, { repeatX: ASPHALT_REPEAT_X, repeatY: ASPHALT_REPEAT_Y, aniso: 8 });
+    paintLotWear(ctx, size, true);
+  }, { wrap: false, aniso: 8 });
 }
 
 export function asphaltRough(): THREE.CanvasTexture {
   return canvasTex(1024, 1024, (ctx, size) => {
     paintAsphaltHeight(ctx, size);
-    for (let i = 0; i < 18000; i++) {
-      const v = 150 + Math.random() * 80;
+    paintLotWear(ctx, size, false);
+    for (let i = 0; i < 12000; i++) {
+      const v = 160 + Math.random() * 70;
       ctx.fillStyle = `rgb(${v},${v},${v})`;
       ctx.fillRect(Math.random() * size, Math.random() * size, 1, 1);
     }
-  }, { repeatX: ASPHALT_REPEAT_X, repeatY: ASPHALT_REPEAT_Y, srgb: false, aniso: 8 });
+  }, { wrap: false, srgb: false, aniso: 8 });
 }
 
 export function asphaltNormal(): THREE.CanvasTexture {
-  const size = 512;
+  const size = 1024;
   const height = document.createElement("canvas");
   height.width = height.height = size;
-  paintAsphaltHeight(height.getContext("2d")!, size);
-  return heightToNormal(height, ASPHALT_REPEAT_X, ASPHALT_REPEAT_Y);
+  const ctx = height.getContext("2d")!;
+  paintAsphaltHeight(ctx, size);
+  paintLotWear(ctx, size, false);
+  return heightToNormal(height, 1, 1);
+}
+
+export function sandColor(): THREE.CanvasTexture {
+  return canvasTex(512, 512, (ctx, w, h) => {
+    ctx.fillStyle = "#c4a67a";
+    ctx.fillRect(0, 0, w, h);
+    for (let i = 0; i < 9000; i++) {
+      const n = 150 + Math.random() * 80;
+      ctx.fillStyle = `rgba(${n},${n - 28},${n - 58},${0.45})`;
+      ctx.fillRect(Math.random() * w, Math.random() * h, 2, 2);
+    }
+    for (let i = 0; i < 40; i++) {
+      ctx.fillStyle = `rgba(90,70,48,${0.18 + Math.random() * 0.2})`;
+      ctx.beginPath();
+      ctx.ellipse(Math.random() * w, Math.random() * h, 18 + Math.random() * 40, 8, Math.random(), 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }, { repeatX: 18, repeatY: 18, aniso: 4 });
 }
 
 function heightToNormal(src: HTMLCanvasElement, repeatX: number, repeatY: number): THREE.CanvasTexture {
