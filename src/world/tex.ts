@@ -46,17 +46,18 @@ function paintLotWear(ctx: CanvasRenderingContext2D, size: number, intoColor: bo
     const [px, py] = lotPx(c.x, c.z, size);
     const rx = (c.w / LOT_W) * size * 0.5;
     const ry = (c.d / LOT_D) * size * 0.5;
-    const g = ctx.createRadialGradient(px, py, rx * 0.2, px, py, Math.max(rx, ry));
-    g.addColorStop(0, intoColor ? "rgba(12,8,6,0.55)" : "rgba(48,44,40,1)");
-    g.addColorStop(1, intoColor ? "rgba(12,8,6,0)" : "rgba(150,140,130,0)");
+    if (intoColor) continue;
+    const g = ctx.createRadialGradient(px, py, rx * 0.15, px, py, Math.max(rx, ry) * 0.95);
+    g.addColorStop(0, "rgba(40,40,40,1)");
+    g.addColorStop(1, "rgba(150,150,150,0)");
     ctx.fillStyle = g;
     ctx.beginPath();
-    ctx.ellipse(px, py, rx, ry, 0, 0, Math.PI * 2);
+    ctx.ellipse(px, py, rx * 0.92, ry * 0.92, 0, 0, Math.PI * 2);
     ctx.fill();
   }
   const lanes = [-8.6, -7.9, 7.7, 8.6, 11.2, 1.15, 2.4];
   for (const x of lanes) {
-    ctx.strokeStyle = intoColor ? "rgba(18,12,8,0.34)" : "rgba(90,82,74,0.55)";
+    ctx.strokeStyle = intoColor ? "rgba(28,20,14,0.42)" : "rgba(110,100,90,0.7)";
     ctx.lineWidth = Math.max(1, size * 0.004);
     ctx.beginPath();
     const [x0, y0] = lotPx(x, -30, size);
@@ -87,14 +88,14 @@ const GRAIN_Y = 32;
 
 export function asphaltColor(): THREE.CanvasTexture {
   return canvasTex(2048, 2048, (ctx, size) => {
-    ctx.fillStyle = "#181410";
+    ctx.fillStyle = "#4a4038";
     ctx.fillRect(0, 0, size, size);
-    for (let i = 0; i < 160000; i++) {
-      const n = 16 + Math.random() * 20;
-      const warm = Math.random() < 0.45;
+    for (let i = 0; i < 180000; i++) {
+      const n = 40 + Math.random() * 70;
+      const warm = Math.random() < 0.55;
       ctx.fillStyle = warm
-        ? `rgba(${n + 14},${n + 6},${n},${0.18 + Math.random() * 0.2})`
-        : `rgba(${n + 4},${n + 2},${n},${0.14 + Math.random() * 0.18})`;
+        ? `rgba(${n + 28},${n + 10},${n - 6},${0.28 + Math.random() * 0.35})`
+        : `rgba(${n},${n - 4},${n - 8},${0.22 + Math.random() * 0.3})`;
       ctx.fillRect(Math.random() * size, Math.random() * size, 1, 1);
     }
     paintLotWear(ctx, size, true);
@@ -103,7 +104,7 @@ export function asphaltColor(): THREE.CanvasTexture {
 
 export function asphaltRough(): THREE.CanvasTexture {
   return canvasTex(1024, 1024, (ctx, size) => {
-    ctx.fillStyle = "#c8c8c8";
+    ctx.fillStyle = "#8a8a8a";
     ctx.fillRect(0, 0, size, size);
     for (let i = 0; i < 8000; i++) {
       const v = 150 + Math.random() * 40;

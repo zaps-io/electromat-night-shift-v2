@@ -35,7 +35,7 @@ export function createRenderer(canvas: HTMLCanvasElement): THREE.WebGLRenderer {
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 0.58;
+  renderer.toneMappingExposure = 0.66;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   return renderer;
 }
@@ -50,13 +50,52 @@ export async function loadDuskEnvironment(renderer: THREE.WebGLRenderer): Promis
     hdr.mapping = THREE.EquirectangularReflectionMapping;
     const pmrem = new THREE.PMREMGenerator(renderer);
     pmrem.compileEquirectangularShader();
-    const environment = pmrem.fromEquirectangular(hdr).texture;
+    const env = new THREE.Scene();
+    const sky = new THREE.Mesh(
+      new THREE.SphereGeometry(80, 32, 20),
+      new THREE.MeshBasicMaterial({ map: hdr, color: 0xffc49a, side: THREE.BackSide }),
+    );
+    env.add(sky);
+    const ground = new THREE.Mesh(
+      new THREE.CircleGeometry(70, 24),
+      new THREE.MeshBasicMaterial({ color: 0x7a4630 }),
+    );
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = -1.2;
+    env.add(ground);
+    addReflectionCards(env);
+    const prev = renderer.toneMappingExposure;
+    renderer.toneMappingExposure = 1;
+    const environment = pmrem.fromScene(env, 0.04).texture;
+    renderer.toneMappingExposure = prev;
     pmrem.dispose();
-    return { environment, background: hdr };
+    hdr.dispose();
+    return { environment, background: null };
   } catch (err) {
     console.warn("HDR environment failed, using procedural dusk", err);
     return { environment: createDuskEnvironment(renderer), background: null };
   }
+}
+
+/** Local lights in the PMREM so wet asphalt catches canopy spill, taillights, and cyan signs. */
+function addReflectionCards(env: THREE.Scene): void {
+  const card = (color: number, x: number, y: number, z: number, w: number, h: number, ry = 0) => {
+    const mesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(w, h),
+      new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide }),
+    );
+    mesh.position.set(x, y, z);
+    mesh.rotation.y = ry;
+    env.add(mesh);
+  };
+  card(0xffb060, -8.3, 4.2, -0.15, 12, 6);
+  card(0xffb060, 11.5, 4.2, 2.55, 14, 7, 0.2);
+  card(0xf4f1ea, -8.3, 6.4, -0.15, 12, 3);
+  card(0xf4f1ea, 11.5, 6.4, 2.55, 14, 3);
+  card(0xe63225, 8, 0.9, -5, 3.2, 0.45, Math.PI / 2);
+  card(0xe63225, -6, 0.9, -4, 3.2, 0.45, Math.PI / 2);
+  card(0x00d4f5, 4.5, 1.6, -16, 1.2, 0.7);
+  card(0x00d4f5, -4, 1.4, 2, 0.8, 1.6, Math.PI / 2);
 }
 
 /** Golden-hour IBL so metals and clearcoat read as painted, not plastic. */
@@ -114,6 +153,7 @@ export function createDuskEnvironment(renderer: THREE.WebGLRenderer): THREE.Text
 
   const hemi = new THREE.HemisphereLight(0xffd2a0, 0x16141c, 0.55);
   env.add(hemi);
+  addReflectionCards(env);
 
   const tex = pmrem.fromScene(env, 0.035).texture;
   pmrem.dispose();
@@ -151,7 +191,7 @@ export function createPipeline(
     mipmapBlur: true,
     radius: 0.42,
   });
-  const grade = new BrightnessContrastEffect({ brightness: -0.1, contrast: 0.22 });
+  const grade = new BrightnessContrastEffect({ brightness: -0.02, contrast: 0.1 });
   const hue = new HueSaturationEffect({ hue: 0.045, saturation: 0.1 });
   const vignette = new VignetteEffect({
     eskil: false,

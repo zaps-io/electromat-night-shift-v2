@@ -16,7 +16,8 @@ import {
   westVoidWalls,
 } from "./layout";
 import { addPavilion } from "./pavilion";
-import { asphaltColor, asphaltNormal, asphaltRough, brushMetal, creamPanels, curbColor, curbRough, gravel } from "./tex";
+import { asphaltColor, asphaltNormal, asphaltRough, creamPanels, curbColor, curbRough, gravel } from "./tex";
+import { applyBakedLotLight } from "./lightmaps";
 import { makePayIcon, makeWaveGuide, makeWaveIcon } from "./icons";
 import { addZeusCharger } from "./zeus";
 
@@ -66,12 +67,12 @@ function makeAsphalt(root: THREE.Group): THREE.Mesh {
     new THREE.MeshStandardMaterial({
       color: 0xffffff,
       map: asphaltColor(),
-      roughness: 0.96,
+      roughness: 0.78,
       roughnessMap: asphaltRough(),
       normalMap: asphaltNormal(),
-      normalScale: new THREE.Vector2(0.18, 0.18),
-      metalness: 0.02,
-      envMapIntensity: 0.05,
+      normalScale: new THREE.Vector2(0.38, 0.38),
+      metalness: 0.08,
+      envMapIntensity: 0.48,
     }),
   );
   ground.rotation.x = -Math.PI / 2;
@@ -172,24 +173,20 @@ function roundedRectShape(w: number, d: number, r: number): THREE.Shape {
 }
 
 function addCanopyAt(root: THREE.Group, cx: number, cz: number, w: number, d: number, y: number, _shadow: boolean): void {
-  const brush = brushMetal();
   const alum = new THREE.MeshPhysicalMaterial({
-    color: 0xeef1f4,
-    map: brush.map,
-    roughnessMap: brush.rough,
-    normalMap: brush.normal,
-    normalScale: new THREE.Vector2(0.7, 1.8),
-    metalness: 0.72,
-    roughness: 0.32,
-    clearcoat: 0.28,
-    clearcoatRoughness: 0.18,
-    envMapIntensity: 0.85,
+    name: "CanopyWhite",
+    color: 0xfff6ee,
+    metalness: 0,
+    roughness: 0.62,
+    clearcoat: 0.06,
+    clearcoatRoughness: 0.4,
+    envMapIntensity: 0.06,
   });
   const panels = creamPanels();
-  const fasciaPlate = mat(0xf2ebe0, {
-    roughness: 0.46,
-    metalness: 0.06,
-    envMapIntensity: 0.28,
+  const fasciaPlate = mat(0xf7f3ea, {
+    roughness: 0.5,
+    metalness: 0.02,
+    envMapIntensity: 0.16,
     map: panels,
   });
   const redHair = mat(C.red, {
@@ -217,6 +214,7 @@ function addCanopyAt(root: THREE.Group, cx: number, cz: number, w: number, d: nu
   });
   topGeo.rotateX(-Math.PI / 2);
   const top = new THREE.Mesh(topGeo, alum);
+  top.userData.canopyTop = true;
   top.position.set(cx, y, cz);
   top.castShadow = true;
   top.receiveShadow = true;
@@ -255,7 +253,7 @@ function addCanopyAt(root: THREE.Group, cx: number, cz: number, w: number, d: nu
     [-0.22, -0.16],
     [0.2, 0.18],
   ] as const) {
-    const pool = new THREE.PointLight(0xffb060, 6.5, 18, 2);
+    const pool = new THREE.PointLight(0xffb060, 14, 20, 2);
     pool.position.set(cx + ox * w, y - 0.65, cz + oz * d);
     pool.castShadow = false;
     root.add(pool);
@@ -263,11 +261,9 @@ function addCanopyAt(root: THREE.Group, cx: number, cz: number, w: number, d: nu
 
   const col = new THREE.MeshPhysicalMaterial({
     color: 0xe4e7ec,
-    map: brush.map,
-    roughnessMap: brush.rough,
-    metalness: 0.74,
-    roughness: 0.36,
-    envMapIntensity: 0.55,
+    metalness: 0.28,
+    roughness: 0.48,
+    envMapIntensity: 0.2,
   });
   const boltSteel = mat(0x6a7076, { metalness: 0.62, roughness: 0.36, envMapIntensity: 0.28 });
   const insetZ = d * 0.5 - 0.55;
@@ -887,6 +883,7 @@ export function buildStation(): Station {
     addZeusCharger(root, stall.zeusX, stall.zeusZ, stall.zeusYaw, stall.playable != null ? "full" : "lite", stall.id);
   }
   bayAnchors.sort((a, b) => (a.userData.bayId as number) - (b.userData.bayId as number));
+  applyBakedLotLight(root);
 
   const westLot = westVoidWalls().map(
     (w) => new THREE.Box3().setFromCenterAndSize(new THREE.Vector3(w.cx, w.cy, w.cz), new THREE.Vector3(w.w, w.h, w.d)),

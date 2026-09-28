@@ -142,8 +142,8 @@ const skyDome = new THREE.Mesh(
 );
 skyDome.userData.kind = "skydome";
 scene.add(skyDome);
-scene.add(new THREE.HemisphereLight(0xffc090, 0x100e0c, 0.06));
-const sun = new THREE.DirectionalLight(0xffb060, 1.02);
+scene.add(new THREE.HemisphereLight(0xffc49a, 0x3a2818, 0.14));
+const sun = new THREE.DirectionalLight(0xffb060, 0.92);
 sun.position.set(-38, 14, -18);
 configureKeyLight(sun);
 scene.add(sun);
@@ -204,7 +204,7 @@ gfxBtn?.addEventListener("click", (e) => {
 
 void loadDuskEnvironment(renderer).then((env) => {
   scene.environment = env.environment;
-  scene.environmentIntensity = 0.28;
+  scene.environmentIntensity = 0.3;
   scene.environmentRotation.y = 0.9;
   // Painted dusk dome stays up. The HDR is for reflections, not a photo sky.
   env.background?.dispose();
