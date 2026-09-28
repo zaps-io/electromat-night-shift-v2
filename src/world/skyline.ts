@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { duskSky, facade, facadeEmit, mural, street, type FacadeStyle } from "./tex";
+import { duskSky, facade, facadeEmit, mural, sandColor, street, type FacadeStyle } from "./tex";
 
 function plaster(style: FacadeStyle): THREE.MeshStandardMaterial {
   const emit = style === "dark" ? 0xa8c8e8 : style === "cool" ? 0xe8c888 : 0xffb060;
@@ -58,27 +58,14 @@ const house = new THREE.MeshStandardMaterial({
 const band = new THREE.MeshStandardMaterial({ color: 0x2a2620, roughness: 0.7, metalness: 0.08 });
 const silFar = new THREE.MeshBasicMaterial({ color: 0x141218, fog: true });
 const silNear = new THREE.MeshBasicMaterial({ color: 0x1c1816, fog: true });
-const paint = (color: number) =>
-  new THREE.MeshPhysicalMaterial({
-    color,
-    roughness: 0.22,
-    metalness: 0.16,
-    clearcoat: 0.7,
-    clearcoatRoughness: 0.12,
-    envMapIntensity: 0.9,
-  });
 
-function addStreetCar(root: THREE.Group, x: number, z: number, yaw: number, color: number): void {
-  const body = new THREE.Mesh(new THREE.BoxGeometry(4.4, 1.15, 1.8), paint(color));
-  body.position.set(x, 0.72, z);
-  body.rotation.y = yaw;
-  const cabin = new THREE.Mesh(
-    new THREE.BoxGeometry(1.8, 0.7, 1.6),
-    new THREE.MeshStandardMaterial({ color: 0x1a2028, roughness: 0.08, metalness: 0.06, envMapIntensity: 0.7 }),
-  );
-  cabin.position.set(x + Math.cos(yaw) * 0.35, 1.42, z + Math.sin(yaw) * 0.08);
-  cabin.rotation.y = yaw;
-  root.add(body, cabin);
+function addStreetSlot(root: THREE.Group, x: number, z: number, yaw: number, color: number): void {
+  const slot = new THREE.Group();
+  slot.position.set(x, 0, z);
+  slot.rotation.y = yaw;
+  slot.userData.kind = "street-slot";
+  slot.userData.paint = color;
+  root.add(slot);
 }
 
 function addRoofGear(root: THREE.Group, x: number, y: number, z: number): void {
@@ -168,6 +155,95 @@ function addSilhouette(root: THREE.Group, x: number, z: number, w: number, h: nu
   const cap = new THREE.Mesh(new THREE.BoxGeometry(w * 0.35, h * 0.12, d * 0.4), far ? silFar : silNear);
   cap.position.set(x + w * 0.12, h + h * 0.04, z);
   root.add(cap);
+}
+
+function addDesert(root: THREE.Group): void {
+  const sand = new THREE.Mesh(
+    new THREE.CircleGeometry(150, 48),
+    new THREE.MeshStandardMaterial({
+      color: 0xd2b48a,
+      map: sandColor(),
+      roughness: 0.94,
+      metalness: 0.02,
+      envMapIntensity: 0.12,
+    }),
+  );
+  sand.rotation.x = -Math.PI / 2;
+  sand.position.y = 0.001;
+  sand.receiveShadow = true;
+  root.add(sand);
+  const mesa = new THREE.MeshStandardMaterial({ color: 0x6a4034, roughness: 0.9, metalness: 0.02 });
+  const far = new THREE.MeshStandardMaterial({ color: 0x4a342c, roughness: 0.92 });
+  for (const [x, z, r, h, mat] of [
+    [-70, 96, 16, 11, far],
+    [-36, 102, 22, 16, far],
+    [8, 108, 18, 13, far],
+    [48, 98, 20, 14, far],
+    [78, 70, 14, 9, mesa],
+    [-88, 40, 12, 8, mesa],
+    [92, -10, 16, 10, mesa],
+    [-96, -20, 18, 9, mesa],
+  ] as const) {
+    const cone = new THREE.Mesh(new THREE.ConeGeometry(r, h, 7), mat);
+    cone.position.set(x, h * 0.28, z);
+    root.add(cone);
+  }
+}
+
+function addPowerLines(root: THREE.Group): void {
+  const wire = new THREE.MeshStandardMaterial({ color: 0x1a1c20, roughness: 0.6, metalness: 0.4 });
+  const poles: Array<[number, number]> = [
+    [-20, -24.2],
+    [-6, -24.4],
+    [8, -24.2],
+    [20, -24.4],
+  ];
+  for (let i = 0; i < poles.length - 1; i++) {
+    const a = poles[i]!;
+    const b = poles[i + 1]!;
+    for (const sagY of [4.55, 4.35]) {
+      const pts: THREE.Vector3[] = [];
+      for (let s = 0; s <= 8; s++) {
+        const t = s / 8;
+        pts.push(
+          new THREE.Vector3(
+            a[0] + (b[0] - a[0]) * t,
+            sagY - Math.sin(t * Math.PI) * 0.35,
+            a[1] + (b[1] - a[1]) * t,
+          ),
+        );
+      }
+      const tube = new THREE.Mesh(
+        new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 8, 0.012, 4, false),
+        wire,
+      );
+      root.add(tube);
+    }
+  }
+}
+
+function addRoadsidePalms(root: THREE.Group): void {
+  const trunk = new THREE.MeshStandardMaterial({ color: 0x4a3828, roughness: 0.86 });
+  const frond = new THREE.MeshStandardMaterial({ color: 0x2c4a28, roughness: 0.8 });
+  for (const [x, z] of [
+    [-28, -22.2],
+    [-16, -22.4],
+    [18, -22.2],
+    [30, -22.6],
+    [-30, 15.4],
+    [28, 15.2],
+  ] as const) {
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, 4.2, 6), trunk);
+    pole.position.set(x, 2.1, z);
+    root.add(pole);
+    for (let i = 0; i < 6; i++) {
+      const leaf = new THREE.Mesh(new THREE.ConeGeometry(0.14, 1.3, 4), frond);
+      leaf.position.set(x, 4.15, z);
+      leaf.rotation.z = 0.9;
+      leaf.rotation.y = (i / 6) * Math.PI * 2;
+      root.add(leaf);
+    }
+  }
 }
 
 function addRidge(root: THREE.Group): void {
@@ -364,8 +440,8 @@ function addAlley(root: THREE.Group): void {
   );
   curb.position.set(2, 0.08, 16.6);
   root.add(alley, curb);
-  addStreetCar(root, -16.4, 19.8, 0.02, 0x2a2c30);
-  addStreetCar(root, 8.2, 20.2, -0.04, 0xb8bcc0);
+  addStreetSlot(root, -16.4, 19.8, Math.PI / 2, 0x1e1e24);
+  addStreetSlot(root, 8.2, 20.2, Math.PI / 2, 0xc5c9ce);
 }
 
 function addStreetLamps(root: THREE.Group): void {
@@ -400,7 +476,9 @@ export function buildSkyline(): THREE.Group {
     new THREE.SphereGeometry(170, 28, 18),
     new THREE.MeshBasicMaterial({ map: duskSky(), side: THREE.BackSide, fog: false }),
   );
+  sky.userData.kind = "skydome";
   root.add(sky);
+  addDesert(root);
 
   addRidge(root);
   addSkylineRow(root);
@@ -487,11 +565,13 @@ export function buildSkyline(): THREE.Group {
     root.add(bar);
   }
 
-  addStreetCar(root, -11.2, -24.8, 0.04, 0x1a1a1e);
-  addStreetCar(root, -2.6, -25.4, 0.02, 0xc42820);
-  addStreetCar(root, 7.2, -25.0, -0.03, 0xc8ccd0);
-  addStreetCar(root, 16.8, -25.6, 0.01, 0x243040);
+  addStreetSlot(root, -11.2, -24.8, Math.PI / 2, 0x1e1e24);
+  addStreetSlot(root, -2.6, -25.4, -Math.PI / 2, 0x8d2e28);
+  addStreetSlot(root, 7.2, -25.0, Math.PI / 2, 0xf5f0e8);
+  addStreetSlot(root, 16.8, -25.6, -Math.PI / 2, 0x243044);
   addStreetLamps(root);
+  addPowerLines(root);
+  addRoadsidePalms(root);
 
   return root;
 }

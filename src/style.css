@@ -27,6 +27,25 @@ body {
   cursor: crosshair;
 }
 
+#gfx {
+  position: absolute;
+  left: 0.8rem;
+  bottom: 0.7rem;
+  z-index: 6;
+  background: rgba(30, 30, 36, 0.82);
+  color: var(--cream);
+  border: 1px solid rgba(232, 154, 46, 0.7);
+  font: inherit;
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  padding: 0.35rem 0.55rem;
+  cursor: pointer;
+}
+
+#gfx:hover {
+  color: var(--amber);
+}
+
 .hidden {
   display: none !important;
 }

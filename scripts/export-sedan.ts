@@ -6,7 +6,7 @@ import { buildSedanParts } from "../src/cars/sedan.ts";
 import { buildSuvParts } from "../src/cars/suv.ts";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const dir = resolve(root, "public/cars");
+const dir = resolve(root, "vendor/procedural");
 mkdirSync(dir, { recursive: true });
 
 function write(file: string, parts: ReturnType<typeof buildSedanParts>, name: string): void {

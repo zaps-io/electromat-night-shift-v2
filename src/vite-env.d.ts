@@ -31,6 +31,8 @@ interface ElectromatApi {
   inPlayable: (x: number, z: number) => boolean;
   capture: (w?: number, h?: number) => string;
   carProbe: (w?: number, h?: number) => string;
+  fps: number;
+  gfx: "high" | "medium" | "low";
   hullDebug: () => {
     source?: string;
     meshCount?: number;

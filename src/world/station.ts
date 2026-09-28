@@ -16,7 +16,8 @@ import {
   westVoidWalls,
 } from "./layout";
 import { addPavilion } from "./pavilion";
-import { asphaltColor, asphaltNormal, asphaltRough, brushMetal, creamPanels, curbColor, curbRough, gravel } from "./tex";
+import { asphaltColor, asphaltNormal, asphaltRough, creamPanels, curbColor, curbRough, gravel } from "./tex";
+import { applyBakedLotLight } from "./lightmaps";
 import { makePayIcon, makeWaveGuide, makeWaveIcon } from "./icons";
 import { addZeusCharger } from "./zeus";
 
@@ -64,14 +65,14 @@ function makeAsphalt(root: THREE.Group): THREE.Mesh {
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(78, 68),
     new THREE.MeshStandardMaterial({
-      color: 0x1c1b20,
+      color: 0xffffff,
       map: asphaltColor(),
-      roughness: 0.92,
+      roughness: 0.78,
       roughnessMap: asphaltRough(),
       normalMap: asphaltNormal(),
-      normalScale: new THREE.Vector2(1.05, 1.05),
-      metalness: 0.03,
-      envMapIntensity: 0.22,
+      normalScale: new THREE.Vector2(0.38, 0.38),
+      metalness: 0.08,
+      envMapIntensity: 0.48,
     }),
   );
   ground.rotation.x = -Math.PI / 2;
@@ -130,8 +131,8 @@ function addBayOutline(root: THREE.Group, x: number, z: number, yaw: number, ada
     g.userData.kind = "bay";
     g.userData.bayId = bayId;
   }
-  const paint = mat(ada ? 0x4a8ae8 : 0xd8d4c8, { roughness: 0.8, metalness: 0.02, envMapIntensity: 0.08 });
-  const t = 0.07;
+  const paint = mat(ada ? 0x4a8ae8 : 0xf3eee6, { roughness: 0.72, metalness: 0.02, envMapIntensity: 0.12 });
+  const t = 0.1;
   const { w, d } = BAY_SIZE;
   g.add(box(w, 0.012, t, paint, 0, 0, d / 2));
   g.add(box(w, 0.012, t, paint, 0, 0, -d / 2));
@@ -172,22 +173,23 @@ function roundedRectShape(w: number, d: number, r: number): THREE.Shape {
 }
 
 function addCanopyAt(root: THREE.Group, cx: number, cz: number, w: number, d: number, y: number, _shadow: boolean): void {
-  const brush = brushMetal();
   const alum = new THREE.MeshPhysicalMaterial({
-    color: 0xeef1f4,
-    map: brush.map,
-    roughnessMap: brush.rough,
-    normalMap: brush.normal,
-    normalScale: new THREE.Vector2(0.7, 1.8),
-    metalness: 0.7,
-    roughness: 0.38,
-    envMapIntensity: 0.4,
+    name: "CanopyWhite",
+    color: 0xffffff,
+    emissive: 0xffffff,
+    emissiveIntensity: 0.32,
+    metalness: 0,
+    roughness: 0.52,
+    clearcoat: 0.04,
+    clearcoatRoughness: 0.46,
+    envMapIntensity: 0.03,
+    fog: false,
   });
   const panels = creamPanels();
-  const fasciaPlate = mat(0xf2ebe0, {
-    roughness: 0.46,
-    metalness: 0.06,
-    envMapIntensity: 0.28,
+  const fasciaPlate = mat(0xf7f3ea, {
+    roughness: 0.5,
+    metalness: 0.02,
+    envMapIntensity: 0.16,
     map: panels,
   });
   const redHair = mat(C.red, {
@@ -215,6 +217,7 @@ function addCanopyAt(root: THREE.Group, cx: number, cz: number, w: number, d: nu
   });
   topGeo.rotateX(-Math.PI / 2);
   const top = new THREE.Mesh(topGeo, alum);
+  top.userData.canopyTop = true;
   top.position.set(cx, y, cz);
   top.castShadow = true;
   top.receiveShadow = true;
@@ -249,14 +252,21 @@ function addCanopyAt(root: THREE.Group, cx: number, cz: number, w: number, d: nu
   const cyanSideR = cyanSideL.clone();
   cyanSideR.position.x = cx + w * 0.5 - 0.08;
   root.add(cyanSideL, cyanSideR);
+  for (const [ox, oz] of [
+    [-0.22, -0.16],
+    [0.2, 0.18],
+  ] as const) {
+    const pool = new THREE.PointLight(0xffb060, 10, 7.5, 2);
+    pool.position.set(cx + ox * w, y - 0.65, cz + oz * d);
+    pool.castShadow = false;
+    root.add(pool);
+  }
 
   const col = new THREE.MeshPhysicalMaterial({
     color: 0xe4e7ec,
-    map: brush.map,
-    roughnessMap: brush.rough,
-    metalness: 0.74,
-    roughness: 0.36,
-    envMapIntensity: 0.55,
+    metalness: 0.28,
+    roughness: 0.48,
+    envMapIntensity: 0.2,
   });
   const boltSteel = mat(0x6a7076, { metalness: 0.62, roughness: 0.36, envMapIntensity: 0.28 });
   const insetZ = d * 0.5 - 0.55;
@@ -876,6 +886,7 @@ export function buildStation(): Station {
     addZeusCharger(root, stall.zeusX, stall.zeusZ, stall.zeusYaw, stall.playable != null ? "full" : "lite", stall.id);
   }
   bayAnchors.sort((a, b) => (a.userData.bayId as number) - (b.userData.bayId as number));
+  applyBakedLotLight(root);
 
   const westLot = westVoidWalls().map(
     (w) => new THREE.Box3().setFromCenterAndSize(new THREE.Vector3(w.cx, w.cy, w.cz), new THREE.Vector3(w.w, w.h, w.d)),

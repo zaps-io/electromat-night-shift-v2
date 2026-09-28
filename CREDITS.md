@@ -1,14 +1,31 @@
 # Credits
 
-## Tesla 2018 Model 3
+## EV sedan
 
-Guest cars use this Sketchfab model:
+Guest cars and backdrop traffic use a meshopt-compressed exterior derived from:
 
 - Title: Tesla 2018 Model 3
 - Author: [Ameer Studio](https://sketchfab.com/Ameer)
 - Source: https://sketchfab.com/3d-models/5ef9b845aaf44203b6d04e2c677e444f
 - License: [CC Attribution 4.0](http://creativecommons.org/licenses/by/4.0/)
 
-See also `public/models/tesla-model-3-2018.ATTRIBUTION.txt`.
+The shipped file is `public/cars/zaps-ev-sedan.glb` (interior and the duplicate wheel set removed, simplified, EXT_meshopt_compression). The unmodified source GLB is kept in `vendor/models/` and is not deployed.
 
-Unused hulls kept for credit only: 2020 Porsche Taycan (martin002) and Generic Electric sedan vector (Antonis_zks), both CC BY 4.0.
+## Dusk environment
+
+- Title: Qwantani Dusk 2 (Pure Sky)
+- Author: [Poly Haven](https://polyhaven.com/a/qwantani_dusk_2_puresky) / Greg Zaal
+- Source: https://polyhaven.com/a/qwantani_dusk_2_puresky
+- License: [CC0](https://creativecommons.org/publicdomain/zero/1.0/)
+- File: `public/env/dusk.hdr` (1k)
+
+## Unused hulls kept for credit only
+
+Not loaded and not deployed (see `vendor/models/`):
+
+- 2020 Porsche Taycan by martin002 — CC BY 4.0
+- Generic Electric sedan by Antonis_zks — CC BY 4.0
+
+## Wordmarks
+
+Official Zaps wordmarks are the exact path SVGs in `public/brand/`. Do not redraw them.

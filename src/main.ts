@@ -49,8 +49,15 @@ import {
   type InteractResult,
 } from "./game/interact";
 import { Walker } from "./input/walker";
-import { configureKeyLight, createDuskEnvironment, createPipeline, createRenderer } from "./render/pipeline";
-import { addLodFillers, hullDebug, loadCarPrototypes, syncCars, trimLodFillers, type CarView } from "./world/cars";
+import {
+  configureKeyLight,
+  createPipeline,
+  createRenderer,
+  initialQuality,
+  loadDuskEnvironment,
+  type QualityTier,
+} from "./render/pipeline";
+import { addLodFillers, hullDebug, loadCarPrototypes, parkBackdropCars, syncCars, trimLodFillers, type CarView } from "./world/cars";
 import {
   BAYS,
   BOARD_SHOT,
@@ -86,7 +93,7 @@ import { addBrandSignage } from "./world/branding";
 import { makeAttendantHand, tickHand } from "./world/hand";
 import { makeTargetMark, makeWalkPuck, makeWaveIcon } from "./world/icons";
 import { buildSkyline } from "./world/skyline";
-import { duskSky } from "./world/tex";
+import { duskSky, setTextureAnisotropy } from "./world/tex";
 import { addLotMirror, buildStation } from "./world/station";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#view")!;
@@ -125,25 +132,31 @@ const startBtn = document.querySelector("#start")!;
 const pips = document.querySelectorAll("#pips i");
 
 const renderer = createRenderer(canvas);
+setTextureAnisotropy(renderer.capabilities.getMaxAnisotropy());
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x2a2438);
-scene.fog = new THREE.Fog(0x4a3428, 58, 160);
+scene.background = new THREE.Color(0x121622);
+scene.fog = new THREE.Fog(0x243044, 98, 220);
 const skyDome = new THREE.Mesh(
   new THREE.SphereGeometry(170, 32, 20),
   new THREE.MeshBasicMaterial({ map: duskSky(), side: THREE.BackSide, fog: false }),
 );
+skyDome.userData.kind = "skydome";
 scene.add(skyDome);
-scene.add(new THREE.HemisphereLight(0xffd4a8, 0x16141c, 0.1));
-const sun = new THREE.DirectionalLight(0xffc078, 0.78);
-sun.position.set(-30, 12, -14);
+scene.add(new THREE.HemisphereLight(0xd4d4d4, 0x2c2c30, 0.48));
+const sun = new THREE.DirectionalLight(0xffffff, 1.0);
+const fill = new THREE.DirectionalLight(0xf2f2f2, 0.22);
+fill.position.set(34, 16, 12);
+scene.add(fill);
+sun.position.set(-38, 14, -18);
 configureKeyLight(sun);
 scene.add(sun);
 
 const station = buildStation();
 addLotMirror(station.root, renderer);
 scene.add(station.root);
-scene.add(buildSkyline());
+const skyline = buildSkyline();
+scene.add(skyline);
 
 const walker = new Walker();
 const hand = makeAttendantHand();
@@ -158,8 +171,48 @@ loungeMark.scale.set(1.35, 0.52, 1);
 loungeMark.visible = false;
 scene.add(targetMark, walkPuck, loungeMark);
 
-scene.environment = createDuskEnvironment(renderer);
-const pipeline = createPipeline(renderer, scene, walker.camera);
+const pipeline = createPipeline(renderer, scene, walker.camera, sun);
+const gfxBtn = document.querySelector<HTMLButtonElement>("#gfx");
+let gfxTier: QualityTier = initialQuality();
+let gfxPinned = false;
+const gfxQuery = new URLSearchParams(location.search).get("gfx");
+if (gfxQuery === "high" || gfxQuery === "medium" || gfxQuery === "low") {
+  gfxTier = gfxQuery;
+  gfxPinned = true;
+}
+pipeline.setQuality(gfxTier);
+
+let fpsFrames = 0;
+let fpsStamp = performance.now();
+let fpsRead = 60;
+
+function paintGfx(): void {
+  if (gfxBtn) gfxBtn.textContent = `GFX ${gfxTier.toUpperCase()}`;
+}
+
+function setGfx(next: QualityTier, pin: boolean): void {
+  gfxTier = next;
+  if (pin) gfxPinned = true;
+  pipeline.setQuality(next);
+  paintGfx();
+}
+
+paintGfx();
+gfxBtn?.addEventListener("click", (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  const order: QualityTier[] = ["high", "medium", "low"];
+  const next = order[(order.indexOf(gfxTier) + 1) % order.length] ?? "high";
+  setGfx(next, true);
+});
+
+void loadDuskEnvironment(renderer).then((env) => {
+  scene.environment = env.environment;
+  scene.environmentIntensity = 0.26;
+  scene.environmentRotation.y = 0.9;
+  // Painted dusk dome stays up. The HDR is for reflections, not a photo sky.
+  env.background?.dispose();
+});
 
 let state = resetNight();
 const cars = new Map<string, CarView>();
@@ -594,6 +647,15 @@ function loop(now: number): void {
   if (ready) syncCars(cars, scene, state, now / 1000);
   paintHud();
   pipeline.render();
+  fpsFrames += 1;
+  if (now - fpsStamp >= 1400) {
+    fpsRead = (fpsFrames * 1000) / Math.max(1, now - fpsStamp);
+    fpsFrames = 0;
+    fpsStamp = now;
+    if (!gfxPinned && fpsRead < 48 && gfxTier !== "low") {
+      setGfx(gfxTier === "high" ? "medium" : "low", false);
+    }
+  }
   requestAnimationFrame(loop);
 }
 
@@ -949,6 +1011,12 @@ window.__electromat = {
   },
   capture,
   hullDebug,
+  get fps() {
+    return fpsRead;
+  },
+  get gfx() {
+    return gfxTier;
+  },
   carProbe(w = 1280, h = 800) {
     const prev = scene.background;
     const hidden: THREE.Object3D[] = [];
@@ -970,13 +1038,14 @@ window.__electromat = {
     const data = capture(w, h);
     for (const o of hidden) o.visible = true;
     scene.background = prev;
-    scene.fog = new THREE.Fog(0x4a3428, 52, 148);
+    scene.fog = new THREE.Fog(0x243044, 98, 220);
     return data;
   },
 };
 
 void Promise.all([loadCarPrototypes(), brandingReady]).then(() => {
   addLodFillers(scene);
+  parkBackdropCars(skyline);
   ready = true;
 });
 
