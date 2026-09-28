@@ -143,9 +143,9 @@ const skyDome = new THREE.Mesh(
 );
 skyDome.userData.kind = "skydome";
 scene.add(skyDome);
-scene.add(new THREE.HemisphereLight(0xb7c4ea, 0x2a2c32, 0.62));
-const sun = new THREE.DirectionalLight(0xe4eaf6, 1.35);
-const fill = new THREE.DirectionalLight(0xd4dced, 0.36);
+scene.add(new THREE.HemisphereLight(0xd4d4d4, 0x2c2c30, 0.48));
+const sun = new THREE.DirectionalLight(0xffffff, 1.0);
+const fill = new THREE.DirectionalLight(0xf2f2f2, 0.22);
 fill.position.set(34, 16, 12);
 scene.add(fill);
 sun.position.set(-38, 14, -18);

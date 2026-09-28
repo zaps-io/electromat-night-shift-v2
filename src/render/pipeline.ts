@@ -53,7 +53,7 @@ export async function loadDuskEnvironment(renderer: THREE.WebGLRenderer): Promis
     const env = new THREE.Scene();
     const sky = new THREE.Mesh(
       new THREE.SphereGeometry(80, 32, 20),
-      new THREE.MeshBasicMaterial({ map: hdr, color: 0xffffff, side: THREE.BackSide }),
+      new THREE.MeshBasicMaterial({ map: hdr, color: 0xcccccc, side: THREE.BackSide }),
     );
     env.add(sky);
     const ground = new THREE.Mesh(

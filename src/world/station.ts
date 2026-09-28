@@ -175,9 +175,9 @@ function roundedRectShape(w: number, d: number, r: number): THREE.Shape {
 function addCanopyAt(root: THREE.Group, cx: number, cz: number, w: number, d: number, y: number, _shadow: boolean): void {
   const alum = new THREE.MeshPhysicalMaterial({
     name: "CanopyWhite",
-    color: 0xf7f8fb,
-    emissive: 0xf4f7fb,
-    emissiveIntensity: 0.18,
+    color: 0xffffff,
+    emissive: 0xffffff,
+    emissiveIntensity: 0.32,
     metalness: 0,
     roughness: 0.52,
     clearcoat: 0.04,

@@ -99,12 +99,11 @@ const GRAIN_Y = 32;
 
 export function asphaltColor(): THREE.CanvasTexture {
   return canvasTex(2048, 2048, (ctx, size) => {
-    ctx.fillStyle = "#4a4d52";
+    ctx.fillStyle = "#555555";
     ctx.fillRect(0, 0, size, size);
     for (let i = 0; i < 180000; i++) {
       const n = 36 + Math.random() * 52;
-      const cool = Math.random() < 0.35 ? 3 : 0;
-      ctx.fillStyle = `rgba(${n},${n},${n + cool},${0.22 + Math.random() * 0.38})`;
+      ctx.fillStyle = `rgba(${n},${n},${n},${0.22 + Math.random() * 0.38})`;
       ctx.fillRect(Math.random() * size, Math.random() * size, 1, 1);
     }
     paintLotWear(ctx, size, true);
