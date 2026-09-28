@@ -91,6 +91,15 @@ function enc(linear: number): number {
 
 async function main(): Promise<void> {
   const cols = columns();
+  const lamps: Col[] = [];
+  for (const c of CANOPIES) {
+    for (const [ox, oz] of [
+      [-0.22, -0.16],
+      [0.2, 0.18],
+    ] as const) {
+      lamps.push({ x: c.x + ox * c.w, z: c.z + oz * c.d });
+    }
+  }
   const pix = new Float32Array(SIZE * SIZE * 4);
   const px0 = PAVILION.x - PAVILION.w * 0.5;
   const px1 = PAVILION.x + PAVILION.w * 0.5;
@@ -108,13 +117,14 @@ async function main(): Promise<void> {
         const dx = Math.abs(wx - c.x) / (c.w * 0.5);
         const dz = Math.abs(z - c.z) / (c.d * 0.5);
         const edge = Math.max(dx, dz);
-        if (edge < 1) {
-          const center = 1 - Math.min(1, Math.hypot(dx, dz) / 1.15);
-          warm += smooth(center);
-          sky *= 0.78;
-        } else if (edge < 1.25) {
-          sky *= 1 - 0.18 * (1.25 - edge) / 0.25;
-        }
+        if (edge < 1) sky *= 0.9;
+        else if (edge < 1.18) sky *= 1 - 0.08 * (1.18 - edge) / 0.18;
+      }
+
+      for (const lamp of lamps) {
+        const dist = Math.hypot(wx - lamp.x, z - lamp.z);
+        const reach = 3.6;
+        if (dist < reach) warm += smooth(1 - dist / reach) ** 1.35;
       }
 
       for (const col of cols) {
@@ -140,14 +150,13 @@ async function main(): Promise<void> {
         const dz = Math.max(pz0 - z, 0, z - pz1);
         const dist = Math.hypot(dx, dz);
         if (dist < 1.6) sky *= 1 - 0.4 * smooth(1 - dist / 1.6);
-        if (dist < 2.4 && wx > px1) warm += 0.35 * smooth(1 - dist / 2.4);
       }
 
       sky = Math.min(1, Math.max(0.18, sky));
-      const pool = Math.min(1.4, warm);
-      const r = (0.05 + pool * 0.72) * (0.55 + 0.45 * sky);
-      const g = (0.025 + pool * 0.34) * (0.55 + 0.45 * sky);
-      const b = (0.012 + pool * 0.1) * (0.55 + 0.45 * sky);
+      const pool = Math.min(1, warm);
+      const r = 0.008 + pool * 0.46;
+      const g = 0.009 + pool * 0.2;
+      const b = 0.012 + pool * 0.05;
       const i = (y * SIZE + x) * 4;
       pix[i] = r;
       pix[i + 1] = g;
@@ -156,7 +165,7 @@ async function main(): Promise<void> {
     }
   }
 
-  const soft = blur(pix, SIZE, SIZE, 5);
+  const soft = blur(pix, SIZE, SIZE, 2);
   const bounce = Buffer.alloc(SIZE * SIZE * 3);
   const ao = Buffer.alloc(SIZE * SIZE * 3);
   for (let i = 0, p = 0; i < soft.length; i += 4, p += 3) {

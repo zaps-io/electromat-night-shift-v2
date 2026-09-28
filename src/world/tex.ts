@@ -1,5 +1,16 @@
 import * as THREE from "three";
 
+/** Renderer max, applied to lot and wall canvases so grazing views stay sharp. */
+let texAniso = 8;
+
+export function setTextureAnisotropy(max: number): void {
+  texAniso = Math.max(1, Math.floor(max));
+}
+
+export function textureAnisotropy(): number {
+  return texAniso;
+}
+
 export function canvasTex(
   w: number,
   h: number,
@@ -14,7 +25,7 @@ export function canvasTex(
   if (opts.srgb !== false) tex.colorSpace = THREE.SRGBColorSpace;
   if (opts.wrap !== false) tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
   if (opts.repeatX || opts.repeatY) tex.repeat.set(opts.repeatX ?? 1, opts.repeatY ?? 1);
-  tex.anisotropy = opts.aniso ?? 6;
+  tex.anisotropy = texAniso;
   tex.needsUpdate = true;
   return tex;
 }
@@ -57,7 +68,7 @@ function paintLotWear(ctx: CanvasRenderingContext2D, size: number, intoColor: bo
   }
   const lanes = [-8.6, -7.9, 7.7, 8.6, 11.2, 1.15, 2.4];
   for (const x of lanes) {
-    ctx.strokeStyle = intoColor ? "rgba(28,20,14,0.42)" : "rgba(110,100,90,0.7)";
+    ctx.strokeStyle = intoColor ? "rgba(16,16,18,0.4)" : "rgba(90,90,94,0.7)";
     ctx.lineWidth = Math.max(1, size * 0.004);
     ctx.beginPath();
     const [x0, y0] = lotPx(x, -30, size);
@@ -76,7 +87,7 @@ function paintLotWear(ctx: CanvasRenderingContext2D, size: number, intoColor: bo
   ];
   for (const [x, z] of stains) {
     const [px, py] = lotPx(x!, z!, size);
-    ctx.fillStyle = intoColor ? "rgba(10,8,6,0.42)" : "rgba(70,70,70,0.85)";
+    ctx.fillStyle = intoColor ? "rgba(8,8,10,0.4)" : "rgba(70,70,72,0.85)";
     ctx.beginPath();
     ctx.ellipse(px, py, size * 0.012, size * 0.007, 0.4, 0, Math.PI * 2);
     ctx.fill();
@@ -88,18 +99,16 @@ const GRAIN_Y = 32;
 
 export function asphaltColor(): THREE.CanvasTexture {
   return canvasTex(2048, 2048, (ctx, size) => {
-    ctx.fillStyle = "#4a4038";
+    ctx.fillStyle = "#4a4d52";
     ctx.fillRect(0, 0, size, size);
     for (let i = 0; i < 180000; i++) {
-      const n = 40 + Math.random() * 70;
-      const warm = Math.random() < 0.55;
-      ctx.fillStyle = warm
-        ? `rgba(${n + 28},${n + 10},${n - 6},${0.28 + Math.random() * 0.35})`
-        : `rgba(${n},${n - 4},${n - 8},${0.22 + Math.random() * 0.3})`;
+      const n = 36 + Math.random() * 52;
+      const cool = Math.random() < 0.35 ? 3 : 0;
+      ctx.fillStyle = `rgba(${n},${n},${n + cool},${0.22 + Math.random() * 0.38})`;
       ctx.fillRect(Math.random() * size, Math.random() * size, 1, 1);
     }
     paintLotWear(ctx, size, true);
-  }, { wrap: false, aniso: 8 });
+  }, { wrap: false });
 }
 
 export function asphaltRough(): THREE.CanvasTexture {
@@ -167,7 +176,7 @@ function heightToNormal(src: HTMLCanvasElement, repeatX: number, repeatY: number
   tex.colorSpace = THREE.NoColorSpace;
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
   tex.repeat.set(repeatX, repeatY);
-  tex.anisotropy = 8;
+  tex.anisotropy = texAniso;
   tex.needsUpdate = true;
   return tex;
 }
@@ -209,13 +218,13 @@ export function curbRough(): THREE.CanvasTexture {
 export function duskSky(): THREE.CanvasTexture {
   return canvasTex(16, 256, (ctx, w, h) => {
     const g = ctx.createLinearGradient(0, 0, 0, h);
-    g.addColorStop(0, "#121624");
-    g.addColorStop(0.18, "#2a3048");
-    g.addColorStop(0.36, "#7a3e38");
-    g.addColorStop(0.5, "#c45a28");
-    g.addColorStop(0.66, "#e88830");
-    g.addColorStop(0.82, "#f4b858");
-    g.addColorStop(1, "#ffe4b0");
+    g.addColorStop(0, "#101628");
+    g.addColorStop(0.22, "#243056");
+    g.addColorStop(0.4, "#3c3a64");
+    g.addColorStop(0.55, "#6a4868");
+    g.addColorStop(0.7, "#c56a48");
+    g.addColorStop(0.84, "#e8a060");
+    g.addColorStop(1, "#f2d0a8");
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, w, h);
   }, { wrap: false });
@@ -274,16 +283,32 @@ export function creamPanels(): THREE.CanvasTexture {
   }, { repeatX: 4, repeatY: 6, aniso: 8 });
 }
 
-export function stucco(base = "#F6F1E6"): THREE.CanvasTexture {
-  return canvasTex(256, 256, (ctx, w, h) => {
-    ctx.fillStyle = base;
-    ctx.fillRect(0, 0, w, h);
-    for (let i = 0; i < 3200; i++) {
-      const n = 210 + Math.random() * 35;
-      ctx.fillStyle = `rgba(${n},${n - 8},${n - 18},${0.35})`;
-      ctx.fillRect(Math.random() * w, Math.random() * h, 2, 2);
-    }
-  }, { repeatX: 3, repeatY: 2 });
+function paintStucco(ctx: CanvasRenderingContext2D, w: number, h: number, base: string): void {
+  ctx.fillStyle = base;
+  ctx.fillRect(0, 0, w, h);
+  for (let i = 0; i < w * h * 0.22; i++) {
+    const n = 214 + Math.random() * 36;
+    ctx.fillStyle = `rgba(${n},${n},${n - 2},${0.55})`;
+    ctx.fillRect(Math.random() * w, Math.random() * h, 1, 1);
+  }
+  for (let i = 0; i < 1800; i++) {
+    const n = 150 + Math.random() * 30;
+    ctx.fillStyle = `rgba(${n},${n},${n},${0.28})`;
+    ctx.fillRect(Math.random() * w, Math.random() * h, 1, 1);
+  }
+}
+
+/** Crisp painted stucco. Neutral sand, not a warm wash. */
+export function stucco(base = "#F3F1EC"): THREE.CanvasTexture {
+  return canvasTex(1024, 1024, (ctx, w, h) => paintStucco(ctx, w, h, base), { repeatX: 6, repeatY: 4 });
+}
+
+export function stuccoNormal(): THREE.CanvasTexture {
+  const size = 512;
+  const height = document.createElement("canvas");
+  height.width = height.height = size;
+  paintStucco(height.getContext("2d")!, size, size, "#b4b4b4");
+  return heightToNormal(height, 6, 4, 0.42);
 }
 
 export type FacadeStyle = "warm" | "cool" | "dark" | "brick";

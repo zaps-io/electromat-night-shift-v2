@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { textureAnisotropy } from "./tex";
 
 const LOT_W = 78;
 const LOT_D = 68;
@@ -30,11 +31,11 @@ export function applyBakedLotLight(root: THREE.Object3D): void {
   const bounce = loader.load(`${base}lightmaps/lot-bounce.jpg`);
   bounce.colorSpace = THREE.SRGBColorSpace;
   bounce.flipY = true;
-  bounce.anisotropy = 8;
+  bounce.anisotropy = textureAnisotropy();
   const ao = loader.load(`${base}lightmaps/lot-ao.jpg`);
   ao.colorSpace = THREE.NoColorSpace;
   ao.flipY = true;
-  ao.anisotropy = 8;
+  ao.anisotropy = textureAnisotropy();
 
   const box = new THREE.Box3();
   const baked = new Map<string, THREE.MeshStandardMaterial>();
@@ -52,9 +53,17 @@ export function applyBakedLotLight(root: THREE.Object3D): void {
     }
     return mat;
   };
+  const skipBake = (obj: THREE.Object3D): boolean => {
+    let node: THREE.Object3D | null = obj;
+    while (node) {
+      if (node.userData.canopyTop || node.userData.noBake) return true;
+      node = node.parent;
+    }
+    return false;
+  };
   root.traverse((o) => {
     const mesh = o as THREE.Mesh;
-    if (!mesh.isMesh || mesh.userData.canopyTop || mesh.userData.noBake) return;
+    if (!mesh.isMesh || skipBake(mesh)) return;
     const current = mesh.material as THREE.MeshStandardMaterial;
     if (!current || Array.isArray(current)) return;
     if (current.transparent && (current.opacity ?? 1) < 0.9) return;
@@ -67,6 +76,6 @@ export function applyBakedLotLight(root: THREE.Object3D): void {
     box.copy(mesh.geometry.boundingBox!).applyMatrix4(mesh.matrixWorld);
     if (box.min.y > 3.15) return;
     writePlanarUv2(mesh);
-    mesh.material = lit(current, mesh.userData.walkGround ? 1.65 : 0.85);
+    mesh.material = lit(current, mesh.userData.walkGround ? 0.72 : 0.28);
   });
 }

@@ -35,7 +35,7 @@ export function createRenderer(canvas: HTMLCanvasElement): THREE.WebGLRenderer {
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 0.66;
+  renderer.toneMappingExposure = 0.8;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   return renderer;
 }
@@ -53,12 +53,12 @@ export async function loadDuskEnvironment(renderer: THREE.WebGLRenderer): Promis
     const env = new THREE.Scene();
     const sky = new THREE.Mesh(
       new THREE.SphereGeometry(80, 32, 20),
-      new THREE.MeshBasicMaterial({ map: hdr, color: 0xffc49a, side: THREE.BackSide }),
+      new THREE.MeshBasicMaterial({ map: hdr, color: 0xffffff, side: THREE.BackSide }),
     );
     env.add(sky);
     const ground = new THREE.Mesh(
       new THREE.CircleGeometry(70, 24),
-      new THREE.MeshBasicMaterial({ color: 0x7a4630 }),
+      new THREE.MeshBasicMaterial({ color: 0x1c1e24 }),
     );
     ground.rotation.x = -Math.PI / 2;
     ground.position.y = -1.2;
@@ -88,10 +88,10 @@ function addReflectionCards(env: THREE.Scene): void {
     mesh.rotation.y = ry;
     env.add(mesh);
   };
-  card(0xffb060, -8.3, 4.2, -0.15, 12, 6);
-  card(0xffb060, 11.5, 4.2, 2.55, 14, 7, 0.2);
-  card(0xf4f1ea, -8.3, 6.4, -0.15, 12, 3);
-  card(0xf4f1ea, 11.5, 6.4, 2.55, 14, 3);
+  card(0xffb060, -8.3, 3.1, -0.15, 2.2, 0.7);
+  card(0xffb060, 11.5, 3.1, 2.55, 2.4, 0.75, 0.2);
+  card(0xf7f8fb, -8.3, 6.5, -0.15, 10, 1.1);
+  card(0xf7f8fb, 11.5, 6.5, 2.55, 12, 1.2);
   card(0xe63225, 8, 0.9, -5, 3.2, 0.45, Math.PI / 2);
   card(0xe63225, -6, 0.9, -4, 3.2, 0.45, Math.PI / 2);
   card(0x00d4f5, 4.5, 1.6, -16, 1.2, 0.7);
@@ -111,13 +111,13 @@ export function createDuskEnvironment(renderer: THREE.WebGLRenderer): THREE.Text
 
   const sun = new THREE.Mesh(
     new THREE.SphereGeometry(7.2, 20, 16),
-    new THREE.MeshBasicMaterial({ color: 0xffe2a8 }),
+    new THREE.MeshBasicMaterial({ color: 0xf0e2c8 }),
   );
   sun.position.set(-48, 16, -30);
   env.add(sun);
   const halo = new THREE.Mesh(
     new THREE.SphereGeometry(12, 16, 12),
-    new THREE.MeshBasicMaterial({ color: 0xffb060, transparent: true, opacity: 0.55 }),
+    new THREE.MeshBasicMaterial({ color: 0xe8c898, transparent: true, opacity: 0.35 }),
   );
   halo.position.copy(sun.position);
   env.add(halo);
@@ -132,7 +132,7 @@ export function createDuskEnvironment(renderer: THREE.WebGLRenderer): THREE.Text
 
   const bounce = new THREE.Mesh(
     new THREE.PlaneGeometry(36, 20),
-    new THREE.MeshBasicMaterial({ color: 0xc47838 }),
+    new THREE.MeshBasicMaterial({ color: 0x6a5848 }),
   );
   bounce.position.set(-18, 1.2, -22);
   bounce.rotation.y = 0.4;
@@ -151,7 +151,7 @@ export function createDuskEnvironment(renderer: THREE.WebGLRenderer): THREE.Text
     env.add(card);
   }
 
-  const hemi = new THREE.HemisphereLight(0xffd2a0, 0x16141c, 0.55);
+  const hemi = new THREE.HemisphereLight(0xb7c0e0, 0x1c1e24, 0.45);
   env.add(hemi);
   addReflectionCards(env);
 
@@ -185,14 +185,14 @@ export function createPipeline(
     resolutionScale: 0.65,
   });
   const bloom = new BloomEffect({
-    intensity: 0.04,
-    luminanceThreshold: 0.9,
+    intensity: 0.026,
+    luminanceThreshold: 0.94,
     luminanceSmoothing: 0.28,
     mipmapBlur: true,
     radius: 0.42,
   });
-  const grade = new BrightnessContrastEffect({ brightness: -0.02, contrast: 0.1 });
-  const hue = new HueSaturationEffect({ hue: 0.045, saturation: 0.1 });
+  const grade = new BrightnessContrastEffect({ brightness: 0, contrast: 0.06 });
+  const hue = new HueSaturationEffect({ hue: 0, saturation: -0.06 });
   const vignette = new VignetteEffect({
     eskil: false,
     offset: 0.28,
@@ -213,7 +213,7 @@ export function createPipeline(
     normalPass.enabled = next !== "low";
     ssaoPass.enabled = next !== "low";
     ssao.intensity = next === "high" ? 0.9 : 0.55;
-    bloom.intensity = next === "low" ? 0.012 : next === "medium" ? 0.028 : 0.04;
+    bloom.intensity = next === "low" ? 0.01 : next === "medium" ? 0.018 : 0.026;
     const shadow = next === "high" ? 2048 : next === "medium" ? 1024 : 512;
     sun.shadow.mapSize.set(shadow, shadow);
     sun.castShadow = next !== "low";

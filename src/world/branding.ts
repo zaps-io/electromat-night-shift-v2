@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { CANOPIES, PAY_POINTS, WAVE_POINT } from "./layout";
+import { textureAnisotropy } from "./tex";
 import { applyZeusLogos } from "./zeus";
 
 function trimAlpha(src: HTMLCanvasElement): THREE.CanvasTexture {
@@ -35,7 +36,7 @@ function trimAlpha(src: HTMLCanvasElement): THREE.CanvasTexture {
   o.drawImage(src, x0, y0, x1 - x0 + 1, y1 - y0 + 1, pad, pad, x1 - x0 + 1, y1 - y0 + 1);
   const tex = new THREE.CanvasTexture(out);
   tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = 8;
+  tex.anisotropy = textureAnisotropy();
   tex.needsUpdate = true;
   return tex;
 }

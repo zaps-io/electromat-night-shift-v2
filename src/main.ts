@@ -93,7 +93,7 @@ import { addBrandSignage } from "./world/branding";
 import { makeAttendantHand, tickHand } from "./world/hand";
 import { makeTargetMark, makeWalkPuck, makeWaveIcon } from "./world/icons";
 import { buildSkyline } from "./world/skyline";
-import { duskSky } from "./world/tex";
+import { duskSky, setTextureAnisotropy } from "./world/tex";
 import { addLotMirror, buildStation } from "./world/station";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#view")!;
@@ -132,18 +132,22 @@ const startBtn = document.querySelector("#start")!;
 const pips = document.querySelectorAll("#pips i");
 
 const renderer = createRenderer(canvas);
+setTextureAnisotropy(renderer.capabilities.getMaxAnisotropy());
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x1a1420);
-scene.fog = new THREE.Fog(0x3a2218, 78, 185);
+scene.background = new THREE.Color(0x121622);
+scene.fog = new THREE.Fog(0x243044, 98, 220);
 const skyDome = new THREE.Mesh(
   new THREE.SphereGeometry(170, 32, 20),
   new THREE.MeshBasicMaterial({ map: duskSky(), side: THREE.BackSide, fog: false }),
 );
 skyDome.userData.kind = "skydome";
 scene.add(skyDome);
-scene.add(new THREE.HemisphereLight(0xffc49a, 0x3a2818, 0.14));
-const sun = new THREE.DirectionalLight(0xffb060, 0.92);
+scene.add(new THREE.HemisphereLight(0xb7c4ea, 0x2a2c32, 0.62));
+const sun = new THREE.DirectionalLight(0xe4eaf6, 1.35);
+const fill = new THREE.DirectionalLight(0xd4dced, 0.36);
+fill.position.set(34, 16, 12);
+scene.add(fill);
 sun.position.set(-38, 14, -18);
 configureKeyLight(sun);
 scene.add(sun);
@@ -204,7 +208,7 @@ gfxBtn?.addEventListener("click", (e) => {
 
 void loadDuskEnvironment(renderer).then((env) => {
   scene.environment = env.environment;
-  scene.environmentIntensity = 0.3;
+  scene.environmentIntensity = 0.26;
   scene.environmentRotation.y = 0.9;
   // Painted dusk dome stays up. The HDR is for reflections, not a photo sky.
   env.background?.dispose();
@@ -1034,7 +1038,7 @@ window.__electromat = {
     const data = capture(w, h);
     for (const o of hidden) o.visible = true;
     scene.background = prev;
-    scene.fog = new THREE.Fog(0x7a4030, 70, 200);
+    scene.fog = new THREE.Fog(0x243044, 98, 220);
     return data;
   },
 };

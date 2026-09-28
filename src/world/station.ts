@@ -175,12 +175,15 @@ function roundedRectShape(w: number, d: number, r: number): THREE.Shape {
 function addCanopyAt(root: THREE.Group, cx: number, cz: number, w: number, d: number, y: number, _shadow: boolean): void {
   const alum = new THREE.MeshPhysicalMaterial({
     name: "CanopyWhite",
-    color: 0xfff6ee,
+    color: 0xf7f8fb,
+    emissive: 0xf4f7fb,
+    emissiveIntensity: 0.18,
     metalness: 0,
-    roughness: 0.62,
-    clearcoat: 0.06,
-    clearcoatRoughness: 0.4,
-    envMapIntensity: 0.06,
+    roughness: 0.52,
+    clearcoat: 0.04,
+    clearcoatRoughness: 0.46,
+    envMapIntensity: 0.03,
+    fog: false,
   });
   const panels = creamPanels();
   const fasciaPlate = mat(0xf7f3ea, {
@@ -253,7 +256,7 @@ function addCanopyAt(root: THREE.Group, cx: number, cz: number, w: number, d: nu
     [-0.22, -0.16],
     [0.2, 0.18],
   ] as const) {
-    const pool = new THREE.PointLight(0xffb060, 14, 20, 2);
+    const pool = new THREE.PointLight(0xffb060, 10, 7.5, 2);
     pool.position.set(cx + ox * w, y - 0.65, cz + oz * d);
     pool.castShadow = false;
     root.add(pool);
