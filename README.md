@@ -67,7 +67,7 @@ Site line: **DRIVE IN. CHARGE UP. ZIP OUT.**
 
 ## Visual bar
 
-Cinematic WebGL lot: ACES Filmic + a warm dusk key, a CC0 Poly Haven dusk HDR via `PMREMGenerator` (no extra Reflectors), and `postprocessing` SSAO, bloom, grade, vignette, SMAA. A GFX control (also auto-degrades) steps high / medium / low. Twin brushed-aluminum canopies with warm coffer pools, official red Zaps wordmarks, and 24 Slim Zeus pedestals. Enterable lounge with env-mapped glass. Grit asphalt (tire wear, oil, canopy shade), desert floor, mesas, and a neighborhood skyline. Guest cars are a meshopt exterior of the Sketchfab **2018 Tesla Model 3** (Ameer Studio, CC BY 4.0): opaque clearcoat, one wheel set, dark opaque glass. HUD is unchanged.
+Cinematic WebGL lot: ACES Filmic + a warm dusk key, a CC0 Poly Haven dusk HDR via `PMREMGenerator` (no extra Reflectors), and `postprocessing` SSAO, bloom, grade, vignette, SMAA. A GFX control (also auto-degrades) steps high / medium / low. Twin brushed-aluminum canopies with warm coffer pools, official red Zaps wordmarks, and 24 Slim Zeus pedestals. Enterable lounge with env-mapped glass. Grit asphalt (tire wear, oil, canopy shade), desert floor, mesas, and a neighborhood skyline. Guest cars are a meshopt exterior of the Sketchfab **2018 Tesla Model 3** (Ameer Studio, CC BY 4.0): opaque clearcoat, both axles, dark opaque glass. The lot is fine-grain asphalt. HUD is unchanged.
 
 Official cream/red Zaps wordmarks only (exact 1.8KB Drive SVGs). Palette: `#E63225` `#1E1E24` `#E89A2E` `#00D4F5` `#F5F0E8`.
 

@@ -64,14 +64,14 @@ function makeAsphalt(root: THREE.Group): THREE.Mesh {
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(78, 68),
     new THREE.MeshStandardMaterial({
-      color: 0x9a948c,
+      color: 0xffffff,
       map: asphaltColor(),
-      roughness: 0.9,
+      roughness: 0.96,
       roughnessMap: asphaltRough(),
       normalMap: asphaltNormal(),
-      normalScale: new THREE.Vector2(1.45, 1.45),
-      metalness: 0.04,
-      envMapIntensity: 0.16,
+      normalScale: new THREE.Vector2(0.18, 0.18),
+      metalness: 0.02,
+      envMapIntensity: 0.05,
     }),
   );
   ground.rotation.x = -Math.PI / 2;

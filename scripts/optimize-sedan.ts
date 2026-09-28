@@ -12,21 +12,22 @@ import { MeshoptEncoder, MeshoptSimplifier } from "meshoptimizer";
 
 type Bucket = "Paint" | "Glass" | "Rubber" | "Chrome" | "Lamp" | "Tail" | "Trim";
 
+/** Error is a fraction of each mesh's size. Stay tight so panels do not dent. */
 const RATIO: Record<Bucket, { ratio: number; error: number }> = {
-  Paint: { ratio: 0.14, error: 0.006 },
-  Glass: { ratio: 0.45, error: 0.0015 },
-  Rubber: { ratio: 0.85, error: 0.001 },
-  Chrome: { ratio: 0.1, error: 0.0025 },
-  Lamp: { ratio: 0.4, error: 0.002 },
-  Tail: { ratio: 0.4, error: 0.002 },
-  Trim: { ratio: 0.12, error: 0.005 },
+  Paint: { ratio: 0.55, error: 0.0008 },
+  Glass: { ratio: 0.8, error: 0.0005 },
+  Rubber: { ratio: 0.72, error: 0.0008 },
+  Chrome: { ratio: 0.32, error: 0.0012 },
+  Lamp: { ratio: 0.7, error: 0.001 },
+  Tail: { ratio: 0.7, error: 0.001 },
+  Trim: { ratio: 0.4, error: 0.0015 },
 };
 
 function bucketOf(name: string): Bucket | null {
-  const n = name.toLowerCase();
-  if (n.includes("wheels.001")) return null;
+  const n = name.toLowerCase().replaceAll("wheels.001", "axlerear");
   if (n.includes("primary.004")) return null;
-  if (n.includes("wheel") || n.startsWith("hub_") || n.includes("hub_")) {
+  // wheels.* is the front axle. wheels.001 (rewritten above) is the rear axle, not a duplicate.
+  if (n.includes("wheel") || n.includes("hub_")) {
     if (n.includes("wheels.0") || n.includes("wheels.3")) return "Rubber";
     return "Chrome";
   }
@@ -135,7 +136,7 @@ function simplifyPrim(doc: ReturnType<NodeIO["read"]> extends Promise<infer D> ?
   target -= target % 3;
   if (target < 36) target = 36;
   if (target >= srcIdx.length) return srcIdx.length / 3;
-  const [simplified] = MeshoptSimplifier.simplify(srcIdx, srcPos, 3, target, error);
+  const [simplified] = MeshoptSimplifier.simplify(srcIdx, srcPos, 3, target, error, ["LockBorder"]);
   if (simplified.length < 12) return srcIdx.length / 3;
   const remap = new Map<number, number>();
   const packed: number[] = [];
@@ -256,9 +257,25 @@ async function main(): Promise<void> {
   const bytes = statSync(dest).size;
   const total = [...after.values()].reduce((n, v) => n + v, 0);
   console.log(`wrote ${dest} (${(bytes / 1024).toFixed(0)} KB, ~${Math.round(total)} tris)`);
-  if ((after.get("Paint") ?? 0) < 1500) throw new Error("paint hull collapsed");
-  if ((after.get("Rubber") ?? 0) < 200) throw new Error("tires collapsed");
-  if ((after.get("Glass") ?? 0) < 80) throw new Error("glass collapsed");
+  if ((after.get("Paint") ?? 0) < 12000) throw new Error("paint hull collapsed");
+  if ((after.get("Rubber") ?? 0) < 1200) throw new Error("tires collapsed");
+  if ((after.get("Glass") ?? 0) < 400) throw new Error("glass collapsed");
+
+  let zMin = Infinity;
+  let zMax = -Infinity;
+  for (const mesh of sceneRoot.listMeshes()) {
+    if (mesh.getName() !== "Rubber") continue;
+    for (const prim of mesh.listPrimitives()) {
+      const pos = prim.getAttribute("POSITION")?.getArray();
+      if (!pos) continue;
+      for (let i = 2; i < pos.length; i += 3) {
+        const z = pos[i] ?? 0;
+        if (z < zMin) zMin = z;
+        if (z > zMax) zMax = z;
+      }
+    }
+  }
+  if (!(zMax - zMin > 200)) throw new Error(`tires do not span both axles (z ${zMin.toFixed(0)}..${zMax.toFixed(0)})`);
 }
 
 void main().catch((err) => {

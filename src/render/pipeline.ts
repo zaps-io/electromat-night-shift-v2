@@ -35,7 +35,7 @@ export function createRenderer(canvas: HTMLCanvasElement): THREE.WebGLRenderer {
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 0.84;
+  renderer.toneMappingExposure = 0.58;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   return renderer;
 }
@@ -135,24 +135,24 @@ export function createPipeline(
   const ssao = new SSAOEffect(camera, normalPass.texture, {
     samples: 11,
     rings: 4,
-    intensity: 1.15,
+    intensity: 0.9,
     radius: 0.11,
     bias: 0.04,
     fade: 0.012,
-    luminanceInfluence: 0.55,
+    luminanceInfluence: 0.32,
     worldDistanceThreshold: 18,
     worldDistanceFalloff: 6,
     resolutionScale: 0.65,
   });
   const bloom = new BloomEffect({
-    intensity: 0.045,
-    luminanceThreshold: 0.78,
+    intensity: 0.04,
+    luminanceThreshold: 0.9,
     luminanceSmoothing: 0.28,
     mipmapBlur: true,
     radius: 0.42,
   });
-  const grade = new BrightnessContrastEffect({ brightness: -0.03, contrast: 0.14 });
-  const hue = new HueSaturationEffect({ hue: 0.02, saturation: 0.12 });
+  const grade = new BrightnessContrastEffect({ brightness: -0.1, contrast: 0.22 });
+  const hue = new HueSaturationEffect({ hue: 0.045, saturation: 0.1 });
   const vignette = new VignetteEffect({
     eskil: false,
     offset: 0.28,
@@ -172,8 +172,8 @@ export function createPipeline(
     renderer.setPixelRatio(Math.min(devicePixelRatio || 1, dprCap));
     normalPass.enabled = next !== "low";
     ssaoPass.enabled = next !== "low";
-    ssao.intensity = next === "high" ? 1.15 : 0.72;
-    bloom.intensity = next === "low" ? 0.012 : next === "medium" ? 0.03 : 0.045;
+    ssao.intensity = next === "high" ? 0.9 : 0.55;
+    bloom.intensity = next === "low" ? 0.012 : next === "medium" ? 0.028 : 0.04;
     const shadow = next === "high" ? 2048 : next === "medium" ? 1024 : 512;
     sun.shadow.mapSize.set(shadow, shadow);
     sun.castShadow = next !== "low";
