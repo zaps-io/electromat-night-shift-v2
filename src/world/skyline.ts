@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { duskSky, facade, facadeEmit, mural, sandColor, street, type FacadeStyle } from "./tex";
+import { facade, facadeEmit, mural, sandColor, street, type FacadeStyle } from "./tex";
 
 function plaster(style: FacadeStyle): THREE.MeshStandardMaterial {
   const emit = style === "dark" ? 0xa8c8e8 : style === "cool" ? 0xe8c888 : 0xffb060;
@@ -472,12 +472,6 @@ function addStreetLamps(root: THREE.Group): void {
 
 export function buildSkyline(): THREE.Group {
   const root = new THREE.Group();
-  const sky = new THREE.Mesh(
-    new THREE.SphereGeometry(170, 28, 18),
-    new THREE.MeshBasicMaterial({ map: duskSky(), side: THREE.BackSide, fog: false }),
-  );
-  sky.userData.kind = "skydome";
-  root.add(sky);
   addDesert(root);
 
   addRidge(root);
