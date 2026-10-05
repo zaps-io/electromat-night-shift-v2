@@ -37,7 +37,10 @@ export function glassMaterial(): THREE.MeshStandardMaterial {
     opacity: 1,
     depthWrite: true,
     depthTest: true,
-    side: THREE.DoubleSide,
+    side: THREE.FrontSide,
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+    polygonOffsetUnits: -2,
   });
 }
 

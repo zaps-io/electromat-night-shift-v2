@@ -54,7 +54,6 @@ import {
   createPipeline,
   createRenderer,
   initialQuality,
-  loadDuskEnvironment,
   type QualityTier,
 } from "./render/pipeline";
 import { addLodFillers, hullDebug, loadCarPrototypes, parkBackdropCars, syncCars, trimLodFillers, type CarView } from "./world/cars";
@@ -93,7 +92,8 @@ import { addBrandSignage } from "./world/branding";
 import { makeAttendantHand, tickHand } from "./world/hand";
 import { makeTargetMark, makeWalkPuck, makeWaveIcon } from "./world/icons";
 import { buildSkyline } from "./world/skyline";
-import { duskSky, setTextureAnisotropy } from "./world/tex";
+import { setTextureAnisotropy } from "./world/tex";
+import { whenRev6Ready } from "./world/rev6art";
 import { addLotMirror, buildStation } from "./world/station";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#view")!;
@@ -135,14 +135,8 @@ const renderer = createRenderer(canvas);
 setTextureAnisotropy(renderer.capabilities.getMaxAnisotropy());
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x121622);
-scene.fog = new THREE.Fog(0x243044, 98, 220);
-const skyDome = new THREE.Mesh(
-  new THREE.SphereGeometry(170, 32, 20),
-  new THREE.MeshBasicMaterial({ map: duskSky(), side: THREE.BackSide, fog: false }),
-);
-skyDome.userData.kind = "skydome";
-scene.add(skyDome);
+scene.background = new THREE.Color(0x070910);
+scene.fog = new THREE.Fog(0x16141c, 90, 210);
 scene.add(new THREE.HemisphereLight(0xd4d4d4, 0x2c2c30, 0.48));
 const sun = new THREE.DirectionalLight(0xffffff, 1.0);
 const fill = new THREE.DirectionalLight(0xf2f2f2, 0.22);
@@ -206,13 +200,7 @@ gfxBtn?.addEventListener("click", (e) => {
   setGfx(next, true);
 });
 
-void loadDuskEnvironment(renderer).then((env) => {
-  scene.environment = env.environment;
-  scene.environmentIntensity = 0.26;
-  scene.environmentRotation.y = 0.9;
-  // Painted dusk dome stays up. The HDR is for reflections, not a photo sky.
-  env.background?.dispose();
-});
+const artReady = whenRev6Ready(renderer, scene);
 
 let state = resetNight();
 const cars = new Map<string, CarView>();
@@ -1038,12 +1026,12 @@ window.__electromat = {
     const data = capture(w, h);
     for (const o of hidden) o.visible = true;
     scene.background = prev;
-    scene.fog = new THREE.Fog(0x243044, 98, 220);
+    scene.fog = new THREE.Fog(0x16141c, 90, 210);
     return data;
   },
 };
 
-void Promise.all([loadCarPrototypes(), brandingReady]).then(() => {
+void Promise.all([loadCarPrototypes(), brandingReady, artReady]).then(() => {
   addLodFillers(scene);
   parkBackdropCars(skyline);
   ready = true;

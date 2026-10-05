@@ -67,9 +67,13 @@ Site line: **DRIVE IN. CHARGE UP. ZIP OUT.**
 
 ## Visual bar
 
-Cinematic WebGL lot: ACES Filmic + a warm dusk key, a CC0 Poly Haven dusk HDR via `PMREMGenerator` (no extra Reflectors), and `postprocessing` SSAO, bloom, grade, vignette, SMAA. A GFX control (also auto-degrades) steps high / medium / low. Twin brushed-aluminum canopies with warm coffer pools, official red Zaps wordmarks, and 24 Slim Zeus pedestals. Enterable lounge with env-mapped glass. Grit asphalt (tire wear, oil, canopy shade), desert floor, mesas, and a neighborhood skyline. Guest cars are a meshopt exterior of the Sketchfab **2018 Tesla Model 3** (Ameer Studio, CC BY 4.0): opaque clearcoat, both axles, dark opaque glass. The lot is fine-grain asphalt. HUD is unchanged.
+Cinematic WebGL lot: ACES Filmic + one warm dusk key, a photographic dusk sky (OpenAI gpt-image-2) on the skydome with the 2k plate driving `PMREMGenerator` (no extra Reflectors), and `postprocessing` SSAO, bloom, grade, vignette, SMAA. A GFX control (also auto-degrades) steps high / medium / low. Twin brushed-aluminum canopies with warm coffer pools, official red Zaps wordmarks, and 24 Slim Zeus pedestals. Enterable lounge with env-mapped glass and a lit storefront backdrop. Tiled asphalt albedo and roughness, stall decals, desert floor, mesas, a neighborhood skyline, and a city-strip horizon. Guest cars are a meshopt exterior of the Sketchfab **2018 Tesla Model 3** (Ameer Studio, CC BY 4.0): opaque clearcoat, both axles, dark opaque glass. HUD is unchanged.
 
 Official cream/red Zaps wordmarks only (exact 1.8KB Drive SVGs). Palette: `#E63225` `#1E1E24` `#E89A2E` `#00D4F5` `#F5F0E8`.
+
+## Rev 6 art
+
+`public/art/rev6/` is an OpenAI Images pass (gpt-image-2, see `ATTRIBUTION.md` there). The lot floor uses the tiled asphalt albedo and roughness, graded in code so the canopy shadow still shows the grain, with the baked canopy lightmaps kept on top. Painted bays, the entrance crosswalk, stop bar, lane arrows, and double-yellow segments are decals lined up with the stalls and the drive aisle. The full dusk plate is the skydome; `sky_dusk_2k.webp` is the PMREM source. Lounge glass looks through to `lounge_backdrop.webp`. A price pylon shows per-kWh tiers over the photo face, an OPEN cabinet sits by the south door, and EV CHARGING faces sit on a canopy-corner post, a lot post, and the storefront. A city-strip ring fills the horizon. The official fascia wordmark and the Slim Zeus pedestal are unchanged. `sign_plugin.webp` is reference only and is not on the charger.
 
 Lot PBR/env pass: merge `4c80ec6`. Live hull: Tesla Model 3, opaque paint (`c9a88ca`). Gameplay/collision stills recaptured on this branch.
 

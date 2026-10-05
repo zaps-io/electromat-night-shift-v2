@@ -582,13 +582,13 @@ export function addPavilion(root: THREE.Group): THREE.Box3[] {
     name: "LoungeGlass",
     color: 0xd5dde2,
     roughness: 0.05,
-    metalness: 0.06,
+    metalness: 0.04,
     transparent: true,
-    opacity: 0.34,
-    envMapIntensity: 1.25,
+    opacity: 0.12,
+    envMapIntensity: 0.4,
     ior: 1.45,
     thickness: 0.12,
-    reflectivity: 0.62,
+    reflectivity: 0.38,
     side: THREE.DoubleSide,
   });
   const paneGlow = new THREE.MeshBasicMaterial({

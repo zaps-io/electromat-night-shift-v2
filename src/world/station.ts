@@ -16,7 +16,8 @@ import {
   westVoidWalls,
 } from "./layout";
 import { addPavilion } from "./pavilion";
-import { asphaltColor, asphaltNormal, asphaltRough, creamPanels, curbColor, curbRough, gravel } from "./tex";
+import { creamPanels, curbColor, curbRough, gravel } from "./tex";
+import { addRev6LotDressing, rev6AsphaltMaterial } from "./rev6art";
 import { applyBakedLotLight } from "./lightmaps";
 import { makePayIcon, makeWaveGuide, makeWaveIcon } from "./icons";
 import { addZeusCharger } from "./zeus";
@@ -62,19 +63,7 @@ function box(
 }
 
 function makeAsphalt(root: THREE.Group): THREE.Mesh {
-  const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(78, 68),
-    new THREE.MeshStandardMaterial({
-      color: 0xffffff,
-      map: asphaltColor(),
-      roughness: 0.78,
-      roughnessMap: asphaltRough(),
-      normalMap: asphaltNormal(),
-      normalScale: new THREE.Vector2(0.38, 0.38),
-      metalness: 0.08,
-      envMapIntensity: 0.48,
-    }),
-  );
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(78, 68), rev6AsphaltMaterial());
   ground.rotation.x = -Math.PI / 2;
   ground.position.y = 0.004;
   ground.receiveShadow = true;
@@ -105,25 +94,7 @@ export function addLotMirror(root: THREE.Group, _renderer: THREE.WebGLRenderer):
   }
 }
 
-function addLaneMarks(root: THREE.Group): void {
-  const paint = mat(0xd4d0c4, { roughness: 0.82, metalness: 0.02, envMapIntensity: 0.08 });
-  for (let i = 0; i < 12; i++) {
-    const dash = box(0.14, 0.012, 0.82, paint, 0, 0.02, -14.2 + i * 1.35);
-    dash.castShadow = false;
-    root.add(dash);
-  }
-  for (const x of [-3.15, 3.15]) {
-    for (let i = 0; i < 4; i++) {
-      const dash = box(0.1, 0.012, 0.55, paint, x, 0.02, -8.8 + i * 1.15);
-      dash.castShadow = false;
-      root.add(dash);
-    }
-  }
-  const arrow = box(0.58, 0.014, 0.14, paint, 0, 0.022, -15.2);
-  root.add(arrow);
-}
-
-function addBayOutline(root: THREE.Group, x: number, z: number, yaw: number, ada = false, bayId?: number): THREE.Object3D {
+function addBayOutline(root: THREE.Group, x: number, z: number, yaw: number, bayId?: number): THREE.Object3D {
   const g = new THREE.Group();
   g.position.set(x, 0.018, z);
   g.rotation.y = yaw + Math.PI / 2;
@@ -131,13 +102,7 @@ function addBayOutline(root: THREE.Group, x: number, z: number, yaw: number, ada
     g.userData.kind = "bay";
     g.userData.bayId = bayId;
   }
-  const paint = mat(ada ? 0x4a8ae8 : 0xf3eee6, { roughness: 0.72, metalness: 0.02, envMapIntensity: 0.12 });
-  const t = 0.1;
   const { w, d } = BAY_SIZE;
-  g.add(box(w, 0.012, t, paint, 0, 0, d / 2));
-  g.add(box(w, 0.012, t, paint, 0, 0, -d / 2));
-  g.add(box(t, 0.012, d, paint, w / 2, 0, 0));
-  g.add(box(t, 0.012, d, paint, -w / 2, 0, 0));
   const ghost = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
   const hit = new THREE.Mesh(new THREE.BoxGeometry(w * 0.72, 0.32, d * 0.55), ghost);
   hit.position.y = -0.18;
@@ -745,48 +710,6 @@ function addPlanters(root: THREE.Group): void {
   }
 }
 
-function addHatch(root: THREE.Group): void {
-  const hatch = mat(0xd4d0c4, { roughness: 0.8, metalness: 0.02, envMapIntensity: 0.08 });
-  for (let i = 0; i < 10; i++) {
-    const x = -17.2 + i * 0.72;
-    const a = box(0.7, 0.008, 0.08, hatch, x, 0.02, 3.45);
-    a.rotation.y = 0.7;
-    const b = box(0.7, 0.008, 0.08, hatch, x, 0.02, 3.45);
-    b.rotation.y = -0.7;
-    a.castShadow = b.castShadow = false;
-    root.add(a, b);
-  }
-}
-
-function addArrows(root: THREE.Group): void {
-  const yel = mat(0xd4a028, { roughness: 0.72, metalness: 0.04, envMapIntensity: 0.1 });
-  const chevron = (x: number, z: number, yaw: number) => {
-    const shaft = box(0.18, 0.012, 0.55, yel, x, 0.02, z);
-    shaft.rotation.y = yaw;
-    shaft.castShadow = false;
-    root.add(shaft);
-  };
-  chevron(0, -15.4, 0);
-  chevron(0, -10.2, 0);
-  chevron(0, 11.6, 0);
-  chevron(-16.2, 13.8, Math.PI / 2);
-  chevron(17.4, 13.6, -Math.PI / 2);
-  chevron(-16.4, -8.4, Math.PI);
-  chevron(17.6, -8.2, Math.PI);
-}
-
-function addParking(root: THREE.Group): void {
-  const paint = mat(0xd4d0c4, { roughness: 0.8, metalness: 0.02, envMapIntensity: 0.08 });
-  for (let i = 0; i < 6; i++) {
-    const x = -25.4 + i * 2.55;
-    const z = 14.8;
-    root.add(box(2.2, 0.01, 0.05, paint, x, 0.02, z + 2.4));
-    root.add(box(2.2, 0.01, 0.05, paint, x, 0.02, z - 2.4));
-    root.add(box(0.05, 0.01, 4.8, paint, x - 1.1, 0.02, z));
-    root.add(box(0.05, 0.01, 4.8, paint, x + 1.1, 0.02, z));
-  }
-}
-
 function addYard(root: THREE.Group): void {
   const tan = mat(0xc4b49a, { roughness: 0.78 });
   const steel = mat(0x8a9096, { metalness: 0.45, roughness: 0.4 });
@@ -861,7 +784,6 @@ function addStreetlights(root: THREE.Group): void {
 export function buildStation(): Station {
   const root = new THREE.Group();
   const ground = makeAsphalt(root);
-  addLaneMarks(root);
   addCanopies(root);
   const pavilionBoxes = addPavilion(root);
   const { kiosks, alerts, payGlare } = addKiosks(root);
@@ -869,14 +791,12 @@ export function buildStation(): Station {
   addLotRails(root);
   addPlanters(root);
   addStreetlights(root);
-  addHatch(root);
-  addArrows(root);
-  addParking(root);
   addYard(root);
+  addRev6LotDressing(root);
 
   const bayAnchors: THREE.Object3D[] = [];
   for (const stall of STALLS) {
-    const anchor = addBayOutline(root, stall.x, stall.z, stall.carYaw, !!stall.ada, stall.playable);
+    const anchor = addBayOutline(root, stall.x, stall.z, stall.carYaw, stall.playable);
     if (stall.playable != null) {
       anchor.userData.bayId = stall.playable;
       bayAnchors.push(anchor);

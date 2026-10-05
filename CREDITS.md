@@ -17,7 +17,11 @@ The shipped file is `public/cars/zaps-ev-sedan.glb` (interior and the duplicate 
 - Author: [Poly Haven](https://polyhaven.com/a/qwantani_dusk_2_puresky) / Greg Zaal
 - Source: https://polyhaven.com/a/qwantani_dusk_2_puresky
 - License: [CC0](https://creativecommons.org/publicdomain/zero/1.0/)
-- File: `public/env/dusk.hdr` (1k)
+- File: `public/env/dusk.hdr` (1k) — fallback if the rev 6 sky fails to load
+
+## Rev 6 lot art
+
+Generated with the OpenAI Images API (gpt-image-2), then graded on the box. Generic prompts, no vendor names. Files live in `public/art/rev6/` (see `ATTRIBUTION.md`). The Zaps wordmark is not in those images.
 
 ## Unused hulls kept for credit only
 
