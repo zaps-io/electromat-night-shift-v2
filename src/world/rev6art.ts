@@ -61,100 +61,143 @@ function configureMap(tex: THREE.Texture, srgb: boolean): THREE.Texture {
   return tex;
 }
 
-function loadMap(loader: THREE.TextureLoader, file: string, srgb: boolean): Promise<THREE.Texture> {
-  return new Promise((resolve, reject) => {
-    loader.load(
-      artUrl(file),
-      (tex) => resolve(configureMap(tex, srgb)),
-      undefined,
-      () => reject(new Error(`rev6 art failed: ${file}`)),
-    );
-  });
-}
-
-/** Lift the roughness photo so the body stays matte and the dark puddles stay smoother. */
-function gradeRoughness(image: CanvasImageSource): void {
-  const canvas = roughCanvas;
+/**
+ * The source albedo averages ~66/255 and the roughness photo is glossy in the
+ * puddles. Both are graded into canvases that already sit on the material, so
+ * the baked-light clone (which shares the texture) updates in place.
+ * Albedo: pow(v, 0.82) * 1.62 lifts the mean toward ~0.53 without clipping grit.
+ * Roughness: 0.55 + v * 0.45 keeps the body matte and the dark puddles satin.
+ */
+function gradeCanvas(canvas: HTMLCanvasElement, image: CanvasImageSource, mode: "albedo" | "rough"): void {
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
   ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
   const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const d = img.data;
   for (let i = 0; i < d.length; i += 4) {
-    const v = d[i] / 255;
-    const out = Math.min(1, 0.36 + v * 0.74);
-    const b = out * 255;
-    d[i] = d[i + 1] = d[i + 2] = b;
+    if (mode === "albedo") {
+      for (let c = 0; c < 3; c++) {
+        const v = d[i + c] / 255;
+        d[i + c] = Math.min(255, Math.pow(v, 0.82) * 1.62 * 255);
+      }
+    } else {
+      const v = d[i] / 255;
+      const b = Math.min(255, (0.55 + v * 0.45) * 255);
+      d[i] = d[i + 1] = d[i + 2] = b;
+    }
     d[i + 3] = 255;
   }
   ctx.putImageData(img, 0, 0);
-  roughTex.needsUpdate = true;
 }
 
-const roughCanvas = document.createElement("canvas");
-roughCanvas.width = 1024;
-roughCanvas.height = 1024;
-{
-  const ctx = roughCanvas.getContext("2d");
+function makeGradeCanvas(fill: string): HTMLCanvasElement {
+  const canvas = document.createElement("canvas");
+  canvas.width = 1024;
+  canvas.height = 1024;
+  const ctx = canvas.getContext("2d");
   if (ctx) {
-    ctx.fillStyle = "#b4b4b4";
+    ctx.fillStyle = fill;
     ctx.fillRect(0, 0, 1024, 1024);
   }
+  return canvas;
 }
-const roughTex = new THREE.CanvasTexture(roughCanvas);
-roughTex.colorSpace = THREE.NoColorSpace;
-roughTex.wrapS = roughTex.wrapT = THREE.RepeatWrapping;
-roughTex.repeat.copy(ASPHALT_REPEAT);
-roughTex.anisotropy = 8;
-roughTex.generateMipmaps = true;
+
+function gradeTexture(canvas: HTMLCanvasElement, srgb: boolean): THREE.CanvasTexture {
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.copy(ASPHALT_REPEAT);
+  tex.anisotropy = 8;
+  tex.generateMipmaps = true;
+  tex.minFilter = THREE.LinearMipmapLinearFilter;
+  tex.magFilter = THREE.LinearFilter;
+  tex.needsUpdate = true;
+  return tex;
+}
+
+const albedoCanvas = makeGradeCanvas("#6e6a66");
+const roughCanvas = makeGradeCanvas("#b4b4b4");
+const albedoTex = gradeTexture(albedoCanvas, true);
+const roughTex = gradeTexture(roughCanvas, false);
 
 const loader = new THREE.TextureLoader();
 
-function tiled(file: string, srgb: boolean): Promise<THREE.Texture> {
-  return loadMap(loader, file, srgb).then((tex) => {
-    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-    tex.repeat.copy(ASPHALT_REPEAT);
-    return tex;
+function imageReady(file: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error(`rev6 art failed: ${file}`));
+    img.src = artUrl(file);
   });
 }
 
-const albedoP = tiled("asphalt_albedo.jpg", true);
-const roughP = new Promise<THREE.CanvasTexture>((resolve, reject) => {
-  const img = new Image();
-  img.onload = () => {
-    gradeRoughness(img);
-    configureMap(roughTex, false);
-    roughTex.wrapS = roughTex.wrapT = THREE.RepeatWrapping;
-    roughTex.repeat.copy(ASPHALT_REPEAT);
-    roughTex.colorSpace = THREE.NoColorSpace;
-    resolve(roughTex);
-  };
-  img.onerror = () => reject(new Error("rev6 art failed: asphalt_rough.jpg"));
-  img.src = artUrl("asphalt_rough.jpg");
+/** One texture object, created before the lot builds, filled when the file arrives. */
+function holdMap(file: string, srgb: boolean): { tex: THREE.Texture; ready: Promise<THREE.Texture> } {
+  let resolve!: (tex: THREE.Texture) => void;
+  let reject!: (err: Error) => void;
+  const ready = new Promise<THREE.Texture>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  const tex = loader.load(
+    artUrl(file),
+    (loaded) => resolve(configureMap(loaded, srgb)),
+    undefined,
+    () => reject(new Error(`rev6 art failed: ${file}`)),
+  );
+  tex.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
+  tex.anisotropy = 8;
+  tex.generateMipmaps = true;
+  tex.minFilter = THREE.LinearMipmapLinearFilter;
+  tex.magFilter = THREE.LinearFilter;
+  return { tex, ready };
+}
+
+const albedoP = imageReady("asphalt_albedo.jpg").then((img) => {
+  gradeCanvas(albedoCanvas, img, "albedo");
+  albedoTex.needsUpdate = true;
+  return albedoTex;
+});
+const roughP = imageReady("asphalt_rough.jpg").then((img) => {
+  gradeCanvas(roughCanvas, img, "rough");
+  roughTex.needsUpdate = true;
+  return roughTex;
 });
 
-const baysP = loadMap(loader, "decal_bays_ev.webp", true);
-const marksP = loadMap(loader, "decal_markings_sheet.webp", true);
-const skyP = loadMap(loader, "sky_dusk.webp", true);
-const skyEnvP = loadMap(loader, "sky_dusk_2k.webp", true);
-const loungeP = loadMap(loader, "lounge_backdrop.webp", true);
-const priceP = loadMap(loader, "sign_price.webp", true);
-const openP = loadMap(loader, "sign_open.webp", true);
-const evP = loadMap(loader, "sign_ev_charging.webp", true);
-const cityP = loadMap(loader, "city_strip.webp", true);
+const baysHold = holdMap("decal_bays_ev.webp", true);
+const marksHold = holdMap("decal_markings_sheet.webp", true);
+const skyHold = holdMap("sky_dusk.webp", true);
+const skyEnvHold = holdMap("sky_dusk_2k.webp", true);
+const loungeHold = holdMap("lounge_backdrop.webp", true);
+const priceHold = holdMap("sign_price.webp", true);
+const openHold = holdMap("sign_open.webp", true);
+const evHold = holdMap("sign_ev_charging.webp", true);
+const cityHold = holdMap("city_strip.webp", true);
+
+const baysTex = baysHold.tex;
+const marksTex = marksHold.tex;
+const baysP = baysHold.ready;
+const marksP = marksHold.ready;
+const skyP = skyHold.ready;
+const skyEnvP = skyEnvHold.ready;
+const loungeP = loungeHold.ready;
+const priceP = priceHold.ready;
+const openP = openHold.ready;
+const evP = evHold.ready;
+const cityP = cityHold.ready;
 
 export const rev6Textures: Rev6Textures = {
-  albedo: new THREE.Texture(),
+  albedo: albedoTex,
   rough: roughTex,
-  bays: new THREE.Texture(),
-  marks: new THREE.Texture(),
-  sky: new THREE.Texture(),
-  skyEnv: new THREE.Texture(),
-  lounge: new THREE.Texture(),
-  price: new THREE.Texture(),
-  open: new THREE.Texture(),
-  ev: new THREE.Texture(),
-  city: new THREE.Texture(),
+  bays: baysTex,
+  marks: marksTex,
+  sky: skyHold.tex,
+  skyEnv: skyEnvHold.tex,
+  lounge: loungeHold.tex,
+  price: priceHold.tex,
+  open: openHold.tex,
+  ev: evHold.tex,
+  city: cityHold.tex,
 };
 
 const readyGate = Promise.all([
@@ -181,32 +224,19 @@ const readyGate = Promise.all([
   rev6Textures.open = open;
   rev6Textures.ev = ev;
   rev6Textures.city = city;
-  swapMap(asphaltMat, albedo, rough);
-  bayMat.map = bays;
-  bayMat.needsUpdate = true;
-  markMat.map = marks;
-  markMat.needsUpdate = true;
+  // Albedo, roughness, and decal maps are the same objects the meshes already hold.
   loungeMat.map = lounge;
+  loungeMat.emissiveMap = lounge;
+  loungeMat.emissiveIntensity = 1.15;
   loungeMat.needsUpdate = true;
   signMat(priceMat, price, 0.42);
   signMat(openMat, open, 0.62);
   signMat(evMat, ev, 0.55);
-  loungeMat.opacity = 1;
-  loungeMat.transparent = false;
-  loungeMat.needsUpdate = true;
   cityMat.map = city;
   cityMat.opacity = 1;
   cityMat.transparent = false;
   cityMat.needsUpdate = true;
 });
-
-function swapMap(mat: THREE.MeshStandardMaterial, albedo: THREE.Texture, rough: THREE.Texture): void {
-  const prev = mat.map;
-  mat.map = albedo;
-  mat.roughnessMap = rough;
-  mat.needsUpdate = true;
-  if (prev && prev !== albedo) prev.dispose();
-}
 
 function signMat(mat: THREE.MeshStandardMaterial, tex: THREE.Texture, intensity: number): void {
   mat.map = tex;
@@ -218,10 +248,12 @@ function signMat(mat: THREE.MeshStandardMaterial, tex: THREE.Texture, intensity:
 
 const asphaltMat = new THREE.MeshStandardMaterial({
   name: "Rev6Asphalt",
-  color: 0xd2d2d6,
+  color: 0xffffff,
+  map: albedoTex,
+  roughnessMap: roughTex,
   roughness: 1,
-  metalness: 0.04,
-  envMapIntensity: 0.42,
+  metalness: 0.02,
+  envMapIntensity: 0.16,
   normalMap: asphaltNormal(),
   normalScale: new THREE.Vector2(0.22, 0.22),
 });
@@ -229,7 +261,9 @@ const asphaltMat = new THREE.MeshStandardMaterial({
 const paintParams: THREE.MeshStandardMaterialParameters = {
   roughness: 0.84,
   metalness: 0,
-  envMapIntensity: 0.1,
+  envMapIntensity: 0.08,
+  emissive: 0xffffff,
+  emissiveIntensity: 0.22,
   transparent: false,
   alphaTest: 0.42,
   depthWrite: true,
@@ -238,26 +272,28 @@ const paintParams: THREE.MeshStandardMaterialParameters = {
   polygonOffsetUnits: -4,
 };
 
-function clearPlate(): THREE.CanvasTexture {
-  const c = document.createElement("canvas");
-  c.width = c.height = 2;
-  const ctx = c.getContext("2d");
-  if (ctx) ctx.clearRect(0, 0, 2, 2);
-  const tex = new THREE.CanvasTexture(c);
-  tex.needsUpdate = true;
-  return tex;
-}
+const bayMat = new THREE.MeshStandardMaterial({
+  ...paintParams,
+  name: "Rev6Bay",
+  map: baysTex,
+  emissiveMap: baysTex,
+});
+const markMat = new THREE.MeshStandardMaterial({
+  ...paintParams,
+  name: "Rev6Mark",
+  map: marksTex,
+  emissiveMap: marksTex,
+});
 
-const bayMat = new THREE.MeshStandardMaterial({ ...paintParams, name: "Rev6Bay", map: clearPlate() });
-const markMat = new THREE.MeshStandardMaterial({ ...paintParams, name: "Rev6Mark", map: clearPlate() });
-
-const loungeMat = new THREE.MeshBasicMaterial({
+const loungeMat = new THREE.MeshStandardMaterial({
   name: "Rev6Lounge",
-  color: 0xfff4ea,
+  color: 0x000000,
+  emissive: 0xfff4ea,
+  emissiveIntensity: 0,
+  roughness: 1,
+  metalness: 0,
   toneMapped: true,
   side: THREE.FrontSide,
-  transparent: true,
-  opacity: 0,
 });
 
 function makeSignMaterial(intensity: number): THREE.MeshStandardMaterial {
@@ -345,6 +381,9 @@ function flatDecal(
   mesh.castShadow = false;
   mesh.renderOrder = 2;
   mesh.userData.rev6Decal = true;
+  // Paint stays on the photo. The canopy AO clone would crush the lines to black.
+  mesh.userData.noBake = true;
+  pivot.userData.noBake = true;
   noRay(pivot);
   return mesh;
 }
@@ -372,8 +411,9 @@ function addChargerBays(root: THREE.Group): void {
     const aisle = stallAisleSign(stall);
     // Image-up points at the pedestal. Width runs along the island (world Z).
     const yaw = aisle < 0 ? -Math.PI / 2 : Math.PI / 2;
-    const x = stall.x - aisle * 0.42;
-    addFlat(root, bayMat, CROP_BAY_EV, BAY_IMG.w, BAY_IMG.h, 2.48, x, stall.z, yaw);
+    // Centered on the stall. 2.62 m across the island → ~4.68 m along the car.
+    const x = stall.x;
+    addFlat(root, bayMat, CROP_BAY_EV, BAY_IMG.w, BAY_IMG.h, 2.62, x, stall.z, yaw);
     if (stall.ada) {
       addFlat(root, markMat, CROP_HATCH, MARK_IMG.w, MARK_IMG.h, 2.2, x, stall.z + 2.7, yaw, DECAL_Y + 0.004);
     }
@@ -484,26 +524,50 @@ function addSigns(root: THREE.Group): void {
   root.add(evLounge);
 }
 
+function addLoungePlate(
+  root: THREE.Group,
+  w: number,
+  h: number,
+  x: number,
+  y: number,
+  z: number,
+  yaw: number,
+  crop: Crop | null,
+): void {
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), loungeMat);
+  if (crop) cropUv(mesh.geometry, crop, LOUNGE_IMG.w, LOUNGE_IMG.h);
+  mesh.position.set(x, y, z);
+  mesh.rotation.y = yaw;
+  mesh.userData.noBake = true;
+  noRay(mesh);
+  root.add(mesh);
+}
+
 function addLoungeGlass(root: THREE.Group): void {
   const eastX = PAVILION.x + PAVILION.w * 0.5;
   const southZ = PAVILION.z - PAVILION.d * 0.5;
 
   // Wide east storefront: full image width, a horizontal band so the short windows do not stretch it.
-  const east = new THREE.Mesh(new THREE.PlaneGeometry(9.2, 1.7), loungeMat);
-  cropUv(east.geometry, { x0: 0, y0: 310, x1: 2048, y1: 710 }, LOUNGE_IMG.w, LOUNGE_IMG.h);
-  east.position.set(eastX - 0.32, 1.55, PAVILION.z + 0.35);
-  east.rotation.y = Math.PI / 2;
-  east.userData.noBake = true;
-  noRay(east);
-  root.add(east);
+  addLoungePlate(root, 9.2, 1.7, eastX - 0.22, 1.55, PAVILION.z + 0.35, Math.PI / 2, {
+    x0: 0,
+    y0: 310,
+    x1: 2048,
+    y1: 710,
+  });
 
-  // South door: full 2:1 plate just inside the opening, facing the apron.
-  const south = new THREE.Mesh(new THREE.PlaneGeometry(5.4, 2.7), loungeMat);
-  south.position.set(PAVILION.x + PAVILION_DOOR.localX, 1.48, southZ + 0.42);
-  south.rotation.y = Math.PI;
-  south.userData.noBake = true;
-  noRay(south);
-  root.add(south);
+  // Door opening gets the full 2:1 plate, just inside the glass.
+  const doorX = PAVILION.x + PAVILION_DOOR.localX;
+  addLoungePlate(root, 3.5, 1.75, doorX, 1.32, southZ + 0.18, Math.PI, null);
+
+  // Side windows share one wide band so the facade reads as one lit interior.
+  const bandH = Math.round(LOUNGE_IMG.w / ((PAVILION.w - 0.6) / 1.62));
+  const bandY = Math.max(0, Math.round((LOUNGE_IMG.h - bandH) * 0.4));
+  addLoungePlate(root, PAVILION.w - 0.6, 1.62, PAVILION.x, 1.55, southZ + 0.34, Math.PI, {
+    x0: 0,
+    y0: bandY,
+    x1: LOUNGE_IMG.w,
+    y1: Math.min(LOUNGE_IMG.h, bandY + bandH),
+  });
 }
 
 function addCityRing(root: THREE.Group): void {
@@ -687,9 +751,38 @@ export async function mountRev6Sky(renderer: THREE.WebGLRenderer, scene: THREE.S
   }
 }
 
+/**
+ * The lot baker clones the asphalt material before the photo is graded and
+ * stamps aoMapIntensity at 1.05. That clone is what the ground mesh renders.
+ * Re-point it at the graded canvases and ease the AO so the canopy shadow
+ * stays, without crushing the midtones to black.
+ */
+function retuneBakedAsphalt(scene: THREE.Scene): void {
+  scene.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    const list = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+    for (const entry of list) {
+      const mat = entry as THREE.MeshStandardMaterial;
+      if (!mat || mat.name !== "Rev6Asphalt") continue;
+      mat.map = albedoTex;
+      mat.roughnessMap = roughTex;
+      mat.color.set(0xffffff);
+      mat.roughness = 1;
+      mat.metalness = 0.02;
+      mat.envMapIntensity = 0.16;
+      mat.aoMapIntensity = 0.42;
+      if (mat.lightMap) mat.lightMapIntensity = Math.max(mat.lightMapIntensity, 0.9);
+      mat.needsUpdate = true;
+    }
+  });
+}
+
 export function whenRev6Ready(renderer: THREE.WebGLRenderer, scene: THREE.Scene): Promise<void> {
   return Promise.all([readyGate, mountRev6Sky(renderer, scene)])
-    .then(() => undefined)
+    .then(() => {
+      retuneBakedAsphalt(scene);
+    })
     .catch((err) => {
       console.warn("rev6 art incomplete", err);
     });
