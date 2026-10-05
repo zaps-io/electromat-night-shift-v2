@@ -238,6 +238,65 @@ const readyGate = Promise.all([
   cityMat.needsUpdate = true;
 });
 
+/**
+ * Gasoline digits are baked into sign_price.webp. This plate covers only that
+ * block and draws per-kWh tiers. Built once.
+ */
+function priceDigitTexture(): THREE.CanvasTexture {
+  const canvas = document.createElement("canvas");
+  canvas.width = 768;
+  canvas.height = 1152;
+  const ctx = canvas.getContext("2d");
+  if (ctx) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#1E1E24";
+    ctx.fillRect(48, 168, 672, 960);
+    const rows: Array<[string, string, number]> = [
+      ["L2", "0.39", 340],
+      ["DC", "0.49", 640],
+      ["MCS", "0.59", 940],
+    ];
+    for (const [tier, price, y] of rows) {
+      ctx.fillStyle = "#F5F0E8";
+      ctx.font = "600 72px sans-serif";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillText(tier, 88, y);
+      ctx.fillStyle = "#E89A2E";
+      ctx.font = "700 148px sans-serif";
+      ctx.textAlign = "right";
+      ctx.fillText(price, 690, y);
+    }
+    ctx.fillStyle = "#E89A2E";
+    ctx.font = "600 52px sans-serif";
+    ctx.textAlign = "right";
+    ctx.fillText("$/kWh", 690, 1088);
+  }
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 8;
+  tex.generateMipmaps = true;
+  tex.minFilter = THREE.LinearMipmapLinearFilter;
+  tex.magFilter = THREE.LinearFilter;
+  tex.needsUpdate = true;
+  return tex;
+}
+
+const priceDigits = priceDigitTexture();
+const priceDigitMat = new THREE.MeshStandardMaterial({
+  name: "Rev6PriceDigits",
+  map: priceDigits,
+  emissiveMap: priceDigits,
+  emissive: 0xffffff,
+  emissiveIntensity: 0.72,
+  color: 0xffffff,
+  roughness: 0.48,
+  metalness: 0,
+  transparent: false,
+  alphaTest: 0.4,
+  depthWrite: true,
+});
+
 function signMat(mat: THREE.MeshStandardMaterial, tex: THREE.Texture, intensity: number): void {
   mat.map = tex;
   mat.emissiveMap = tex;
@@ -270,9 +329,11 @@ const paintParams: THREE.MeshStandardMaterialParameters = {
   transparent: false,
   alphaTest: 0.42,
   depthWrite: true,
+  // Just enough to clear the asphalt. A larger bias was drawing the bay glyph
+  // through the car greenhouse when the camera looked down.
   polygonOffset: true,
-  polygonOffsetFactor: -2,
-  polygonOffsetUnits: -4,
+  polygonOffsetFactor: -1,
+  polygonOffsetUnits: -1,
 };
 
 const bayMat = new THREE.MeshStandardMaterial({
@@ -382,7 +443,7 @@ function flatDecal(
   pivot.add(mesh);
   mesh.receiveShadow = true;
   mesh.castShadow = false;
-  mesh.renderOrder = 2;
+  mesh.renderOrder = 1;
   mesh.userData.rev6Decal = true;
   // Paint stays on the photo. The canopy AO clone would crush the lines to black.
   mesh.userData.noBake = true;
@@ -477,23 +538,40 @@ function addSigns(root: THREE.Group): void {
   cabinet.userData.noBake = true;
   const price = photoFace(priceMat, 1.38, 2.07);
   price.position.set(0, 2.2, 0.05);
+  const priceDigitsFront = photoFace(priceDigitMat, 1.38, 2.07);
+  priceDigitsFront.position.set(0, 2.2, 0.064);
   const priceBack = photoFace(priceMat, 1.38, 2.07);
   priceBack.position.set(0, 2.2, -0.05);
   priceBack.rotation.y = Math.PI;
+  const priceDigitsBack = photoFace(priceDigitMat, 1.38, 2.07);
+  priceDigitsBack.position.set(0, 2.2, -0.064);
+  priceDigitsBack.rotation.y = Math.PI;
   const lip = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.05, 0.1), amber);
   lip.position.set(0, 3.34, 0);
   lip.userData.noBake = true;
-  pylon.add(pole, cabinet, price, priceBack, lip);
+  pylon.add(pole, cabinet, price, priceDigitsFront, priceBack, priceDigitsBack, lip);
   noRay(pylon);
   root.add(pylon);
 
+  // Corner post, south-east of the left canopy. Off the fascia and out of the
+  // walk under the soffit, so it does not cover the wordmark.
   const canopy = CANOPIES[0];
-  const fasciaZ = canopy.z - canopy.d * 0.5 - 0.2;
-  const evHang = photoFace(evMat, 2.35, 1.75);
-  evHang.position.set(canopy.x, 3.95, fasciaZ);
-  evHang.rotation.y = Math.PI;
-  evHang.userData.noBake = true;
-  root.add(evHang);
+  const evCorner = new THREE.Group();
+  evCorner.position.set(canopy.x + canopy.w * 0.5 - 0.55, 0, canopy.z - canopy.d * 0.5 - 1.15);
+  evCorner.userData.noBake = true;
+  const cornerPole = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 2.05, 8), charcoal);
+  cornerPole.position.y = 1.02;
+  cornerPole.castShadow = true;
+  cornerPole.userData.noBake = true;
+  const cornerBoard = new THREE.Mesh(new THREE.BoxGeometry(1.28, 0.96, 0.06), charcoal);
+  cornerBoard.position.y = 2.28;
+  cornerBoard.userData.noBake = true;
+  const cornerFace = photoFace(evMat, 1.18, 0.88);
+  cornerFace.position.set(0, 2.28, -0.04);
+  cornerFace.rotation.y = Math.PI;
+  evCorner.add(cornerPole, cornerBoard, cornerFace);
+  noRay(evCorner);
+  root.add(evCorner);
 
   const evPost = new THREE.Group();
   evPost.position.set(6.4, 0, -11.4);

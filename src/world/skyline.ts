@@ -56,8 +56,7 @@ const house = new THREE.MeshStandardMaterial({
   emissiveIntensity: 0.45,
 });
 const band = new THREE.MeshStandardMaterial({ color: 0x2a2620, roughness: 0.7, metalness: 0.08 });
-const silFar = new THREE.MeshBasicMaterial({ color: 0x141218, fog: true });
-const silNear = new THREE.MeshBasicMaterial({ color: 0x1c1816, fog: true });
+const facadeCycle = [plasterWarm, plasterCool, plasterDark, plasterBrick];
 
 function addStreetSlot(root: THREE.Group, x: number, z: number, yaw: number, color: number): void {
   const slot = new THREE.Group();
@@ -148,13 +147,28 @@ function addApartment(
   }
 }
 
-function addSilhouette(root: THREE.Group, x: number, z: number, w: number, h: number, d: number, far = true): void {
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), far ? silFar : silNear);
-  mesh.position.set(x, h * 0.5 - 0.2, z);
-  root.add(mesh);
-  const cap = new THREE.Mesh(new THREE.BoxGeometry(w * 0.35, h * 0.12, d * 0.4), far ? silFar : silNear);
-  cap.position.set(x + w * 0.12, h + h * 0.04, z);
-  root.add(cap);
+/** Tile the shared window facade so a tall block is not one stretched storey. */
+function tileBoxUvs(geo: THREE.BufferGeometry, uScale: number, vScale: number): void {
+  const uv = geo.getAttribute("uv") as THREE.BufferAttribute;
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * uScale, uv.getY(i) * vScale);
+  uv.needsUpdate = true;
+}
+
+/**
+ * Distant towers used to be flat black boxes. They now use the same lit-window
+ * plaster as the neighborhood, and stay low enough that the city strip still
+ * owns the horizon.
+ */
+function addLitTower(root: THREE.Group, x: number, z: number, w: number, h: number, d: number, index: number): void {
+  const geo = new THREE.BoxGeometry(w, h, d);
+  tileBoxUvs(geo, Math.max(1, w / 4.4), Math.max(1.4, h / 3.6));
+  const mesh = new THREE.Mesh(geo, facadeCycle[index % facadeCycle.length]);
+  mesh.position.set(x, h * 0.5 - 0.15, z);
+  mesh.castShadow = false;
+  mesh.receiveShadow = true;
+  const cap = new THREE.Mesh(new THREE.BoxGeometry(w + 0.35, 0.28, d + 0.3), roof);
+  cap.position.set(x, h + 0.02, z);
+  root.add(mesh, cap);
 }
 
 function addDesert(root: THREE.Group): void {
@@ -277,17 +291,17 @@ function addSkylineRow(root: THREE.Group): void {
     [46, 67, 7, 15, 4],
     [56, 70, 8, 21, 4.5],
   ];
-  for (const [x, z, w, h, d] of far) addSilhouette(root, x, z, w, h, d, true);
+  far.forEach(([x, z, w, h, d], i) => addLitTower(root, x, z, w, h * 0.62, d, i));
   const mid: Array<[number, number, number, number, number]> = [
-    [-30, 41, 5.2, 36, 3.6],
-    [-20, 43, 4.6, 42, 3.2],
-    [-9, 42, 5.0, 38, 3.4],
-    [2, 44, 4.4, 46, 3.0],
-    [13, 41, 5.6, 40, 3.6],
-    [24, 43, 4.8, 44, 3.2],
-    [34, 40, 5.2, 34, 3.4],
+    [-30, 41, 5.2, 16, 3.6],
+    [-20, 43, 4.6, 18, 3.2],
+    [-9, 42, 5.0, 15, 3.4],
+    [2, 44, 4.4, 19, 3.0],
+    [13, 41, 5.6, 17, 3.6],
+    [24, 43, 4.8, 18, 3.2],
+    [34, 40, 5.2, 14, 3.4],
   ];
-  for (const [x, z, w, h, d] of mid) addSilhouette(root, x, z, w, h, d, false);
+  mid.forEach(([x, z, w, h, d], i) => addLitTower(root, x, z, w, h, d, i + 3));
 }
 
 function addTree(root: THREE.Group, x: number, z: number, h = 4.4): void {

@@ -60,14 +60,16 @@ const SHOTS: Shot[] = [
     lookAt: { x: -18.4, y: 1.18, z: 3.05 },
   },
   {
+    // Empty west stall (no parked hull). High eye so pitch is not clamped,
+    // aimed at the bay paint rather than a roof.
     file: "rev6-floor.png",
-    x: -3.4,
-    z: -5.15,
-    yaw: 0.2,
-    pitch: -0.72,
-    eyeY: 3.55,
-    fov: 42,
-    lookAt: { x: -4.5, y: 0.02, z: -6.7 },
+    x: -16.6,
+    z: -5.1,
+    yaw: 0.55,
+    pitch: -0.62,
+    eyeY: 5.4,
+    fov: 40,
+    lookAt: { x: -12.1, y: 0.02, z: -1.2 },
   },
   {
     file: "rev6-sky.png",
