@@ -9,8 +9,11 @@ import {
   PAY_POINTS,
   PAVILION,
   STALLS,
+  VISITOR_EAST,
+  VISITOR_WEST,
   WAVE_POINT,
   YARD,
+  type Canopy,
   parkingStopPose,
   planterColliders,
   westVoidWalls,
@@ -63,7 +66,7 @@ function box(
 }
 
 function makeAsphalt(root: THREE.Group): THREE.Mesh {
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(78, 68), rev6AsphaltMaterial());
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(130, 130), rev6AsphaltMaterial());
   ground.rotation.x = -Math.PI / 2;
   ground.position.y = 0.004;
   ground.receiveShadow = true;
@@ -81,11 +84,8 @@ export function addLotMirror(root: THREE.Group, _renderer: THREE.WebGLRenderer):
     transparent: true,
     opacity: 0.05,
   });
-  for (const [x, z, w, d] of [
-    [-8.3, -0.2, 9.2, 16.0],
-    [11.5, 2.4, 11.2, 18.4],
-    [1.2, -8.0, 4.4, 10.0],
-  ] as const) {
+  const patches = CANOPIES.map((c) => [c.x, c.z, Math.min(c.w * 0.72, 8), Math.min(c.d * 0.55, 14)] as const);
+  for (const [x, z, w, d] of patches) {
     const patch = new THREE.Mesh(new THREE.PlaneGeometry(w, d), sheen);
     patch.rotation.x = -Math.PI / 2;
     patch.position.set(x, 0.007, z);
@@ -137,7 +137,8 @@ function roundedRectShape(w: number, d: number, r: number): THREE.Shape {
   return s;
 }
 
-function addCanopyAt(root: THREE.Group, cx: number, cz: number, w: number, d: number, y: number, _shadow: boolean): void {
+function addCanopyAt(root: THREE.Group, canopy: Canopy): void {
+  const { x: cx, z: cz, w, d, y, face, zeusX } = canopy;
   const alum = new THREE.MeshPhysicalMaterial({
     name: "CanopyWhite",
     color: 0xffffff,
@@ -163,14 +164,6 @@ function addCanopyAt(root: THREE.Group, cx: number, cz: number, w: number, d: nu
     envMapIntensity: 0.35,
     emissive: 0x4a100c,
     emissiveIntensity: 0.18,
-  });
-  const cyanHair = new THREE.MeshStandardMaterial({
-    color: C.cyan,
-    emissive: C.cyan,
-    emissiveIntensity: 2.4,
-    roughness: 0.22,
-    metalness: 0.08,
-    toneMapped: false,
   });
   const topGeo = new THREE.ExtrudeGeometry(roundedRectShape(w, d, 1.35), {
     depth: 0.16,
@@ -206,17 +199,18 @@ function addCanopyAt(root: THREE.Group, cx: number, cz: number, w: number, d: nu
   fascia.castShadow = true;
   fascia.userData.canopyFascia = true;
   root.add(fascia);
-  const redBand = new THREE.Mesh(new THREE.BoxGeometry(w - 1.45, 0.045, 0.08), redHair);
-  redBand.position.set(cx, y - 0.26, fasciaZ - 0.01);
+  const redBand = new THREE.Mesh(new THREE.BoxGeometry(w - 1.45, 0.028, 0.08), redHair);
+  redBand.position.set(cx, y - 0.22, fasciaZ - 0.01);
   root.add(redBand);
-  const cyanEdge = new THREE.Mesh(new THREE.BoxGeometry(w - 0.35, 0.018, 0.04), cyanHair);
-  cyanEdge.position.set(cx, y + 0.1, fasciaZ - 0.02);
-  root.add(cyanEdge);
-  const cyanSideL = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.018, d - 0.4), cyanHair);
-  cyanSideL.position.set(cx - w * 0.5 + 0.08, y + 0.1, cz);
-  const cyanSideR = cyanSideL.clone();
-  cyanSideR.position.x = cx + w * 0.5 - 0.08;
-  root.add(cyanSideL, cyanSideR);
+  const aisleX = cx + face * (w * 0.5 + 0.06);
+  const aisleFascia = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.42, Math.min(d - 1.4, 7.2)), fasciaPlate);
+  aisleFascia.position.set(aisleX, y + 0.02, cz);
+  aisleFascia.castShadow = true;
+  aisleFascia.userData.canopyFascia = true;
+  root.add(aisleFascia);
+  const aisleRed = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.028, Math.min(d - 1.6, 6.8)), redHair);
+  aisleRed.position.set(aisleX + face * 0.04, y - 0.18, cz);
+  root.add(aisleRed);
   for (const [ox, oz] of [
     [-0.22, -0.16],
     [0.2, 0.18],
@@ -234,13 +228,12 @@ function addCanopyAt(root: THREE.Group, cx: number, cz: number, w: number, d: nu
     envMapIntensity: 0.2,
   });
   const boltSteel = mat(0x6a7076, { metalness: 0.62, roughness: 0.36, envMapIntensity: 0.28 });
-  const insetZ = d * 0.5 - 0.55;
+  const insetX = w * 0.5 - 0.62;
+  const zStops = d > 16 ? [-0.78, 0, 0.78] : [-0.72, 0.72];
   for (const sx of [-1, 1]) {
-    const aisle = (cx < 0 && sx > 0) || (cx > 0 && sx < 0);
-    const insetX = w * 0.5 + (aisle ? 0.22 : -0.4);
-    for (const sz of [-1, 1]) {
+    for (const tz of zStops) {
       const px = cx + sx * insetX;
-      const pz = cz + sz * insetZ;
+      const pz = cz + tz * (d * 0.5 - 0.85);
       const post = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, y - 0.08, 20), col);
       post.position.set(px, (y - 0.08) * 0.5, pz);
       post.castShadow = true;
@@ -292,39 +285,18 @@ function addCanopyAt(root: THREE.Group, cx: number, cz: number, w: number, d: nu
     roughnessMap: curbRough(),
     envMapIntensity: 0.14,
   });
-  const face = mat(0x6a6458, { roughness: 0.82, metalness: 0.03, envMapIntensity: 0.08 });
-  const paint = mat(0xe8c040, { roughness: 0.62, metalness: 0.04, envMapIntensity: 0.12 });
-  const median = new THREE.Mesh(new RoundedBoxGeometry(1.45, 0.16, d - 3.2, 2, 0.05), pad);
-  median.position.set(cx, 0.09, cz);
-  median.receiveShadow = true;
-  const medianFace = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.08, d - 3.05), face);
-  medianFace.position.set(cx, 0.04, cz);
-  root.add(median, medianFace);
-  const curb = mat(0xf4eee0, {
-    roughness: 0.7,
-    metalness: 0.02,
-    map: curbColor(),
-    roughnessMap: curbRough(),
-    envMapIntensity: 0.14,
-  });
-  for (const sx of [-1, 1]) {
-    const island = new THREE.Mesh(new RoundedBoxGeometry(0.52, 0.16, d - 2.6, 2, 0.05), curb);
-    island.position.set(cx + sx * (w * 0.42), 0.09, cz);
-    island.receiveShadow = true;
-    const riser = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.07, d - 2.48), face);
-    riser.position.set(cx + sx * (w * 0.42), 0.035, cz);
-    const nose = new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.025, 0.42), paint);
-    nose.position.set(cx + sx * (w * 0.42), 0.175, cz - (d - 2.6) * 0.48);
-    root.add(island, riser, nose);
-  }
+  const curbFace = mat(0x6a6458, { roughness: 0.82, metalness: 0.03, envMapIntensity: 0.08 });
+  const island = new THREE.Mesh(new RoundedBoxGeometry(1.35, 0.14, Math.max(2.4, d - 1.4), 2, 0.05), pad);
+  island.position.set(zeusX, 0.08, cz);
+  island.receiveShadow = true;
+  const riser = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.07, Math.max(2.2, d - 1.55)), curbFace);
+  riser.position.set(zeusX, 0.035, cz);
+  root.add(island, riser);
   const joint = mat(0x8c8678, { roughness: 0.92, metalness: 0.02, envMapIntensity: 0.06 });
-  const medianSeam = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.01, d - 3.35), joint);
-  medianSeam.position.set(cx, 0.175, cz);
-  root.add(medianSeam);
-  const stallZs = [...new Set(STALLS.filter((s) => Math.abs(s.zeusX - cx) < 1.6).map((s) => s.z))];
+  const stallZs = STALLS.filter((s) => Math.abs(s.zeusX - zeusX) < 0.05).map((s) => s.z);
   for (const sz of stallZs) {
-    const cross = new THREE.Mesh(new THREE.BoxGeometry(1.38, 0.01, 0.028), joint);
-    cross.position.set(cx, 0.175, sz);
+    const cross = new THREE.Mesh(new THREE.BoxGeometry(1.28, 0.01, 0.028), joint);
+    cross.position.set(zeusX, 0.16, sz);
     root.add(cross);
   }
 }
@@ -376,9 +348,7 @@ function addParkingStop(root: THREE.Group, stall: (typeof STALLS)[number]): void
 }
 
 function addCanopies(root: THREE.Group): void {
-  CANOPIES.forEach((canopy, i) => {
-    addCanopyAt(root, canopy.x, canopy.z, canopy.w, canopy.d, canopy.y, i === 0);
-  });
+  for (const canopy of CANOPIES) addCanopyAt(root, canopy);
 }
 
 function payPlate(): THREE.CanvasTexture {
@@ -674,37 +644,46 @@ function addMonument(root: THREE.Group): void {
   const precast = mat(0xd4c6ae, { roughness: 0.62, metalness: 0.04, envMapIntensity: 0.18 });
   const alum = mat(C.chrome, { roughness: 0.34, metalness: 0.72, envMapIntensity: 0.5 });
   const cream = mat(C.cream, { roughness: 0.42, metalness: 0.06 });
+  const mx = -9.4;
+  const mz = -13.6;
   const pylon = new THREE.Mesh(new RoundedBoxGeometry(0.42, 3.15, 1.28, 3, 0.1), precast);
-  pylon.position.set(-12.2, 1.62, -15.4);
+  pylon.position.set(mx, 1.62, mz);
   const trim = new THREE.Mesh(new RoundedBoxGeometry(0.08, 3.22, 1.36, 2, 0.04), alum);
-  trim.position.set(-12.38, 1.62, -15.4);
+  trim.position.set(mx - 0.18, 1.62, mz);
   const plate = new THREE.Mesh(new RoundedBoxGeometry(0.06, 0.62, 0.86, 2, 0.03), cream);
-  plate.position.set(-11.96, 2.55, -15.4);
+  plate.position.set(mx + 0.24, 2.55, mz);
   plate.userData.monumentFace = true;
   const board = new THREE.Mesh(
     new THREE.PlaneGeometry(0.92, 0.78),
     new THREE.MeshBasicMaterial({ map: pylonBoard(), toneMapped: false }),
   );
-  board.position.set(-11.96, 1.35, -15.4);
+  board.position.set(mx + 0.24, 1.35, mz);
   board.rotation.y = Math.PI / 2;
   root.add(pylon, trim, plate, board);
 }
 
+function addVisitorStalls(root: THREE.Group): void {
+  const paint = mat(0xf4f1ea, { roughness: 0.62, metalness: 0.02 });
+  for (const bay of [...VISITOR_WEST, ...VISITOR_EAST]) {
+    const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.015, 4.5), paint);
+    stripe.position.set(bay.x, 0.02, bay.z);
+    stripe.rotation.y = bay.yaw;
+    stripe.receiveShadow = true;
+    root.add(stripe);
+  }
+}
+
 function addPlanters(root: THREE.Group): void {
-  addDesertBed(root, -12.4, -16.5, 10.8, 2.6);
-  addDesertBed(root, 12.8, -16.5, 10.8, 2.6);
-  addDesertBed(root, -27.0, -10.2, 4.2, 8.4);
-  addDesertBed(root, 26.4, -5.2, 3.6, 6.4);
+  addDesertBed(root, -37.2, 13.15, 2.8, 2.2);
+  addDesertBed(root, 40.4, -18.5, 2.6, 4.2);
+  addDesertBed(root, 8.5, -42.6, 8.4, 2.2);
   addMonument(root);
-  const walk = mat(0xc8c2b4, { roughness: 0.72 });
-  const sidewalk = box(54, 0.08, 1.9, walk, 0, 0.03, -18.4);
-  sidewalk.castShadow = false;
-  root.add(sidewalk);
+  addVisitorStalls(root);
   for (const [x, z, h] of [
-    [-22.6, 11.2, 6.4],
-    [-18.8, 13.0, 5.8],
-    [20.8, 12.4, 6.2],
-    [24.6, 8.6, 5.6],
+    [-42.5, 6.2, 6.2],
+    [-42.2, -12.4, 5.6],
+    [44.6, 4.2, 6.0],
+    [44.2, -16.8, 5.4],
   ] as const) {
     addPalm(root, x, z, h);
   }
@@ -754,6 +733,31 @@ function addYard(root: THREE.Group): void {
   const dcc = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.95, 0.7), steel);
   dcc.position.set(YARD.x - 5.6, 0.52, YARD.z - 0.2);
   root.add(dcc);
+
+  const tag = (text: string, w: number, x: number, y: number, z: number) => {
+    const c = document.createElement("canvas");
+    c.width = 512;
+    c.height = 96;
+    const ctx = c.getContext("2d")!;
+    ctx.fillStyle = "#1E1E24";
+    ctx.fillRect(0, 0, 512, 96);
+    ctx.fillStyle = "#F5F0E8";
+    ctx.font = "700 56px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(text, 256, 50);
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    const mesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(w, w * (96 / 512)),
+      new THREE.MeshBasicMaterial({ map: tex, toneMapped: false }),
+    );
+    mesh.position.set(x, y, z);
+    root.add(mesh);
+  };
+  tag("TX", 0.9, YARD.x - 3.4, 1.2, YARD.z + 0.4 - 0.64);
+  tag("RECTIFIER", 1.7, YARD.x - 2.65, 1.45, YARD.z - 1.5 - 0.42);
+  tag("ESS", 1.15, YARD.x + 1.1, 1.55, YARD.z - 1.3 - 0.82);
 }
 
 function addStreetlights(root: THREE.Group): void {
@@ -765,17 +769,19 @@ function addStreetlights(root: THREE.Group): void {
     toneMapped: false,
   });
   for (const [x, z] of [
-    [-18.4, -18.0],
-    [18.4, -18.0],
-    [-26.4, 3.2],
-    [25.2, 3.2],
-    [-18.8, 13.6],
-    [16.2, 16.6],
+    [-32.4, -20.0],
+    [-8.2, -22.4],
+    [14.6, -22.4],
+    [36.4, -20.0],
+    [-32.8, 8.4],
+    [18.4, 12.6],
+    [0.2, 13.4],
+    [38.8, 6.2],
   ]) {
     const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.06, 5.2, 8), poleMat);
     pole.position.set(x, 2.6, z);
     const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 0.05, 16), lamp);
-    disc.position.set(x, 5.22, z);
+    disc.position.set(x, 5.05, z);
     root.add(pole, disc);
   }
 }

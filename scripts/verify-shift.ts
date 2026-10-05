@@ -65,6 +65,8 @@ import {
   LOUNGE_WIDE_SHOT,
   loungePatio,
   LOT_ARRIVE,
+  EAST_LOT,
+  LOT_RAILS,
   LOT_WALK,
   LOUNGE_ARRIVE,
   LOUNGE_WALK,
@@ -260,7 +262,7 @@ if (WALK_BOUNDS.xmin > PAVILION.x - PAVILION.w * 0.35) throw new Error("walk bou
 if (DOOR_SHOT.x < WALK_BOUNDS.xmin || DOOR_SHOT.x > WALK_BOUNDS.xmax) throw new Error("door shot X outside walk");
 if (DOOR_SHOT.z < WALK_BOUNDS.zmin || DOOR_SHOT.z > WALK_BOUNDS.zmax) throw new Error("door shot Z outside walk");
 const doorCenterX = PAVILION.x + PAVILION_DOOR.localX;
-if (Math.abs(doorCenterX - -22.6) > 0.2) throw new Error("door center drifted");
+if (Math.abs(doorCenterX - 0.8) > 0.2) throw new Error("door center drifted");
 if (STALL_CLEARANCE !== 0.9) throw new Error("stall clearance must stay 0.9");
 
 const gap = pavilionDoorGap();
@@ -271,7 +273,7 @@ if (DOOR_CORRIDOR.xmax - DOOR_CORRIDOR.xmin < PAVILION_DOOR.width) {
   throw new Error("door corridor must be at least as wide as the opening");
 }
 const door = pavilionDoorWorld();
-if (Math.abs(door.x - -22.6) > 0.2) throw new Error("door world center drifted");
+if (Math.abs(door.x - 0.8) > 0.2) throw new Error("door world center drifted");
 if (PROMPT_SHOT.x < WALK_BOUNDS.xmin || PROMPT_SHOT.x > WALK_BOUNDS.xmax) {
   throw new Error("prompt shot X outside walk");
 }
@@ -655,17 +657,20 @@ if (!inPlayableVolume(DOOR_IN_SHOT.x, DOOR_IN_SHOT.z)) throw new Error("door-in 
 if (!inPlayableVolume(LOUNGE_WIDE_SHOT.x, LOUNGE_WIDE_SHOT.z)) throw new Error("lounge-wide shot off playable volume");
 if (!inPlayableVolume(STOREFRONT_SHOT.x, STOREFRONT_SHOT.z)) throw new Error("storefront shot off playable volume");
 if (!inPlayableVolume(door.x, door.z)) throw new Error("south door center must be walkable");
-if (inPlayableVolume(-28.2, -10.4)) throw new Error("west planter strip must be out of playable volume");
-if (inPlayableVolume(-28.2, 14.8)) throw new Error("northwest void must be out of playable volume");
-if (inPlayableVolume(-28.2, -3.55)) throw new Error("west lip south of lounge must not be playable");
-if (inPlayableVolume(-26.0, -10.4)) throw new Error("west planter lip on the old rail must not be playable");
-if (inPlayableVolume(-24.0, -10.4)) throw new Error("west sidewalk must be out of playable volume");
-if (inWestSidewalk(-24.0, -10.4) !== true) throw new Error("west sidewalk helper missed the planter strip");
+const westVoid = { x: WEST_APRON_X - 2.8, z: DOOR_YARD.zmin - 2.4 };
+const westLip = { x: WEST_APRON_X - 1.6, z: DOOR_YARD.zmin - 2.4 };
+const westWalk = { x: WEST_APRON_X - 4.6, z: DOOR_YARD.zmin - 3.2 };
+if (inPlayableVolume(westVoid.x, westVoid.z)) throw new Error("west planter strip must be out of playable volume");
+if (inPlayableVolume(WEST_APRON_X - 2.2, LOT_RAILS.zmax + 1.4)) throw new Error("northwest void must be out of playable volume");
+if (inPlayableVolume(WEST_APRON_X - 1.8, DOOR_YARD.zmin - 1.2)) throw new Error("west lip south of lounge must not be playable");
+if (inPlayableVolume(westLip.x, westLip.z)) throw new Error("west planter lip on the old rail must not be playable");
+if (inPlayableVolume(westWalk.x, westWalk.z)) throw new Error("west sidewalk must be out of playable volume");
+if (inWestSidewalk(westWalk.x, westWalk.z) !== true) throw new Error("west sidewalk helper missed the planter strip");
 if (inPlayableVolume(DOOR_SHOT.x, DOOR_SHOT.z) !== true) throw new Error("DOOR_SHOT must stay on the door yard");
 if (inPlayableVolume(PAY_POINTS[0].x, PAY_POINTS[0].z) !== true) throw new Error("lot PAY stand must stay on the apron");
-if (playableWalkTarget(-28.2, -10.4) != null) throw new Error("walk-to must reject the west void");
-if (playableWalkTarget(-26.0, -10.4) != null) throw new Error("walk-to must reject the west planter lip");
-if (playableWalkTarget(-24.0, -10.4) != null) throw new Error("walk-to must reject the west sidewalk");
+if (playableWalkTarget(westVoid.x, westVoid.z) != null) throw new Error("walk-to must reject the west void");
+if (playableWalkTarget(westLip.x, westLip.z) != null) throw new Error("walk-to must reject the west planter lip");
+if (playableWalkTarget(westWalk.x, westWalk.z) != null) throw new Error("walk-to must reject the west sidewalk");
 if (playableWalkTarget(START_SHOT.x, START_SHOT.z) == null) throw new Error("walk-to must accept spawn");
 if (playableWalkTarget(INTERIOR_SHOT.x, INTERIOR_SHOT.z) == null) {
   throw new Error("walk-to must accept the lounge interior AABB");
@@ -684,7 +689,7 @@ if (scrape.teleported) throw new Error("near-rail scrape should clamp, not telep
 if (!inPlayableVolume(scrape.x, scrape.z)) throw new Error("clamped scrape left playable volume");
 if (scrape.x + 1e-6 < LOT_WALK.xmin) throw new Error("west scrape must stay on the lot apron");
 
-const lost = clampPlayable(-40, -40);
+const lost = clampPlayable(-58, -64);
 if (!lost.teleported) throw new Error("deep void must soft-teleport");
 if (lost.x !== SAFE_LOT_SPAWN.x || lost.z !== SAFE_LOT_SPAWN.z) {
   throw new Error("deep void must recover to the lot spawn");
@@ -743,14 +748,14 @@ for (let i = 0; i < 36; i++) {
 }
 if (outWalk.z > door.z - 1.1) throw new Error("door walk did not return to the lot");
 
-if (playableWalkPath(START_SHOT.x, START_SHOT.z, -28.2, -10.4) != null) {
+if (playableWalkPath(START_SHOT.x, START_SHOT.z, westVoid.x, westVoid.z) != null) {
   throw new Error("walk-to path must cancel for the west planter void");
 }
-if (playableWalkPath(START_SHOT.x, START_SHOT.z, -26.0, -10.4) != null) {
+if (playableWalkPath(START_SHOT.x, START_SHOT.z, westLip.x, westLip.z) != null) {
   throw new Error("walk-to path must cancel for the west planter lip");
 }
-if (segmentPlayable(-10, -12, -27, -3.4)) {
-  throw new Error("straight lot→lounge chord must not cut the west void");
+if (segmentPlayable(LOT_WALK.xmax - 0.3, 0.2, EAST_LOT.xmin + 0.3, 0.2)) {
+  throw new Error("straight lot chord must not cut through the lounge");
 }
 const loungeRoute = playableWalkPath(START_SHOT.x, START_SHOT.z, INTERIOR_SHOT.x, INTERIOR_SHOT.z);
 if (!loungeRoute) throw new Error("walk-to lounge interior must route through the south door");
@@ -777,14 +782,14 @@ function followTo(fromX: number, fromZ: number, toX: number, toZ: number, frames
   return { x: step.x, z: step.z, dest: step.dest != null || step.route.length > 0 };
 }
 
-const voidFollow = beginWalk(START_SHOT.x, START_SHOT.z, -28.2, -10.4);
+const voidFollow = beginWalk(START_SHOT.x, START_SHOT.z, westVoid.x, westVoid.z);
 if (voidFollow.dest) throw new Error("beginWalk must cancel a west-planter click");
-const lipFollow = followTo(START_SHOT.x, START_SHOT.z, -26.0, -10.4, 80);
+const lipFollow = followTo(START_SHOT.x, START_SHOT.z, westLip.x, westLip.z, 80);
 if (lipFollow.dest) throw new Error("west planter lip walk-to must not keep a destination");
 if (!inPlayableVolume(lipFollow.x, lipFollow.z)) throw new Error("cancelled lip walk left playable volume");
-const sidewalkFollow = beginWalk(START_SHOT.x, START_SHOT.z, -24.0, -10.4);
+const sidewalkFollow = beginWalk(START_SHOT.x, START_SHOT.z, westWalk.x, westWalk.z);
 if (sidewalkFollow.dest) throw new Error("beginWalk must cancel a west-sidewalk click");
-if (pickWalkDestination(START_SHOT.x, START_SHOT.z, -24.0, -10.4, -0.2, 18) != null) {
+if (pickWalkDestination(START_SHOT.x, START_SHOT.z, westWalk.x, westWalk.z, -0.2, 18) != null) {
   throw new Error("ground pick must reject the west sidewalk");
 }
 if (pickWalkDestination(START_SHOT.x, START_SHOT.z, 4.2, -6.2, 0.12, 10) != null) {
@@ -796,23 +801,23 @@ if (pickWalkDestination(START_SHOT.x, START_SHOT.z, 4.2, -6.2, -0.01, 40) != nul
 const peckClick = pickWalkDestination(START_SHOT.x, START_SHOT.z, peckBay.x - 3.2, peckBay.z + 0.6, -0.18, 14);
 if (!peckClick) throw new Error("ground pick must accept asphalt near Peck");
 
-const westDump = clampPlayable(-24.0, -10.4);
+const westDump = clampPlayable(westWalk.x, westWalk.z);
 if (!westDump.teleported) throw new Error("west sidewalk must soft-teleport off the void lip");
 if (westDump.x !== SAFE_LOT_SPAWN.x || westDump.z !== SAFE_LOT_SPAWN.z) {
   throw new Error("west sidewalk teleport must recover to lot spawn");
 }
 
-if (doorApproachHint({ x: -24.0, y: 1.56, z: -10.4 }, { x: 0.2, y: 0, z: 1 }) !== "") {
+if (doorApproachHint({ x: westWalk.x, y: 1.56, z: westWalk.z }, { x: 0.2, y: 0, z: 1 }) !== "") {
   throw new Error("west sidewalk must never show WALK IN");
 }
-if (inDoorApproach(-24.0, -10.4)) throw new Error("west sidewalk must stay off the door throat");
+if (inDoorApproach(westWalk.x, westWalk.z)) throw new Error("west sidewalk must stay off the door throat");
 if (inDoorApproach(DOOR_SHOT.x, DOOR_SHOT.z)) {
   throw new Error("DOOR_SHOT sits east of the opening — WALK IN only when aiming at the portal");
 }
 if (!inDoorApproach(door.x, door.z - 1.6)) throw new Error("door mat must be a playable throat");
 if (!inPlayableVolume(door.x, door.z - 1.6)) throw new Error("WALK IN mat must be playable");
 
-const westApproach = { x: WEST_APRON_X - 0.35, y: 1.58, z: DOOR_YARD.zmin + 0.4 };
+const westApproach = { x: door.x - 4.2, y: 1.58, z: door.z - 4.4 };
 const westDoorLook = { x: door.x - westApproach.x, y: 0, z: door.z - westApproach.z };
 if (!inPlayableVolume(westApproach.x, westApproach.z)) {
   throw new Error("west door-yard approach must be playable");
@@ -865,7 +870,7 @@ const doorLookUp = pickWalkDestination(DOOR_SHOT.x, DOOR_SHOT.z, door.x, door.z 
 if (!doorLookUp || doorLookUp.z < door.z + 1.4) {
   throw new Error("looking at the door portal must still walk into the lounge");
 }
-if (!rayHitsDoorPortal(DOOR_SHOT.x, DOOR_SHOT.eyeY, DOOR_SHOT.z, -0.55, 0.18, 0.72)) {
+if (!rayHitsDoorPortal(DOOR_SHOT.x, DOOR_SHOT.eyeY, DOOR_SHOT.z, door.x - DOOR_SHOT.x, 0.15, door.z - DOOR_SHOT.z)) {
   throw new Error("OPEN-sign / portal ray from DOOR_SHOT must hit the door volume");
 }
 if (rayHitsDoorPortal(START_SHOT.x, START_SHOT.eyeY, START_SHOT.z, 0.2, 0.35, 0.9)) {
@@ -889,7 +894,7 @@ if (exitMat.dest) throw new Error("interior door-mat walk-to did not finish");
 if (exitMat.z > door.z - 0.9) throw new Error("interior door-mat click must exit to the lot");
 if (Math.abs(LOT_ARRIVE.z - (door.z - 2.15)) > 0.05) throw new Error("lot arrive drifted");
 
-const edgeFollow = followTo(4.2, -6.2, LOT_WALK.xmin + 0.15, -10.4);
+const edgeFollow = followTo(DOOR_SHOT.x, DOOR_SHOT.z, LOT_WALK.xmin + 0.15, DOOR_YARD.zmin - 1.2);
 if (!inPlayableVolume(edgeFollow.x, edgeFollow.z)) throw new Error("west-edge walk-to left playable volume");
 if (edgeFollow.x < LOT_WALK.xmin - 1e-6) throw new Error("west-edge walk-to crossed the lot inset");
 
@@ -1103,7 +1108,7 @@ if (clampGameplayPitch(-1.2) < PITCH_MIN - 1e-6) throw new Error("nadir pitch mu
 if (clampGameplayPitch(1.4, 14.6) !== 1.4) throw new Error("cinematic pitch must stay free");
 if (!horizonInView(clampGameplayPitch(1.4))) throw new Error("clamped zenith must stay on the geometry gate");
 if (!horizonInView(clampGameplayPitch(-1.2))) throw new Error("clamped nadir must keep the horizon");
-const lostLook = clampPlayable(-40, -40);
+const lostLook = clampPlayable(-58, -64);
 if (!lostLook.teleported) throw new Error("deep void must still soft-teleport");
 if (lostLook.x !== SAFE_LOT_SPAWN.x || lostLook.z !== SAFE_LOT_SPAWN.z) {
   throw new Error("deep void recover must be lot spawn");
@@ -1120,14 +1125,14 @@ if (PITCH_MAX <= 0.16) throw new Error("pitch max must widen past the old ±0.16
 const buried = recoverPlayableCamera(START_SHOT.x, 0.12, START_SHOT.z);
 if (!buried.teleported || buried.y < 1.5) throw new Error("underground camera must soft-recover to eye height");
 if (!inPlayableVolume(buried.x, buried.z)) throw new Error("underground recover left playable volume");
-const skyLost = recoverPlayableCamera(-40, 0.1, -40);
+const skyLost = recoverPlayableCamera(-58, 0.1, -64);
 if (!skyLost.teleported || skyLost.x !== SAFE_LOT_SPAWN.x || skyLost.z !== SAFE_LOT_SPAWN.z) {
   throw new Error("underground + void must recover to lot spawn");
 }
 const cine = recoverPlayableCamera(WIDE_SHOT.x, WIDE_SHOT.eyeY, WIDE_SHOT.z);
 if (cine.teleported) throw new Error("cinematic camera must not soft-teleport");
 const westLookYaw = Math.PI / 2;
-if (!lookHitsUnlitVoid(-15.4, -10.4, westLookYaw)) {
+if (!lookHitsUnlitVoid(WEST_APRON_X + 1.6, DOOR_YARD.zmin - 4, westLookYaw)) {
   throw new Error("west apron looking into the planter must count as unlit void");
 }
 const toDoorYaw = Math.atan2(-(door.x - DOOR_SHOT.x), -(door.z - DOOR_SHOT.z));
@@ -1216,7 +1221,8 @@ if (!elevenWave.ready || elevenWave.ready.need !== "wave" || elevenWave.prompt !
   throw new Error(`~11m from WAVE stand must offer E WAVE, got ${elevenWave.prompt || elevenWave.objective}`);
 }
 
-const elevenUnplugEye = { x: fullBay.x + (fullBay.x > 0 ? -11 - GUEST_HULL_R : 11 + GUEST_HULL_R), y: 1.58, z: fullBay.z };
+const unplugAisle = Math.sign(fullBay.x - fullBay.zeusX) || 1;
+const elevenUnplugEye = { x: fullBay.x + unplugAisle * (11 + GUEST_HULL_R), y: 1.58, z: fullBay.z };
 const elevenUnplug = resolveInteract(elevenUnplugEye, { x: 0.2, y: -0.9, z: 0.15 }, null, loopCands, unplugJob);
 if (!elevenUnplug.ready || elevenUnplug.ready.need !== "unplug" || elevenUnplug.ready.guestId !== full.id) {
   throw new Error(`~11m hull from full car must offer E UNPLUG, got ${elevenUnplug.prompt || elevenUnplug.objective}`);

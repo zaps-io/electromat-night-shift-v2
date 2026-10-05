@@ -30,9 +30,9 @@ export function canvasTex(
   return tex;
 }
 
-/** Lot plane is 78 x 68, centered. Canvas +Y (top) is world -Z after the ground rotation and flipY. */
-const LOT_W = 78;
-const LOT_D = 68;
+/** Lot plane is 130 x 130, centered. Canvas +Y (top) is world -Z after the ground rotation and flipY. */
+const LOT_W = 130;
+const LOT_D = 130;
 
 function lotPx(x: number, z: number, size: number): [number, number] {
   return [((x + LOT_W / 2) / LOT_W) * size, ((z + LOT_D / 2) / LOT_D) * size];
@@ -50,8 +50,10 @@ function paintFineGrain(ctx: CanvasRenderingContext2D, size: number): void {
 
 function paintLotWear(ctx: CanvasRenderingContext2D, size: number, intoColor: boolean): void {
   const canopies = [
-    { x: -8.3, z: -0.15, w: 14, d: 20 },
-    { x: 11.5, z: 2.55, w: 16.2, d: 25 },
+    { x: -23.7, z: -3.5, w: 8, d: 11 },
+    { x: -10.9, z: 1.4, w: 8, d: 20 },
+    { x: 10.9, z: -2.3, w: 8, d: 13 },
+    { x: 23.7, z: -1.8, w: 8, d: 21 },
   ];
   for (const c of canopies) {
     const [px, py] = lotPx(c.x, c.z, size);
@@ -66,7 +68,7 @@ function paintLotWear(ctx: CanvasRenderingContext2D, size: number, intoColor: bo
     ctx.ellipse(px, py, rx * 0.92, ry * 0.92, 0, 0, Math.PI * 2);
     ctx.fill();
   }
-  const lanes = [-8.6, -7.9, 7.7, 8.6, 11.2, 1.15, 2.4];
+  const lanes = [-31.8, -17.3, 17.3, 31.4];
   for (const x of lanes) {
     ctx.strokeStyle = intoColor ? "rgba(16,16,18,0.4)" : "rgba(90,90,94,0.7)";
     ctx.lineWidth = Math.max(1, size * 0.004);
@@ -78,12 +80,12 @@ function paintLotWear(ctx: CanvasRenderingContext2D, size: number, intoColor: bo
     ctx.stroke();
   }
   const stains = [
-    [-8.2, -4.2],
-    [8.1, -5.2],
-    [7.6, -2.4],
-    [1.3, -8],
-    [11.4, 2.6],
-    [-8.4, 1.4],
+    [-17.3, -12],
+    [-17.3, 2],
+    [17.3, -8],
+    [17.3, 4],
+    [-23.5, -4],
+    [23.5, 1],
   ];
   for (const [x, z] of stains) {
     const [px, py] = lotPx(x!, z!, size);

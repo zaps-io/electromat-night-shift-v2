@@ -19,7 +19,7 @@ export const WALK_RADIUS = 0.34;
 export const PITCH_MIN = -0.18;
 export const PITCH_MAX = 0.58;
 /** Typical under-canopy look-up at coffers ~6 m ahead from gameplay eye. */
-export const CANOPY_INSPECT_PITCH = Math.atan2(5.22 - GAMEPLAY_EYE_Y, 6);
+export const CANOPY_INSPECT_PITCH = Math.atan2(3.47 - GAMEPLAY_EYE_Y, 6);
 
 export function clampGameplayPitch(pitch: number, eyeY = GAMEPLAY_EYE_Y): number {
   if (eyeY > GAMEPLAY_SKY_Y) return pitch;
