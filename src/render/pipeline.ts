@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { CANOPIES, PAVILION } from "../world/layout";
 import { RGBELoader } from "three/addons/loaders/RGBELoader.js";
 import {
   BloomEffect,
@@ -88,14 +89,12 @@ function addReflectionCards(env: THREE.Scene): void {
     mesh.rotation.y = ry;
     env.add(mesh);
   };
-  card(0xffb060, -8.3, 3.1, -0.15, 2.2, 0.7);
-  card(0xffb060, 11.5, 3.1, 2.55, 2.4, 0.75, 0.2);
-  card(0xf7f8fb, -8.3, 6.5, -0.15, 10, 1.1);
-  card(0xf7f8fb, 11.5, 6.5, 2.55, 12, 1.2);
-  card(0xe63225, 8, 0.9, -5, 3.2, 0.45, Math.PI / 2);
-  card(0xe63225, -6, 0.9, -4, 3.2, 0.45, Math.PI / 2);
-  card(0x00d4f5, 4.5, 1.6, -16, 1.2, 0.7);
-  card(0x00d4f5, -4, 1.4, 2, 0.8, 1.6, Math.PI / 2);
+  for (const canopy of CANOPIES) {
+    card(0xfff4dc, canopy.x, canopy.y - 0.35, canopy.z, Math.min(canopy.w, 6), 0.4);
+    card(0xf7f8fb, canopy.x, canopy.y + 0.2, canopy.z, canopy.w * 0.7, 0.28);
+  }
+  card(0xe63225, PAVILION.x - 2.2, PAVILION.h - 0.1, PAVILION.z - PAVILION.d * 0.5 - 0.4, 2.4, 0.35);
+  card(0x00d4f5, -17.3, 0.35, -8, 0.35, 6);
 }
 
 /** Golden-hour IBL so metals and clearcoat read as painted, not plastic. */

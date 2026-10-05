@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { CANOPIES, PAY_POINTS, WAVE_POINT } from "./layout";
+import { CANOPIES, PAVILION, PAY_POINTS, WAVE_POINT } from "./layout";
 import { textureAnisotropy } from "./tex";
 import { applyZeusLogos } from "./zeus";
 
@@ -80,18 +80,29 @@ export async function addBrandSignage(root: THREE.Group): Promise<void> {
 
   for (const canopy of CANOPIES) {
     const fasciaZ = canopy.z - canopy.d * 0.5 - 0.14;
-    const mark = signPlate(3.85, 0.38, red);
+    const mark = signPlate(Math.min(3.6, canopy.w * 0.52), 0.36, red);
     mark.position.set(canopy.x, canopy.y + 0.02, fasciaZ);
     mark.rotation.y = Math.PI;
     root.add(mark);
+
+    const aisleX = canopy.x + canopy.face * (canopy.w * 0.5 + 0.12);
+    const side = signPlate(Math.min(3.2, canopy.d * 0.22), 0.32, red);
+    side.position.set(aisleX, canopy.y + 0.02, canopy.z);
+    side.rotation.y = canopy.face > 0 ? Math.PI / 2 : -Math.PI / 2;
+    root.add(side);
   }
 
-  const loungeMark = signPlate(2.15, 0.26, red);
-  const loungeMat = loungeMark.material as THREE.MeshBasicMaterial;
-  loungeMat.side = THREE.FrontSide;
-  loungeMark.position.set(-17.42, 3.31, 3.4);
-  loungeMark.rotation.y = Math.PI / 2;
-  root.add(loungeMark);
+  const southZ = PAVILION.z - PAVILION.d * 0.5;
+  const housing = new THREE.Mesh(
+    new THREE.BoxGeometry(3.35, 0.62, 0.14),
+    new THREE.MeshStandardMaterial({ color: 0xf7f3ea, roughness: 0.42, metalness: 0.05 }),
+  );
+  housing.position.set(PAVILION.x - 2.35, PAVILION.h - 0.02, southZ - 0.18);
+  housing.castShadow = true;
+  const fasciaMark = signPlate(3.05, 0.46, red);
+  fasciaMark.position.set(PAVILION.x - 2.35, PAVILION.h - 0.02, southZ - 0.27);
+  fasciaMark.rotation.y = Math.PI;
+  root.add(housing, fasciaMark);
 
   for (const p of PAY_POINTS) {
     const kioskMark = signPlate(0.5, 0.12, red);
@@ -104,7 +115,7 @@ export async function addBrandSignage(root: THREE.Group): Promise<void> {
   root.add(waveMark);
 
   const monument = signPlate(0.78, 0.32, red);
-  monument.position.set(-11.92, 2.55, -15.4);
+  monument.position.set(-9.16, 2.55, -13.6);
   monument.rotation.y = Math.PI / 2;
   root.add(monument);
 

@@ -1,8 +1,8 @@
 import * as THREE from "three";
 import { textureAnisotropy } from "./tex";
 
-const LOT_W = 78;
-const LOT_D = 68;
+const LOT_W = 130;
+const LOT_D = 130;
 
 /** World XZ matches the asphalt plane UV (v = 1 at world z = -34). */
 function writePlanarUv2(mesh: THREE.Mesh): void {

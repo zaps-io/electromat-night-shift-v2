@@ -207,10 +207,10 @@ function addDesert(root: THREE.Group): void {
 function addPowerLines(root: THREE.Group): void {
   const wire = new THREE.MeshStandardMaterial({ color: 0x1a1c20, roughness: 0.6, metalness: 0.4 });
   const poles: Array<[number, number]> = [
-    [-20, -24.2],
-    [-6, -24.4],
-    [8, -24.2],
-    [20, -24.4],
+    [-20, -52.4],
+    [-6, -52.6],
+    [8, -52.4],
+    [20, -52.6],
   ];
   for (let i = 0; i < poles.length - 1; i++) {
     const a = poles[i]!;
@@ -240,12 +240,12 @@ function addRoadsidePalms(root: THREE.Group): void {
   const trunk = new THREE.MeshStandardMaterial({ color: 0x4a3828, roughness: 0.86 });
   const frond = new THREE.MeshStandardMaterial({ color: 0x2c4a28, roughness: 0.8 });
   for (const [x, z] of [
-    [-28, -22.2],
-    [-16, -22.4],
-    [18, -22.2],
-    [30, -22.6],
-    [-30, 15.4],
-    [28, 15.2],
+    [-28, -50.2],
+    [-16, -50.4],
+    [18, -50.2],
+    [30, -50.6],
+    [-46, 20.4],
+    [46, 20.2],
   ] as const) {
     const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, 4.2, 6), trunk);
     pole.position.set(x, 2.1, z);
@@ -416,7 +416,7 @@ function addNeighborhood(root: THREE.Group): void {
 
   for (const [x, z, w, h] of [
     [-28.4, 18.8, 4.4, 3.8],
-    [30.8, 16.8, 4.8, 3.4],
+    [48.2, 22.4, 4.8, 3.4],
     [-18.8, 35.2, 4.6, 3.6],
     [22.0, 35.0, 4.2, 3.2],
   ] as const) {
@@ -443,19 +443,19 @@ function addNeighborhood(root: THREE.Group): void {
 
 function addAlley(root: THREE.Group): void {
   const alley = new THREE.Mesh(
-    new THREE.PlaneGeometry(88, 6.4),
+    new THREE.PlaneGeometry(140, 6.4),
     new THREE.MeshStandardMaterial({ color: 0x2c2a26, map: street(), roughness: 0.96 }),
   );
   alley.rotation.x = -Math.PI / 2;
-  alley.position.set(2, 0.003, 19.6);
+  alley.position.set(2, 0.003, 28);
   const curb = new THREE.Mesh(
     new THREE.BoxGeometry(80, 0.18, 0.4),
     new THREE.MeshStandardMaterial({ color: 0xc8c0b2, roughness: 0.84 }),
   );
-  curb.position.set(2, 0.08, 16.6);
+  curb.position.set(2, 0.08, 24.6);
   root.add(alley, curb);
-  addStreetSlot(root, -16.4, 19.8, Math.PI / 2, 0x1e1e24);
-  addStreetSlot(root, 8.2, 20.2, Math.PI / 2, 0xc5c9ce);
+  addStreetSlot(root, -16.4, 28.2, Math.PI / 2, 0x1e1e24);
+  addStreetSlot(root, 8.2, 28.6, Math.PI / 2, 0xc5c9ce);
 }
 
 function addStreetLamps(root: THREE.Group): void {
@@ -467,14 +467,14 @@ function addStreetLamps(root: THREE.Group): void {
     toneMapped: false,
   });
   for (const [x, z] of [
-    [-20, -24.2],
-    [-6, -24.4],
-    [8, -24.2],
-    [20, -24.4],
-    [-22, 19.2],
-    [-6, 19.4],
-    [10, 19.2],
-    [24, 19.4],
+    [-20, -52.4],
+    [-6, -52.6],
+    [8, -52.4],
+    [20, -52.6],
+    [-22, 29.2],
+    [-6, 29.4],
+    [10, 29.2],
+    [24, 29.4],
   ] as const) {
     const p = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.055, 4.8, 8), pole);
     p.position.set(x, 2.4, z);
@@ -498,49 +498,49 @@ export function buildSkyline(): THREE.Group {
     new THREE.BoxGeometry(16.4, 5.8, 3.0),
     new THREE.MeshStandardMaterial({ color: 0xeee8dc, roughness: 0.74 }),
   );
-  muralWall.position.set(-32.4, 2.8, -0.4);
+  muralWall.position.set(-58, 2.8, -0.4);
   const muralEast = new THREE.Mesh(
     new THREE.PlaneGeometry(16.0, 5.2),
     new THREE.MeshBasicMaterial({ map: art, toneMapped: false }),
   );
-  muralEast.position.set(-30.82, 2.9, -0.4);
+  muralEast.position.set(-56.42, 2.9, -0.4);
   muralEast.rotation.y = Math.PI / 2;
   const muralSouth = new THREE.Mesh(
     new THREE.PlaneGeometry(15.6, 5.0),
     new THREE.MeshBasicMaterial({ map: art, toneMapped: false }),
   );
-  muralSouth.position.set(-32.4, 2.9, -1.96);
+  muralSouth.position.set(-58, 2.9, -1.96);
   muralSouth.rotation.y = Math.PI;
   root.add(muralWall, muralEast, muralSouth);
 
   const shop = new THREE.Mesh(new THREE.BoxGeometry(13.6, 5.6, 8.0), night);
-  shop.position.set(30.2, 2.7, 5.4);
+  shop.position.set(58, 2.7, 22);
   const shopGlass = new THREE.Mesh(new THREE.PlaneGeometry(10.8, 2.6), darkGlass);
-  shopGlass.position.set(30.2, 2.15, 1.32);
+  shopGlass.position.set(58, 2.15, 17.92);
   shopGlass.rotation.y = Math.PI;
   const shopSide = new THREE.Mesh(new THREE.PlaneGeometry(7.0, 2.4), darkGlass);
-  shopSide.position.set(23.32, 2.15, 5.4);
+  shopSide.position.set(51.12, 2.15, 22);
   shopSide.rotation.y = -Math.PI / 2;
   const pylon = new THREE.Mesh(
     new THREE.BoxGeometry(0.28, 2.4, 0.9),
     new THREE.MeshStandardMaterial({ color: 0x121416, roughness: 0.55 }),
   );
-  pylon.position.set(24.6, 1.3, -2.2);
+  pylon.position.set(52.4, 1.3, 14.4);
   const sign = new THREE.Mesh(
     new THREE.BoxGeometry(3.4, 0.7, 0.12),
     new THREE.MeshStandardMaterial({ color: 0xe89a2e, emissive: 0xc46a20, emissiveIntensity: 0.45 }),
   );
-  sign.position.set(24.4, 4.6, 1.2);
+  sign.position.set(52.2, 4.6, 17.8);
   const lot = new THREE.Mesh(
     new THREE.PlaneGeometry(16, 10),
     new THREE.MeshStandardMaterial({ color: 0x2a2824, roughness: 0.94 }),
   );
   lot.rotation.x = -Math.PI / 2;
-  lot.position.set(30.4, 0.01, 12.4);
+  lot.position.set(58.2, 0.01, 29);
   root.add(shop, shopGlass, shopSide, pylon, sign, lot);
 
   const road = new THREE.Mesh(
-    new THREE.PlaneGeometry(96, 13.2),
+    new THREE.PlaneGeometry(140, 12),
     new THREE.MeshStandardMaterial({
       color: 0x3a3834,
       map: street(),
@@ -548,35 +548,35 @@ export function buildSkyline(): THREE.Group {
     }),
   );
   road.rotation.x = -Math.PI / 2;
-  road.position.set(0, 0.002, -25.8);
+  road.position.set(0, 0.002, -54);
   root.add(road);
 
   const curb = new THREE.Mesh(
-    new THREE.BoxGeometry(84, 0.2, 0.46),
+    new THREE.BoxGeometry(130, 0.2, 0.46),
     new THREE.MeshStandardMaterial({ color: 0xc8c0b2, roughness: 0.84 }),
   );
-  curb.position.set(0, 0.09, -19.5);
+  curb.position.set(0, 0.09, -47.6);
   root.add(curb);
 
   const walk = new THREE.Mesh(
-    new THREE.BoxGeometry(90, 0.06, 2.4),
+    new THREE.BoxGeometry(136, 0.06, 2.4),
     new THREE.MeshStandardMaterial({ color: 0xb8b2a4, roughness: 0.88 }),
   );
-  walk.position.set(0, 0.03, -21.4);
+  walk.position.set(0, 0.03, -50.2);
   root.add(walk);
 
   const hatch = new THREE.MeshStandardMaterial({ color: 0xd8d4c8, roughness: 0.7, metalness: 0.02 });
   for (let i = 0; i < 8; i++) {
     const bar = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.02, 0.1), hatch);
-    bar.position.set(-2.4 + i * 0.85, 0.03, -19.6);
+    bar.position.set(-2.4 + i * 0.85, 0.03, -47.8);
     bar.rotation.y = 0.7;
     root.add(bar);
   }
 
-  addStreetSlot(root, -11.2, -24.8, Math.PI / 2, 0x1e1e24);
-  addStreetSlot(root, -2.6, -25.4, -Math.PI / 2, 0x8d2e28);
-  addStreetSlot(root, 7.2, -25.0, Math.PI / 2, 0xf5f0e8);
-  addStreetSlot(root, 16.8, -25.6, -Math.PI / 2, 0x243044);
+  addStreetSlot(root, -11.2, -53.2, Math.PI / 2, 0x1e1e24);
+  addStreetSlot(root, -2.6, -53.6, -Math.PI / 2, 0x8d2e28);
+  addStreetSlot(root, 7.2, -53.2, Math.PI / 2, 0xf5f0e8);
+  addStreetSlot(root, 16.8, -53.8, -Math.PI / 2, 0x243044);
   addStreetLamps(root);
   addPowerLines(root);
   addRoadsidePalms(root);

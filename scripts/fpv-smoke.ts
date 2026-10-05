@@ -430,7 +430,7 @@ async function main(): Promise<void> {
           api.place(pose.x, pose.z, 0.4, 0.5, 1.64);
           api.lookAt(pose.look.x, pose.look.y, pose.look.z);
         },
-        { x: LEFT_CANOPY_X + 3.2, z: -6.4, look: { x: LEFT_CANOPY_X - 1.1, y: 5.22, z: -1.8 } },
+        { x: LEFT_CANOPY_X + 3.2, z: -6.4, look: { x: LEFT_CANOPY_X - 1.1, y: 3.45, z: -1.8 } },
       );
       await new Promise((r) => setTimeout(r, 250));
       const canopyUp = await hud(page);

@@ -12,15 +12,7 @@ import {
 import type { GameState, Guest, HullKind, LotRead } from "../game/state";
 import { arrivedGuests, earlyShift, guestAction, lotRead } from "../game/shift";
 import { jobNeedLocked, nextJob } from "../game/interact";
-import {
-  BAYS,
-  LEFT_EAST_CAR_X,
-  LEFT_WEST_CAR_X,
-  RIGHT_EAST_CAR_X,
-  RIGHT_WEST_CAR_X,
-  WAIT_ORDER,
-  WAIT_SLOTS,
-} from "./layout";
+import { BAYS, STALLS, WAIT_ORDER, WAIT_SLOTS } from "./layout";
 import { ccsLeadPoints, tubeFromPoints } from "./cables";
 import { applyLotIcon, makeAttentionIcon, makeBatteryIcon } from "./icons";
 import { setZeusHolsterPlugged, tintStallBadge } from "./zeus";
@@ -326,13 +318,12 @@ function makeHull(color: number, hull: HullKind): THREE.Group {
 const lodFillerRoots: THREE.Group[] = [];
 export let lodFillerBudget = 4;
 
-export const LOD_FILLERS = [
-  { x: RIGHT_EAST_CAR_X, z: -5.4, yaw: Math.PI / 2, paint: 0xe8e2d4, waiting: false },
-  { x: LEFT_WEST_CAR_X, z: 4.2, yaw: -Math.PI / 2, paint: 0xc8ccd0, waiting: false },
-  { x: RIGHT_WEST_CAR_X, z: 5.4, yaw: -Math.PI / 2, paint: 0x1c2434, waiting: false },
-  { x: LEFT_EAST_CAR_X, z: 4.2, yaw: Math.PI / 2, paint: 0x6b5344, waiting: false },
-  { x: RIGHT_EAST_CAR_X, z: 10.8, yaw: Math.PI / 2, paint: 0x2a3848, waiting: false },
-] as const;
+const FILLER_IDS = [2, 10, 13, 18, 22] as const;
+const FILLER_PAINT = [0xe8e2d4, 0xc8ccd0, 0x1c2434, 0x6b5344, 0x2a3848] as const;
+export const LOD_FILLERS = FILLER_IDS.map((id, i) => {
+  const stall = STALLS.find((s) => s.id === id)!;
+  return { x: stall.x, z: stall.z, yaw: stall.carYaw, paint: FILLER_PAINT[i]!, waiting: false as const };
+});
 
 export function addLodFillers(scene: THREE.Object3D, count = lodFillerBudget): void {
   while (lodFillerRoots.length) {

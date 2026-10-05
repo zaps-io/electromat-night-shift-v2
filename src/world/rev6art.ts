@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { CANOPIES, PAVILION, PAVILION_DOOR, STALLS, stallAisleSign } from "./layout";
+import { AB_AISLE_X, BAY_SIZE, CANOPIES, CD_AISLE_X, PAVILION, PAVILION_DOOR, STALLS, VISITOR_EAST, VISITOR_WEST, stallAisleSign } from "./layout";
 import { asphaltNormal, textureAnisotropy } from "./tex";
 import { loadDuskEnvironment } from "../render/pipeline";
 
@@ -11,8 +11,8 @@ import { loadDuskEnvironment } from "../render/pipeline";
 
 const ART = `${import.meta.env.BASE_URL}art/rev6/`;
 
-/** ~4.6 m tiles on the 78×68 lot. Square in world metres. */
-const ASPHALT_REPEAT = new THREE.Vector2(17, 14.8);
+/** ~4.6 m tiles on the 130×130 lot. Square in world metres. */
+const ASPHALT_REPEAT = new THREE.Vector2(28.3, 28.3);
 
 const BAY_IMG = { w: 1536, h: 1024 };
 const MARK_IMG = { w: 1536, h: 1024 };
@@ -26,7 +26,6 @@ const CROP_CROSSWALK = { x0: 84, y0: 60, x1: 1416, y1: 350 };
 const CROP_STOP = { x0: 84, y0: 404, x1: 976, y1: 464 };
 const CROP_ARROW = { x0: 128, y0: 512, x1: 264, y1: 948 };
 const CROP_TURN = { x0: 604, y0: 564, x1: 828, y1: 948 };
-const CROP_YELLOW = { x0: 908, y0: 512, x1: 1008, y1: 948 };
 const CROP_HATCH = { x0: 1100, y0: 416, x1: 1476, y1: 952 };
 
 const DECAL_Y = 0.016;
@@ -477,7 +476,7 @@ function addChargerBays(root: THREE.Group): void {
     const yaw = aisle < 0 ? -Math.PI / 2 : Math.PI / 2;
     // Centered on the stall. 2.62 m across the island → ~4.68 m along the car.
     const x = stall.x;
-    addFlat(root, bayMat, CROP_BAY_EV, BAY_IMG.w, BAY_IMG.h, 2.62, x, stall.z, yaw);
+    addFlat(root, bayMat, CROP_BAY_EV, BAY_IMG.w, BAY_IMG.h, BAY_SIZE.w, x, stall.z, yaw);
     if (stall.ada) {
       addFlat(root, markMat, CROP_HATCH, MARK_IMG.w, MARK_IMG.h, 2.2, x, stall.z + 2.7, yaw, DECAL_Y + 0.004);
     }
@@ -485,26 +484,34 @@ function addChargerBays(root: THREE.Group): void {
 }
 
 function addDrivePaint(root: THREE.Group): void {
-  addFlat(root, markMat, CROP_CROSSWALK, MARK_IMG.w, MARK_IMG.h, 9.4, 0.9, -16.25, 0);
-  addFlat(root, markMat, CROP_STOP, MARK_IMG.w, MARK_IMG.h, 6.6, 1.15, -14.55, 0, DECAL_Y + 0.002);
+  const doorX = PAVILION.x + PAVILION_DOOR.localX;
+  const doorZ = PAVILION.z - PAVILION.d * 0.5;
+  addFlat(root, markMat, CROP_CROSSWALK, MARK_IMG.w, MARK_IMG.h, 6.4, doorX, doorZ - 3.4, 0);
+  addFlat(root, markMat, CROP_STOP, MARK_IMG.w, MARK_IMG.h, 3.4, AB_AISLE_X, -38.6, Math.PI / 2, DECAL_Y + 0.002);
 
-  // Image-up is the arrow head. yaw π sends it toward +Z (into the lot).
-  for (const z of [-19.2, 3.4, 8.6]) {
-    addFlat(root, markMat, CROP_ARROW, MARK_IMG.w, MARK_IMG.h, 0.82, 2.35, z, Math.PI);
+  // Clockwise one-way. Image-up is the arrow head. yaw π sends it toward +Z.
+  for (const z of [-8, -18, -28, -36]) {
+    addFlat(root, markMat, CROP_ARROW, MARK_IMG.w, MARK_IMG.h, 0.9, -31.8, z, 0);
   }
-  // Left-turn cell, mirrored so the head points west when the shaft faces +Z.
-  addFlat(root, markMat, CROP_TURN, MARK_IMG.w, MARK_IMG.h, 1.55, -3.15, -18.6, Math.PI, DECAL_Y, true);
-
-  for (const x of [-0.85, 3.55]) {
-    for (let i = 0; i < 9; i++) {
-      const z = -15.4 + i * 2.82;
-      addFlat(root, markMat, CROP_YELLOW, MARK_IMG.w, MARK_IMG.h, 0.62, x, z, 0, DECAL_Y + (i % 2) * 0.001);
-    }
+  for (const z of [-30, -18, -8, 2, 9]) {
+    addFlat(root, markMat, CROP_ARROW, MARK_IMG.w, MARK_IMG.h, 0.9, AB_AISLE_X, z, Math.PI);
+  }
+  for (const x of [-24, -10, 4, 18]) {
+    addFlat(root, markMat, CROP_ARROW, MARK_IMG.w, MARK_IMG.h, 0.9, x, 12.4, Math.PI / 2);
+  }
+  addFlat(root, markMat, CROP_TURN, MARK_IMG.w, MARK_IMG.h, 1.45, -28.4, 10.6, Math.PI / 2, DECAL_Y, true);
+  for (const z of [8, 0, -10, -20, -30]) {
+    addFlat(root, markMat, CROP_ARROW, MARK_IMG.w, MARK_IMG.h, 0.9, CD_AISLE_X, z, 0);
+  }
+  for (const z of [-28, -16, -4, 6]) {
+    addFlat(root, markMat, CROP_ARROW, MARK_IMG.w, MARK_IMG.h, 0.9, 31.4, z, Math.PI);
+  }
+  for (const x of [22, 8, -6, -20]) {
+    addFlat(root, markMat, CROP_ARROW, MARK_IMG.w, MARK_IMG.h, 0.9, x, -40.2, -Math.PI / 2);
   }
 
-  for (let i = 0; i < 6; i++) {
-    const x = -25.4 + i * 2.55;
-    addFlat(root, bayMat, CROP_BAY_PLAIN, BAY_IMG.w, BAY_IMG.h, 2.28, x, 14.8, 0);
+  for (const bay of [...VISITOR_WEST, ...VISITOR_EAST]) {
+    addFlat(root, bayMat, CROP_BAY_PLAIN, BAY_IMG.w, BAY_IMG.h, 2.3, bay.x, bay.z, bay.yaw > 0 ? Math.PI / 2 : -Math.PI / 2);
   }
 }
 
@@ -526,7 +533,7 @@ function addSigns(root: THREE.Group): void {
   });
 
   const pylon = new THREE.Group();
-  pylon.position.set(-5.35, 0, -12.7);
+  pylon.position.set(-9.2, 0, -16.4);
   pylon.userData.noBake = true;
   const pole = new THREE.Mesh(new THREE.BoxGeometry(0.16, 1.15, 0.16), charcoal);
   pole.position.y = 0.58;
@@ -574,7 +581,7 @@ function addSigns(root: THREE.Group): void {
   root.add(evCorner);
 
   const evPost = new THREE.Group();
-  evPost.position.set(6.4, 0, -11.4);
+  evPost.position.set(14.8, 0, -16.2);
   evPost.userData.noBake = true;
   const evPole = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 1.55, 8), charcoal);
   evPole.position.y = 0.78;
@@ -754,13 +761,12 @@ function reflectionCards(env: THREE.Scene): void {
     mesh.rotation.y = ry;
     env.add(mesh);
   };
-  card(0xffb060, -8.3, 3.1, -0.15, 2.2, 0.7);
-  card(0xffb060, 11.5, 3.1, 2.55, 2.4, 0.75, 0.2);
-  card(0xf7f8fb, -8.3, 6.5, -0.15, 10, 1.1);
-  card(0xf7f8fb, 11.5, 6.5, 2.55, 12, 1.2);
-  card(0xe63225, 8, 0.9, -5, 3.2, 0.45, Math.PI / 2);
-  card(0xe63225, -6, 0.9, -4, 3.2, 0.45, Math.PI / 2);
-  card(0x00d4f5, 4.5, 1.6, -16, 1.2, 0.7);
+  for (const canopy of CANOPIES) {
+    card(0xfff4dc, canopy.x, canopy.y - 0.35, canopy.z, Math.min(canopy.w, 6), 0.4);
+    card(0xf7f8fb, canopy.x, canopy.y + 0.2, canopy.z, canopy.w * 0.7, 0.28);
+  }
+  card(0xe63225, PAVILION.x - 2.2, PAVILION.h - 0.1, PAVILION.z - PAVILION.d * 0.5 - 0.4, 2.4, 0.35);
+  card(0x00d4f5, AB_AISLE_X, 0.35, -8, 0.35, 6);
 }
 
 let skyMounted = false;
