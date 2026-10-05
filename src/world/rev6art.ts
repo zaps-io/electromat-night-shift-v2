@@ -253,7 +253,10 @@ const asphaltMat = new THREE.MeshStandardMaterial({
   roughnessMap: roughTex,
   roughness: 1,
   metalness: 0.02,
-  envMapIntensity: 0.16,
+  envMapIntensity: 0.14,
+  emissive: 0xffffff,
+  emissiveMap: albedoTex,
+  emissiveIntensity: 0.46,
   normalMap: asphaltNormal(),
   normalScale: new THREE.Vector2(0.22, 0.22),
 });
@@ -767,12 +770,18 @@ function retuneBakedAsphalt(scene: THREE.Scene): void {
       if (!mat || mat.name !== "Rev6Asphalt") continue;
       mat.map = albedoTex;
       mat.roughnessMap = roughTex;
+      mat.emissiveMap = albedoTex;
+      mat.emissive.set(0xffffff);
+      mat.emissiveIntensity = 0.46;
       mat.color.set(0xffffff);
       mat.roughness = 1;
       mat.metalness = 0.02;
-      mat.envMapIntensity = 0.16;
+      mat.envMapIntensity = 0.14;
       mat.aoMapIntensity = 0.42;
-      if (mat.lightMap) mat.lightMapIntensity = Math.max(mat.lightMapIntensity, 0.9);
+      // Bounce JPEG sits near 30/255. Decoded as sRGB that is a tiny indirect
+      // term, so the canopy shadow ate the new grain. A higher intensity
+      // brings the baked bounce back up beside the emissive lift.
+      if (mat.lightMap) mat.lightMapIntensity = 2.4;
       mat.needsUpdate = true;
     }
   });
