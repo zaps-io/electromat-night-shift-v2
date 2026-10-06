@@ -34,6 +34,7 @@ interface ElectromatApi {
   fps: number;
   gfx: "high" | "medium" | "low";
   setGfx: (tier: "high" | "medium" | "low") => void;
+  setCarsVisible: (on: boolean) => void;
   hullDebug: () => {
     source?: string;
     meshCount?: number;

@@ -17,6 +17,8 @@ export type ChannelStyle = {
   returnRoughness: number;
   /** Extrusion depth in SVG units. ViewBox width is 932. */
   depth: number;
+  /** Bevel in SVG units. Defaults to a fascia trim. Molded faces pass a small value. */
+  bevel?: number;
 };
 
 const loader = new SVGLoader();
@@ -43,7 +45,7 @@ export function buildChannelMark(svgText: string, style: ChannelStyle): THREE.Gr
     envMapIntensity: 0.9,
   });
   const raw = new THREE.Group();
-  const bevel = Math.max(16, style.depth * 0.14);
+  const bevel = style.bevel ?? Math.max(16, style.depth * 0.14);
   for (const path of data.paths) {
     const shapes = SVGLoader.createShapes(path);
     for (const shape of shapes) {

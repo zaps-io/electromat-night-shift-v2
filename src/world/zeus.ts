@@ -60,9 +60,10 @@ const cableMat = new THREE.MeshStandardMaterial({
 const cyanHair = new THREE.MeshStandardMaterial({
   color: C.cyan,
   emissive: C.cyan,
-  emissiveIntensity: 0.55,
+  emissiveIntensity: 2.2,
   roughness: 0.35,
   metalness: 0.08,
+  toneMapped: false,
 });
 
 const GLYPHS: Record<string, string[]> = {
@@ -75,32 +76,46 @@ const GLYPHS: Record<string, string[]> = {
   " ": ["00000", "00000", "00000", "00000", "00000"],
 };
 
-function plugInMatrix(): THREE.CanvasTexture {
-  const c = document.createElement("canvas");
-  c.width = 512;
-  c.height = 128;
-  const ctx = c.getContext("2d")!;
-  ctx.fillStyle = "#14161c";
-  ctx.fillRect(0, 0, 512, 128);
-  ctx.fillStyle = "#1c1e26";
-  for (let y = 6; y < 122; y += 4) {
-    for (let x = 6; x < 506; x += 4) ctx.fillRect(x, y, 1, 1);
-  }
-  ctx.fillStyle = "#E89A2E";
-  let x = 28;
+function plugInMatrix(): THREE.DataTexture {
+  const W = 256;
+  const H = 64;
+  const data = new Uint8Array(W * H * 4);
+  const bg: [number, number, number] = [20, 22, 28];
+  const fg: [number, number, number] = [232, 154, 46];
+  const pix = (x: number, yTop: number, c: [number, number, number]) => {
+    if (x < 0 || yTop < 0 || x >= W || yTop >= H) return;
+    const y = H - 1 - yTop;
+    const i = (y * W + x) * 4;
+    data[i] = c[0];
+    data[i + 1] = c[1];
+    data[i + 2] = c[2];
+    data[i + 3] = 255;
+  };
+  const rect = (x: number, y: number, w: number, h: number, c: [number, number, number]) => {
+    for (let yy = 0; yy < h; yy++) for (let xx = 0; xx < w; xx++) pix(x + xx, y + yy, c);
+  };
+  rect(0, 0, W, H, bg);
+  rect(0, 0, W, 3, fg);
+  rect(0, H - 3, W, 3, fg);
+  rect(0, 0, 3, H, fg);
+  rect(W - 3, 0, 3, H, fg);
+  let ox = 8;
   for (const ch of "PLUG IN") {
     const g = GLYPHS[ch] ?? GLYPHS[" "];
     for (let row = 0; row < 5; row++) {
       for (let col = 0; col < 5; col++) {
         if (g[row][col] !== "1") continue;
-        ctx.fillRect(x + col * 8, 34 + row * 13, 6, 10);
+        rect(ox + col * 6, 8 + row * 10, 5, 8, fg);
       }
     }
-    x += 58;
+    ox += 34;
   }
-  const tex = new THREE.CanvasTexture(c);
+  const tex = new THREE.DataTexture(data, W, H);
   tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = 8;
+  tex.magFilter = THREE.LinearFilter;
+  tex.minFilter = THREE.LinearFilter;
+  tex.generateMipmaps = false;
+  tex.flipY = false;
   tex.needsUpdate = true;
   return tex;
 }
@@ -109,7 +124,11 @@ const matrix = plugInMatrix();
 const screenMat = new THREE.MeshBasicMaterial({
   map: matrix,
   color: 0xffffff,
-  toneMapped: true,
+  toneMapped: false,
+  side: THREE.DoubleSide,
+  polygonOffset: true,
+  polygonOffsetFactor: -4,
+  polygonOffsetUnits: -4,
 });
 
 const geo = {
@@ -117,10 +136,11 @@ const geo = {
   foot: new THREE.CylinderGeometry(0.016, 0.018, 0.02, 8),
   body: new RoundedBoxGeometry(0.44, 1.92, 0.22, 4, 0.028),
   cap: new RoundedBoxGeometry(0.45, 0.045, 0.23, 3, 0.012),
-  hair: new THREE.BoxGeometry(0.46, 0.01, 0.24),
+  hair: new THREE.BoxGeometry(0.4, 0.022, 0.012),
   recess: new THREE.BoxGeometry(0.34, 1.62, 0.02),
-  bezel: new THREE.BoxGeometry(0.28, 0.11, 0.012),
-  display: new THREE.PlaneGeometry(0.26, 0.09),
+  bezelH: new THREE.BoxGeometry(0.32, 0.014, 0.012),
+  bezelV: new THREE.BoxGeometry(0.014, 0.2, 0.012),
+  display: new THREE.PlaneGeometry(0.3, 0.2),
   pocket: new RoundedBoxGeometry(0.07, 0.28, 0.05, 2, 0.01),
   lip: new THREE.BoxGeometry(0.074, 0.016, 0.04),
   barrel: new THREE.CylinderGeometry(0.016, 0.018, 0.12, 10),
@@ -171,7 +191,7 @@ const cableGeoR = tubeFromPoints(holsterRestPoints(1), 0.011, 10);
 const holstersByStall = new Map<number, { rest: THREE.Mesh; handle: THREE.Group; side: -1 | 1 }[]>();
 
 function addFrontHolster(g: THREE.Group, side: -1 | 1): { rest: THREE.Mesh; handle: THREE.Group; side: -1 | 1 } {
-  const x = 0.11 * side;
+  const x = 0.155 * side;
   const y = 1.02;
   const z = -0.13;
   const pocket = new THREE.Mesh(geo.pocket, charcoal);
@@ -234,20 +254,31 @@ export function addZeusCharger(
   cap.position.y = 2.14;
 
   const hair = new THREE.Mesh(geo.hair, cyanHair);
-  hair.position.set(0, 0.145, -0.01);
+  hair.position.set(0, 0.28, -0.15);
+  hair.userData.noBake = true;
 
   const recess = new THREE.Mesh(geo.recess, charcoal);
   recess.position.set(0, 1.22, -0.112);
 
-  const bezel = new THREE.Mesh(geo.bezel, black);
-  bezel.position.set(0, 1.42, -0.124);
+  const screenY = 1.42;
+  const bezelZ = -0.126;
+  const bezelTop = new THREE.Mesh(geo.bezelH, black);
+  bezelTop.position.set(0, screenY + 0.1, bezelZ);
+  const bezelBot = new THREE.Mesh(geo.bezelH, black);
+  bezelBot.position.set(0, screenY - 0.1, bezelZ);
+  const bezelL = new THREE.Mesh(geo.bezelV, black);
+  bezelL.position.set(-0.153, screenY, bezelZ);
+  const bezelR = new THREE.Mesh(geo.bezelV, black);
+  bezelR.position.set(0.153, screenY, bezelZ);
   const display = new THREE.Mesh(geo.display, screenMat);
-  display.position.set(0, 1.42, -0.132);
+  display.position.set(0, screenY, -0.16);
   display.rotation.y = Math.PI;
+  display.renderOrder = 2;
+  display.userData.noBake = true;
 
   const logo = new THREE.Object3D();
   logo.name = "zeus-logo";
-  logo.position.set(0, 1.7, -0.162);
+  logo.position.set(0, 1.78, -0.126);
   logo.rotation.y = Math.PI;
 
   const left = addFrontHolster(g, -1);
@@ -266,7 +297,7 @@ export function addZeusCharger(
     g.add(disc, face);
   }
 
-  g.add(base, body, cap, hair, recess, bezel, display, logo);
+  g.add(base, body, cap, hair, recess, bezelTop, bezelBot, bezelL, bezelR, display, logo);
   root.add(g);
 }
 

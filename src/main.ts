@@ -100,7 +100,6 @@ const canvas = document.querySelector<HTMLCanvasElement>("#view")!;
 canvas.tabIndex = 0;
 const titleEl = document.querySelector("#title")!;
 const hudEl = document.querySelector("#hud")!;
-const hudMark = document.querySelector("#hud-mark");
 const endEl = document.querySelector("#end")!;
 const clockPlate = document.querySelector<HTMLElement>("#clock-plate")!;
 const clockHmEl = document.querySelector("#clock-hm")!;
@@ -495,7 +494,6 @@ function paintHud(): void {
   const live = state.phase === "shift";
   const cinematic = walker.position.y > 3.2;
   hudEl.classList.toggle("hidden", !live || cinematic);
-  hudMark?.classList.toggle("hidden", cinematic);
   titleEl.classList.toggle("hidden", live || state.phase === "grade" || state.phase === "lose");
   endEl.classList.toggle("hidden", state.phase !== "grade" && state.phase !== "lose");
   syncGrade(state);
@@ -537,15 +535,13 @@ function paintHud(): void {
     state.sfxCue = "";
   }
   station.payGlare.opacity = state.disruption === "glare" ? 0.82 : 0;
-  loungeMark.visible = live && state.disruption === "lounge";
-  const pending = pendingPayGuest(state);
-  station.kioskAlerts.forEach((spr, i) => {
-    spr.visible = i === 1 || !!pending;
+  loungeMark.visible = false;
+  station.kioskAlerts.forEach((spr) => {
+    spr.visible = false;
   });
+  station.waveAlert.visible = false;
   const job = nextJob(state);
   const waveLive = job?.need === "wave";
-  station.waveAlert.visible = waveLive || (!!nextQueueGuest(state) && state.bays.some((b) => !b.guestId));
-  station.waveAlert.scale.set(waveLive ? 1.7 : 1.05, waveLive ? 0.64 : 0.4, 1);
   station.waveGuide.visible = waveLive || state.disruption === "rush";
   const resolved = refreshTarget();
   walker.camera.getWorldDirection(lookDir);
@@ -1017,6 +1013,9 @@ window.__electromat = {
   },
   setGfx(next: QualityTier) {
     if (next === "high" || next === "medium" || next === "low") setGfx(next, true);
+  },
+  setCarsVisible(on: boolean) {
+    for (const view of cars.values()) view.root.visible = on;
   },
   carProbe(w = 1280, h = 800) {
     const prev = scene.background;

@@ -2,13 +2,13 @@ import * as THREE from "three";
 import { facade, facadeEmit, mural, sandColor, street, type FacadeStyle } from "./tex";
 
 function plaster(style: FacadeStyle): THREE.MeshStandardMaterial {
-  const emit = style === "dark" ? 0xa8c8e8 : style === "cool" ? 0xe8c888 : 0xffb060;
+  const emit = style === "dark" ? 0x8aa0b4 : style === "cool" ? 0xc4b090 : 0xc4a888;
   return new THREE.MeshStandardMaterial({
     color: 0xffffff,
     map: facade(style),
     emissive: emit,
     emissiveMap: facadeEmit(style),
-    emissiveIntensity: style === "dark" ? 0.85 : 0.78,
+    emissiveIntensity: style === "dark" ? 0.28 : 0.22,
     roughness: 0.76,
     metalness: 0.04,
     envMapIntensity: 0.22,
@@ -51,9 +51,9 @@ const house = new THREE.MeshStandardMaterial({
   map: facade("warm"),
   roughness: 0.82,
   envMapIntensity: 0.16,
-  emissive: 0xffb060,
+  emissive: 0xc4a888,
   emissiveMap: facadeEmit("warm"),
-  emissiveIntensity: 0.45,
+  emissiveIntensity: 0.18,
 });
 const band = new THREE.MeshStandardMaterial({ color: 0x2a2620, roughness: 0.7, metalness: 0.08 });
 const facadeCycle = [plasterWarm, plasterCool, plasterDark, plasterBrick];
@@ -183,8 +183,8 @@ function addDesert(root: THREE.Group): void {
     }),
   );
   sand.rotation.x = -Math.PI / 2;
-  sand.position.y = 0.001;
-  sand.receiveShadow = true;
+  sand.position.y = -0.12;
+  sand.receiveShadow = false;
   root.add(sand);
   const mesa = new THREE.MeshStandardMaterial({ color: 0x6a4034, roughness: 0.9, metalness: 0.02 });
   const far = new THREE.MeshStandardMaterial({ color: 0x4a342c, roughness: 0.92 });
@@ -291,7 +291,7 @@ function addSkylineRow(root: THREE.Group): void {
     [46, 67, 7, 15, 4],
     [56, 70, 8, 21, 4.5],
   ];
-  far.forEach(([x, z, w, h, d], i) => addLitTower(root, x, z, w, h * 0.62, d, i));
+  far.forEach(([x, z, w, h, d], i) => addLitTower(root, x, z + 28, w, h * 0.28, d, i));
   const mid: Array<[number, number, number, number, number]> = [
     [-30, 41, 5.2, 16, 3.6],
     [-20, 43, 4.6, 18, 3.2],
@@ -301,7 +301,7 @@ function addSkylineRow(root: THREE.Group): void {
     [24, 43, 4.8, 18, 3.2],
     [34, 40, 5.2, 14, 3.4],
   ];
-  mid.forEach(([x, z, w, h, d], i) => addLitTower(root, x, z, w, h, d, i + 3));
+  mid.forEach(([x, z, w, h, d], i) => addLitTower(root, x, z + 32, w, h * 0.32, d, i + 3));
 }
 
 function addTree(root: THREE.Group, x: number, z: number, h = 4.4): void {
@@ -318,101 +318,45 @@ function addTree(root: THREE.Group, x: number, z: number, h = 4.4): void {
   root.add(trunk, crown);
 }
 
-function addWaterTower(root: THREE.Group, x: number, y: number, z: number): void {
-  const tank = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 1.05, 10), steel);
-  tank.position.set(x, y + 1.15, z);
-  const cap = new THREE.Mesh(new THREE.ConeGeometry(0.78, 0.42, 10), roof);
-  cap.position.set(x, y + 1.88, z);
-  for (const [dx, dz] of [
-    [-0.45, -0.45],
-    [0.45, -0.45],
-    [-0.45, 0.45],
-    [0.45, 0.45],
-  ] as const) {
-    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 1.15, 5), steel);
-    leg.position.set(x + dx, y + 0.45, z + dz);
-    root.add(leg);
-  }
-  root.add(tank, cap);
-}
-
-function addFireEscape(root: THREE.Group, x: number, z: number, stories: number, face = -1): void {
-  for (let i = 0; i < stories; i++) {
-    const y = 3.6 + i * 2.15;
-    const slab = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.06, 0.55), steel);
-    slab.position.set(x, y, z + face * 0.4);
-    const rail = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.28, 0.04), steel);
-    rail.position.set(x, y + 0.2, z + face * 0.64);
-    root.add(slab, rail);
-  }
-}
-
-function addShopfront(
-  root: THREE.Group,
-  x: number,
-  z: number,
-  w: number,
-  h: number,
-  d: number,
-  glow: number,
-): void {
+function addShopfront(root: THREE.Group, x: number, z: number, w: number, h: number, d: number): void {
   const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), night);
   body.position.set(x, h * 0.5 - 0.05, z);
   const pane = new THREE.Mesh(
-    new THREE.PlaneGeometry(w * 0.72, h * 0.42),
-    new THREE.MeshBasicMaterial({ color: glow, toneMapped: false }),
+    new THREE.PlaneGeometry(w * 0.62, h * 0.28),
+    new THREE.MeshStandardMaterial({
+      color: 0x2a2420,
+      emissive: 0xc4a070,
+      emissiveIntensity: 0.22,
+      roughness: 0.35,
+      metalness: 0.08,
+    }),
   );
   pane.position.set(x, h * 0.38, z - d * 0.5 - 0.02);
   pane.rotation.y = Math.PI;
   const awning = new THREE.Mesh(
-    new THREE.BoxGeometry(w * 0.82, 0.08, 0.7),
-    new THREE.MeshStandardMaterial({ color: 0xc45a28, roughness: 0.55 }),
+    new THREE.BoxGeometry(w * 0.82, 0.08, 0.55),
+    new THREE.MeshStandardMaterial({ color: 0x3a3834, roughness: 0.62, metalness: 0.08 }),
   );
   awning.position.set(x, h * 0.62, z - d * 0.5 - 0.28);
   awning.rotation.x = 0.18;
   root.add(body, pane, awning);
 }
 
-function addGlassTower(root: THREE.Group, x: number, z: number, w: number, h: number, d: number): void {
-  const shaft = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), darkGlass);
-  shaft.position.set(x, h * 0.5 + 2.4, z);
-  const podium = new THREE.Mesh(new THREE.BoxGeometry(w + 1.4, 3.0, d + 1.1), plasterDark);
-  podium.position.set(x, 1.4, z);
-  const cap = new THREE.Mesh(new THREE.BoxGeometry(w + 0.4, 0.3, d + 0.4), roof);
-  cap.position.set(x, h + 2.55, z);
-  root.add(shaft, podium, cap);
-  addRoofGear(root, x - w * 0.15, h + 2.9, z);
-}
-
 function addNeighborhood(root: THREE.Group): void {
-  addApartment(root, { x: -24, z: 28.2, w: 8.0, h: 12.4, d: 4.2, mat: plasterBrick, podium: true, balconies: true });
-  addFireEscape(root, -21.2, 26.0, 5, -1);
-  addApartment(root, {
-    x: -14,
-    z: 29.8,
-    w: 7.2,
-    h: 16.8,
-    d: 3.8,
-    mat: plasterCool,
-    balconies: true,
-    setback: 1,
-  });
-  addApartment(root, { x: -4.0, z: 27.6, w: 8.8, h: 13.2, d: 4.2, mat: plasterWarm, podium: true });
-  addGlassTower(root, 6.8, 31.6, 6.2, 22.4, 3.4);
-  addWaterTower(root, 6.2, 26.6, 31.2);
-  addApartment(root, { x: 16.8, z: 28.2, w: 8.6, h: 14.6, d: 4.4, mat: plasterBrick });
-  addFireEscape(root, 19.8, 25.9, 5, -1);
-  addApartment(root, { x: 27.4, z: 30.2, w: 6.4, h: 11.2, d: 3.4, mat: plasterDark });
-  addApartment(root, { x: -32.6, z: 22.6, w: 6.0, h: 8.2, d: 5.4, mat: plasterWarm, podium: false });
-  addApartment(root, { x: 33.2, z: 22.2, w: 6.4, h: 9.0, d: 4.8, mat: plasterBrick, podium: false });
-  addApartment(root, { x: -9.8, z: 36.4, w: 6.6, h: 10.4, d: 3.6, mat: plasterDark, podium: false });
-  addApartment(root, { x: 12.6, z: 36.8, w: 5.8, h: 9.2, d: 3.4, mat: plasterCool, podium: false });
+  addApartment(root, { x: -24, z: 34.2, w: 8.0, h: 5.2, d: 4.2, mat: plasterBrick, podium: false });
+  addApartment(root, { x: -14, z: 36.4, w: 7.2, h: 4.8, d: 3.8, mat: plasterCool, podium: false });
+  addApartment(root, { x: -4.0, z: 33.6, w: 8.8, h: 5.4, d: 4.2, mat: plasterWarm, podium: false });
+  addApartment(root, { x: 8.2, z: 36.2, w: 7.4, h: 4.6, d: 3.6, mat: plasterDark, podium: false });
+  addApartment(root, { x: 18.4, z: 34.8, w: 8.0, h: 5.0, d: 4.0, mat: plasterBrick, podium: false });
+  addApartment(root, { x: 28.6, z: 36.0, w: 6.4, h: 4.4, d: 3.4, mat: plasterDark, podium: false });
+  addApartment(root, { x: -34.2, z: 30.4, w: 6.0, h: 4.2, d: 4.2, mat: plasterWarm, podium: false });
+  addApartment(root, { x: 36.4, z: 30.2, w: 6.2, h: 4.4, d: 4.0, mat: plasterCool, podium: false });
 
-  addShopfront(root, -20.4, 18.6, 5.2, 4.2, 3.4, 0xf2a040);
-  addShopfront(root, -13.6, 18.8, 4.6, 3.8, 3.2, 0xe87830);
-  addShopfront(root, -7.2, 18.4, 4.8, 4.0, 3.3, 0xf0c060);
-  addShopfront(root, 4.8, 18.6, 5.0, 3.9, 3.2, 0xe89a2e);
-  addShopfront(root, 11.4, 18.8, 4.4, 3.6, 3.1, 0xffb050);
+  addShopfront(root, -20.4, 22.4, 5.2, 3.6, 3.4);
+  addShopfront(root, -13.6, 22.8, 4.6, 3.4, 3.2);
+  addShopfront(root, -7.2, 22.2, 4.8, 3.5, 3.3);
+  addShopfront(root, 4.8, 22.6, 5.0, 3.4, 3.2);
+  addShopfront(root, 11.4, 22.8, 4.4, 3.2, 3.1);
 
   for (const [x, z, w, h] of [
     [-28.4, 18.8, 4.4, 3.8],
@@ -447,7 +391,7 @@ function addAlley(root: THREE.Group): void {
     new THREE.MeshStandardMaterial({ color: 0x2c2a26, map: street(), roughness: 0.96 }),
   );
   alley.rotation.x = -Math.PI / 2;
-  alley.position.set(2, 0.003, 28);
+  alley.position.set(2, 0.02, 28);
   const curb = new THREE.Mesh(
     new THREE.BoxGeometry(80, 0.18, 0.4),
     new THREE.MeshStandardMaterial({ color: 0xc8c0b2, roughness: 0.84 }),
@@ -548,7 +492,7 @@ export function buildSkyline(): THREE.Group {
     }),
   );
   road.rotation.x = -Math.PI / 2;
-  road.position.set(0, 0.002, -54);
+  road.position.set(0, 0.02, -54);
   root.add(road);
 
   const curb = new THREE.Mesh(

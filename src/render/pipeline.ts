@@ -247,8 +247,8 @@ export function configureKeyLight(light: THREE.DirectionalLight): void {
   light.shadow.camera.right = 42;
   light.shadow.camera.top = 34;
   light.shadow.camera.bottom = -34;
-  light.shadow.bias = -0.00035;
-  light.shadow.normalBias = 0.035;
+  light.shadow.bias = -0.0008;
+  light.shadow.normalBias = 0.08;
 }
 
 export function initialQuality(): QualityTier {

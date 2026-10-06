@@ -83,13 +83,16 @@ export function addLotMirror(root: THREE.Group, _renderer: THREE.WebGLRenderer):
     envMapIntensity: 0.16,
     transparent: true,
     opacity: 0.05,
+    polygonOffset: true,
+    polygonOffsetFactor: -2,
+    polygonOffsetUnits: -2,
   });
   const patches = CANOPIES.map((c) => [c.x, c.z, Math.min(c.w * 0.72, 8), Math.min(c.d * 0.55, 14)] as const);
   for (const [x, z, w, d] of patches) {
     const patch = new THREE.Mesh(new THREE.PlaneGeometry(w, d), sheen);
     patch.rotation.x = -Math.PI / 2;
-    patch.position.set(x, 0.007, z);
-    patch.receiveShadow = true;
+    patch.position.set(x, 0.02, z);
+    patch.receiveShadow = false;
     root.add(patch);
   }
 }

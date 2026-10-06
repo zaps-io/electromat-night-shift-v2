@@ -87,6 +87,9 @@ async function main(): Promise<void> {
     );
     await new Promise((r) => setTimeout(r, 500));
     await shot("brand-hq-fpv-aisle");
+    await page.evaluate(() => {
+      (window as unknown as { __electromat: { setCarsVisible: (on: boolean) => void } }).__electromat.setCarsVisible(false);
+    });
 
     await page.evaluate(
       ({ x, z }) => {
@@ -98,13 +101,34 @@ async function main(): Promise<void> {
             };
           }
         ).__electromat;
-        api.place(x + 1.55, z - 0.22, 0, 0, 1.48, 32);
-        api.lookAt(x + 0.05, 1.52, z);
+        api.place(x + 2.16, z, 0, 0, 1.15, 50);
+        api.lookAt(x + 0.05, 1.05, z);
       },
       { x: stall.zeusX, z: stall.zeusZ },
     );
     await new Promise((r) => setTimeout(r, 500));
     await shot("brand-hq-zeus-face");
+
+    await page.evaluate(
+      ({ x, z }) => {
+        const api = (
+          window as unknown as {
+            __electromat: {
+              place: (x: number, z: number, yaw?: number, pitch?: number, eyeY?: number, fov?: number) => void;
+              lookAt: (x: number, y: number, z: number) => void;
+            };
+          }
+        ).__electromat;
+        api.place(x + 1.35, z + 1.05, 0, 0, 1.05, 52);
+        api.lookAt(x + 0.05, 1.0, z);
+      },
+      { x: stall.zeusX, z: stall.zeusZ },
+    );
+    await new Promise((r) => setTimeout(r, 500));
+    await shot("brand-hq-zeus-34");
+    await page.evaluate(() => {
+      (window as unknown as { __electromat: { setCarsVisible: (on: boolean) => void } }).__electromat.setCarsVisible(true);
+    });
 
     await page.evaluate(
       ({ x, z, lookZ, y }) => {

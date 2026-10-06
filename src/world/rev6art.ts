@@ -234,7 +234,7 @@ const readyGate = Promise.all([
   gradeCityStrip(city);
   cityMat.map = city;
   cityMat.color.set(0xc4b8a8);
-  cityMat.opacity = 0.82;
+  cityMat.opacity = 0.38;
   cityMat.transparent = true;
   cityMat.needsUpdate = true;
 });
@@ -345,10 +345,11 @@ function gradeCityStrip(tex: THREE.Texture): void {
     const b = d[i + 2] ?? 0;
     const y = r * 0.3 + g * 0.52 + b * 0.18;
     const magenta = r > 130 && b > 110 && g < r * 0.78;
-    if (magenta) {
-      d[i] = 168;
+    const billboard = r > 170 && g > 70 && b < 110 && r > b + 50;
+    if (magenta || billboard) {
+      d[i] = 150;
       d[i + 1] = 132;
-      d[i + 2] = 108;
+      d[i + 2] = 112;
     } else {
       d[i] = Math.min(255, y * 0.62 + r * 0.28 + 12);
       d[i + 1] = Math.min(255, y * 0.66 + g * 0.22 + 8);
@@ -370,9 +371,9 @@ const asphaltMat = new THREE.MeshStandardMaterial({
   envMapIntensity: 0.14,
   emissive: 0xffffff,
   emissiveMap: albedoTex,
-  emissiveIntensity: 0.46,
+  emissiveIntensity: 0.12,
   normalMap: asphaltNormal(),
-  normalScale: new THREE.Vector2(0.48, 0.48),
+  normalScale: new THREE.Vector2(0.16, 0.16),
 });
 
 const paintParams: THREE.MeshStandardMaterialParameters = {
@@ -636,10 +637,10 @@ function addLoungeGlass(root: THREE.Group): void {
 }
 
 function addCityRing(root: THREE.Group): void {
-  const n = 8;
-  const radius = 74;
+  const n = 10;
+  const radius = 118;
   const chord = 2 * radius * Math.sin(Math.PI / n) * 0.992;
-  const height = chord / (3072 / 564);
+  const height = (chord / (3072 / 564)) * 0.42;
   for (let i = 0; i < n; i++) {
     const geo = new THREE.PlaneGeometry(chord, height);
     if (i % 2 === 1) {
@@ -800,7 +801,7 @@ function retuneBakedAsphalt(scene: THREE.Scene): void {
       mat.roughnessMap = roughTex;
       mat.emissiveMap = albedoTex;
       mat.emissive.set(0xffffff);
-      mat.emissiveIntensity = 0.18;
+      mat.emissiveIntensity = 0.08;
       mat.color.set(0xffffff);
       mat.roughness = 1;
       mat.metalness = 0.02;

@@ -341,9 +341,9 @@ function windowColor(style: FacadeStyle, seed: number, emitOnly: boolean): strin
   }
   if (!on) return style === "dark" ? "#080a0e" : "#12161c";
   if (style === "dark") return bright ? "#d0e8ff" : "#6a8498";
-  if (style === "cool") return bright ? "#f4d898" : "#c08038";
-  if (style === "brick") return bright ? "#f2c878" : "#b87838";
-  return bright ? "#f6c878" : "#c88840";
+  if (style === "cool") return bright ? "#e6d2a8" : "#8a7048";
+  if (style === "brick") return bright ? "#e4c8a0" : "#8a6840";
+  return bright ? "#e8d0a8" : "#7a6248";
 }
 
 function paintFacadeGrid(

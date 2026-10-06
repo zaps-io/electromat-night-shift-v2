@@ -10,11 +10,10 @@ import {
   paintMaterial,
 } from "../cars/opaque";
 import type { GameState, Guest, HullKind, LotRead } from "../game/state";
-import { arrivedGuests, earlyShift, guestAction, lotRead } from "../game/shift";
-import { jobNeedLocked, nextJob } from "../game/interact";
+import { arrivedGuests, lotRead } from "../game/shift";
 import { BAYS, STALLS, WAIT_ORDER, WAIT_SLOTS } from "./layout";
 import { ccsLeadPoints, tubeFromPoints } from "./cables";
-import { applyLotIcon, makeAttentionIcon, makeBatteryIcon } from "./icons";
+import { makeAttentionIcon, makeBatteryIcon } from "./icons";
 import { setZeusHolsterPlugged, tintStallBadge } from "./zeus";
 
 export const FULL_PBR_IDS = new Set(["hale", "ruiz", "vora", "chen", "peck"]);
@@ -498,12 +497,8 @@ function stallNear(x: number, z: number): number | null {
 }
 
 function paintRead(view: CarView, read: LotRead): void {
-  if (read === "idle") {
-    view.battery.visible = false;
-    return;
-  }
-  applyLotIcon(view.battery, read);
-  view.battery.visible = true;
+  view.battery.visible = false;
+  view.attention.visible = false;
   const glow = view.portGlow.material as THREE.MeshBasicMaterial;
   if (read === "unpaid") glow.color.setHex(0xe89a2e);
   else if (read === "full") glow.color.setHex(0xf5f0e8);
@@ -557,25 +552,12 @@ export function placeGuest(view: CarView, guest: Guest, now: number, state?: Gam
     view.root.position.set(wait.x, 0, wait.z);
     view.root.rotation.y = wait.yaw;
   }
-  const need = guestAction(guest);
   const read = lotRead(guest);
   const prev = readPrev.get(guest.id);
   if (state && prev && prev !== read && (read === "unpaid" || read === "charging")) state.sfxCue = read;
   readPrev.set(guest.id, read);
-  const showNeed = need === "talk" || need === "park" || need === "plug" || need === "pay" || need === "unplug";
-  const job = state ? nextJob(state) : null;
-  const late = !!state && !earlyShift(state);
-  const rushed = !!state?.rushIds.includes(guest.id);
-  const jobMark =
-    showNeed && !!job && need === job.need && (job.guestId == null || guest.id === job.guestId);
-  if (jobNeedLocked(job)) {
-    if (job?.need === "wave") view.attention.visible = rushed;
-    else view.attention.visible = jobMark || rushed || (late && showNeed && !jobMark);
-  } else {
-    view.attention.visible = showNeed || rushed;
-  }
-  if (rushed || jobMark) view.attention.scale.set(0.9, 0.9, 1);
-  else if (view.attention.visible) view.attention.scale.set(0.62, 0.62, 1);
+  view.attention.visible = false;
+  view.battery.visible = false;
   paintRead(view, read === "idle" ? "idle" : read);
   view.cable.visible = guest.plugged && !guest.served;
   view.portGlow.visible = guest.plugged && !guest.served;

@@ -1,7 +1,7 @@
 import * as THREE from "three";
 
 /** Cable exit at the waist holster (front face = local -Z). */
-export const ZEUS_CABLE_EXIT = { x: 0.11, y: 1.05, z: -0.245 };
+export const ZEUS_CABLE_EXIT = { x: 0.155, y: 1.05, z: -0.245 };
 
 /**
  * CCS lead in car space. Port is the right-front quarter; Zeus sits ~3.3 m ahead on -Z.
@@ -21,10 +21,10 @@ export function ccsLeadPoints(inlet: { x: number; y: number; z: number }): THREE
 /** Tight hang from the waist holster. Stays in the front z-band so it does not clip the body. */
 export function holsterRestPoints(side: -1 | 1): THREE.Vector3[] {
   return [
-    new THREE.Vector3(0.11 * side, 1.02, -0.245),
-    new THREE.Vector3(0.112 * side, 0.78, -0.275),
-    new THREE.Vector3(0.108 * side, 0.52, -0.26),
-    new THREE.Vector3(0.1 * side, 0.3, -0.235),
+    new THREE.Vector3(0.155 * side, 1.02, -0.245),
+    new THREE.Vector3(0.15 * side, 0.78, -0.275),
+    new THREE.Vector3(0.148 * side, 0.52, -0.26),
+    new THREE.Vector3(0.145 * side, 0.3, -0.235),
   ];
 }
 

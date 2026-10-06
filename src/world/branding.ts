@@ -17,11 +17,13 @@ const RED_STYLE = {
 const MOLDED_STYLE = {
   face: C.red,
   faceEmissive: C.red,
-  faceEmissiveIntensity: 0.85,
+  faceEmissiveIntensity: 0.28,
   returns: 0x9aa1a8,
-  returnMetalness: 0.84,
-  returnRoughness: 0.34,
-  depth: 90,
+  returnMetalness: 0.72,
+  returnRoughness: 0.4,
+  /** A few millimetres of relief once scaled onto the charcoal face. */
+  depth: 22,
+  bevel: 1.6,
 };
 
 /**
@@ -55,5 +57,5 @@ export async function addBrandSignage(root: THREE.Group): Promise<void> {
 
   root.add(placeChannel(red, 0.78, -9.12, 2.55, -13.6, Math.PI / 2, false));
 
-  applyZeusLogos(root, () => placeChannel(molded, 0.31, 0, 0, 0.012, 0, false));
+  applyZeusLogos(root, () => placeChannel(molded, 0.15, 0, 0, 0, 0, false));
 }
