@@ -66,6 +66,7 @@ export function applyBakedLotLight(root: THREE.Object3D): void {
     if (!mesh.isMesh || skipBake(mesh)) return;
     const current = mesh.material as THREE.MeshStandardMaterial;
     if (!current || Array.isArray(current)) return;
+    if (current.type === "MeshBasicMaterial") return;
     if (current.transparent && (current.opacity ?? 1) < 0.9) return;
     if ((current.emissiveIntensity ?? 0) > 0.9) return;
     const name = `${mesh.name} ${current.name ?? ""}`.toLowerCase();
@@ -76,6 +77,6 @@ export function applyBakedLotLight(root: THREE.Object3D): void {
     box.copy(mesh.geometry.boundingBox!).applyMatrix4(mesh.matrixWorld);
     if (box.min.y > 3.15) return;
     writePlanarUv2(mesh);
-    mesh.material = lit(current, mesh.userData.walkGround ? 0.72 : 0.28);
+    mesh.material = lit(current, mesh.userData.walkGround ? 0.28 : 0.16);
   });
 }

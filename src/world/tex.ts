@@ -341,9 +341,9 @@ function windowColor(style: FacadeStyle, seed: number, emitOnly: boolean): strin
   }
   if (!on) return style === "dark" ? "#080a0e" : "#12161c";
   if (style === "dark") return bright ? "#d0e8ff" : "#6a8498";
-  if (style === "cool") return bright ? "#f4d898" : "#c08038";
-  if (style === "brick") return bright ? "#f2c878" : "#b87838";
-  return bright ? "#f6c878" : "#c88840";
+  if (style === "cool") return bright ? "#e6d2a8" : "#8a7048";
+  if (style === "brick") return bright ? "#e4c8a0" : "#8a6840";
+  return bright ? "#e8d0a8" : "#7a6248";
 }
 
 function paintFacadeGrid(
@@ -462,36 +462,24 @@ export function gravel(): THREE.CanvasTexture {
   }, { repeatX: 5, repeatY: 3 });
 }
 
+/** Quiet desert plaster. No carnival type, no RGB wash. */
 export function mural(): THREE.CanvasTexture {
   return canvasTex(768, 384, (ctx, w, h) => {
-    ctx.fillStyle = "#1a1c22";
+    ctx.fillStyle = "#d9cbb6";
     ctx.fillRect(0, 0, w, h);
-    const cols = ["#E63225", "#E89A2E", "#00D4F5", "#F5F0E8", "#3cb371", "#c84a9a", "#2a6ad4", "#f07830", "#ffe36a"];
-    for (let i = 0; i < 18; i++) {
-      ctx.fillStyle = cols[i % cols.length];
-      ctx.globalAlpha = 0.88;
-      ctx.beginPath();
-      ctx.moveTo((i * 97) % w, (i * 41) % h);
-      ctx.lineTo((i * 61 + 80) % w, (i * 73) % h);
-      ctx.lineTo((i * 29 + 140) % w, (i * 19 + 60) % h);
-      ctx.closePath();
-      ctx.fill();
+    for (let i = 0; i < 4000; i++) {
+      const n = 170 + Math.random() * 50;
+      ctx.fillStyle = `rgba(${n},${n - 12},${n - 28},0.35)`;
+      ctx.fillRect(Math.random() * w, Math.random() * h, 2, 2);
     }
-    ctx.globalAlpha = 1;
-    for (let i = 0; i < 10; i++) {
-      ctx.fillStyle = cols[(i + 3) % cols.length];
+    ctx.strokeStyle = "rgba(90, 78, 64, 0.25)";
+    ctx.lineWidth = 2;
+    for (let y = 40; y < h; y += 48) {
       ctx.beginPath();
-      ctx.arc((i * 73 + 40) % w, 70 + (i % 4) * 60, 18 + (i % 5) * 7, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.moveTo(0, y);
+      ctx.lineTo(w, y);
+      ctx.stroke();
     }
-    ctx.fillStyle = "#F48AB0";
-    ctx.font = "900 92px Arial Black, Impact, sans-serif";
-    ctx.fillText("Slap's", 48, 210);
-    ctx.fillStyle = "#00D4F5";
-    ctx.font = "700 36px Arial";
-    ctx.fillText("WEST SIDE", 52, 258);
-    ctx.fillStyle = "#0c0c10";
-    ctx.fillRect(0, h - 32, w, 32);
   }, { wrap: false });
 }
 

@@ -226,14 +226,16 @@ const readyGate = Promise.all([
   // Albedo, roughness, and decal maps are the same objects the meshes already hold.
   loungeMat.map = lounge;
   loungeMat.emissiveMap = lounge;
-  loungeMat.emissiveIntensity = 1.15;
+  loungeMat.emissiveIntensity = 0.85;
+  loungeMat.color.set(0xfff4ea);
   loungeMat.needsUpdate = true;
-  signMat(priceMat, price, 0.42);
-  signMat(openMat, open, 0.62);
-  signMat(evMat, ev, 0.55);
+  repaintCyanDecals(bays);
+  repaintCyanDecals(marks);
+  gradeCityStrip(city);
   cityMat.map = city;
-  cityMat.opacity = 1;
-  cityMat.transparent = false;
+  cityMat.color.set(0xc4b8a8);
+  cityMat.opacity = 0.38;
+  cityMat.transparent = true;
   cityMat.needsUpdate = true;
 });
 
@@ -287,7 +289,7 @@ const priceDigitMat = new THREE.MeshStandardMaterial({
   map: priceDigits,
   emissiveMap: priceDigits,
   emissive: 0xffffff,
-  emissiveIntensity: 0.72,
+  emissiveIntensity: 0.22,
   color: 0xffffff,
   roughness: 0.48,
   metalness: 0,
@@ -296,12 +298,67 @@ const priceDigitMat = new THREE.MeshStandardMaterial({
   depthWrite: true,
 });
 
-function signMat(mat: THREE.MeshStandardMaterial, tex: THREE.Texture, intensity: number): void {
-  mat.map = tex;
-  mat.emissiveMap = tex;
-  mat.emissiveIntensity = intensity;
-  mat.color.set(0xffffff);
-  mat.needsUpdate = true;
+/** Stall paint stays cream. The source sheet's cyan EV glyph is structural-color drift. */
+function repaintCyanDecals(tex: THREE.Texture): void {
+  const img = tex.image as CanvasImageSource | undefined;
+  if (!img || !("width" in img)) return;
+  const canvas = document.createElement("canvas");
+  canvas.width = (img as HTMLImageElement).width;
+  canvas.height = (img as HTMLImageElement).height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+  ctx.drawImage(img, 0, 0);
+  const frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const d = frame.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const r = d[i] ?? 0;
+    const g = d[i + 1] ?? 0;
+    const b = d[i + 2] ?? 0;
+    const a = d[i + 3] ?? 0;
+    if (a < 24) continue;
+    if (b > 150 && g > 110 && r < 150 && b > r + 35) {
+      d[i] = 245;
+      d[i + 1] = 240;
+      d[i + 2] = 232;
+    }
+  }
+  ctx.putImageData(frame, 0, 0);
+  tex.image = canvas;
+  tex.needsUpdate = true;
+}
+
+/** Pull the horizon plate off magenta/orange synthwave toward dusty desert. */
+function gradeCityStrip(tex: THREE.Texture): void {
+  const img = tex.image as CanvasImageSource | undefined;
+  if (!img || !("width" in img)) return;
+  const canvas = document.createElement("canvas");
+  canvas.width = (img as HTMLImageElement).width;
+  canvas.height = (img as HTMLImageElement).height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+  ctx.drawImage(img, 0, 0);
+  const frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const d = frame.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const r = d[i] ?? 0;
+    const g = d[i + 1] ?? 0;
+    const b = d[i + 2] ?? 0;
+    const y = r * 0.3 + g * 0.52 + b * 0.18;
+    const magenta = r > 130 && b > 110 && g < r * 0.78;
+    const billboard = r > 170 && g > 70 && b < 110 && r > b + 50;
+    if (magenta || billboard) {
+      d[i] = 150;
+      d[i + 1] = 132;
+      d[i + 2] = 112;
+    } else {
+      d[i] = Math.min(255, y * 0.62 + r * 0.28 + 12);
+      d[i + 1] = Math.min(255, y * 0.66 + g * 0.22 + 8);
+      d[i + 2] = Math.min(255, y * 0.7 + b * 0.12);
+    }
+  }
+  ctx.putImageData(frame, 0, 0);
+  tex.image = canvas;
+  tex.needsUpdate = true;
 }
 
 const asphaltMat = new THREE.MeshStandardMaterial({
@@ -314,9 +371,9 @@ const asphaltMat = new THREE.MeshStandardMaterial({
   envMapIntensity: 0.14,
   emissive: 0xffffff,
   emissiveMap: albedoTex,
-  emissiveIntensity: 0.46,
+  emissiveIntensity: 0.12,
   normalMap: asphaltNormal(),
-  normalScale: new THREE.Vector2(0.22, 0.22),
+  normalScale: new THREE.Vector2(0.16, 0.16),
 });
 
 const paintParams: THREE.MeshStandardMaterialParameters = {
@@ -358,24 +415,6 @@ const loungeMat = new THREE.MeshStandardMaterial({
   toneMapped: true,
   side: THREE.FrontSide,
 });
-
-function makeSignMaterial(intensity: number): THREE.MeshStandardMaterial {
-  return new THREE.MeshStandardMaterial({
-    color: 0xffffff,
-    emissive: 0xffffff,
-    emissiveIntensity: intensity,
-    roughness: 0.46,
-    metalness: 0.02,
-    toneMapped: true,
-  });
-}
-
-const priceMat = makeSignMaterial(0);
-const openMat = makeSignMaterial(0);
-const evMat = makeSignMaterial(0);
-priceMat.color.set(0x1e1e24);
-openMat.color.set(0x1e1e24);
-evMat.color.set(0x1e1e24);
 
 const cityMat = new THREE.MeshBasicMaterial({
   name: "Rev6City",
@@ -525,12 +564,7 @@ function photoFace(mat: THREE.Material, w: number, h: number): THREE.Mesh {
 
 function addSigns(root: THREE.Group): void {
   const charcoal = new THREE.MeshStandardMaterial({ color: 0x1e1e24, roughness: 0.55, metalness: 0.35 });
-  const amber = new THREE.MeshStandardMaterial({
-    color: 0xe89a2e,
-    emissive: 0xe89a2e,
-    emissiveIntensity: 0.35,
-    roughness: 0.4,
-  });
+  const trim = new THREE.MeshStandardMaterial({ color: 0xb8bcc0, roughness: 0.32, metalness: 0.72 });
 
   const pylon = new THREE.Group();
   pylon.position.set(-9.2, 0, -16.4);
@@ -539,77 +573,21 @@ function addSigns(root: THREE.Group): void {
   pole.position.y = 0.58;
   pole.castShadow = true;
   pole.userData.noBake = true;
-  const cabinet = new THREE.Mesh(new THREE.BoxGeometry(1.5, 2.22, 0.08), charcoal);
-  cabinet.position.y = 2.2;
+  const cabinet = new THREE.Mesh(new THREE.BoxGeometry(1.35, 1.85, 0.12), charcoal);
+  cabinet.position.y = 2.15;
   cabinet.castShadow = true;
   cabinet.userData.noBake = true;
-  const price = photoFace(priceMat, 1.38, 2.07);
-  price.position.set(0, 2.2, 0.05);
-  const priceDigitsFront = photoFace(priceDigitMat, 1.38, 2.07);
-  priceDigitsFront.position.set(0, 2.2, 0.064);
-  const priceBack = photoFace(priceMat, 1.38, 2.07);
-  priceBack.position.set(0, 2.2, -0.05);
-  priceBack.rotation.y = Math.PI;
-  const priceDigitsBack = photoFace(priceDigitMat, 1.38, 2.07);
-  priceDigitsBack.position.set(0, 2.2, -0.064);
+  const priceDigitsFront = photoFace(priceDigitMat, 1.18, 1.62);
+  priceDigitsFront.position.set(0, 2.15, 0.07);
+  const priceDigitsBack = photoFace(priceDigitMat, 1.18, 1.62);
+  priceDigitsBack.position.set(0, 2.15, -0.07);
   priceDigitsBack.rotation.y = Math.PI;
-  const lip = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.05, 0.1), amber);
-  lip.position.set(0, 3.34, 0);
+  const lip = new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.025, 0.14), trim);
+  lip.position.set(0, 3.1, 0);
   lip.userData.noBake = true;
-  pylon.add(pole, cabinet, price, priceDigitsFront, priceBack, priceDigitsBack, lip);
+  pylon.add(pole, cabinet, priceDigitsFront, priceDigitsBack, lip);
   noRay(pylon);
   root.add(pylon);
-
-  // Corner post, south-east of the left canopy. Off the fascia and out of the
-  // walk under the soffit, so it does not cover the wordmark.
-  const canopy = CANOPIES[0];
-  const evCorner = new THREE.Group();
-  evCorner.position.set(canopy.x + canopy.w * 0.5 - 0.55, 0, canopy.z - canopy.d * 0.5 - 1.15);
-  evCorner.userData.noBake = true;
-  const cornerPole = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 2.05, 8), charcoal);
-  cornerPole.position.y = 1.02;
-  cornerPole.castShadow = true;
-  cornerPole.userData.noBake = true;
-  const cornerBoard = new THREE.Mesh(new THREE.BoxGeometry(1.28, 0.96, 0.06), charcoal);
-  cornerBoard.position.y = 2.28;
-  cornerBoard.userData.noBake = true;
-  const cornerFace = photoFace(evMat, 1.18, 0.88);
-  cornerFace.position.set(0, 2.28, -0.04);
-  cornerFace.rotation.y = Math.PI;
-  evCorner.add(cornerPole, cornerBoard, cornerFace);
-  noRay(evCorner);
-  root.add(evCorner);
-
-  const evPost = new THREE.Group();
-  evPost.position.set(14.8, 0, -16.2);
-  evPost.userData.noBake = true;
-  const evPole = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 1.55, 8), charcoal);
-  evPole.position.y = 0.78;
-  evPole.castShadow = true;
-  evPole.userData.noBake = true;
-  const evBoard = new THREE.Mesh(new THREE.BoxGeometry(1.62, 1.24, 0.06), charcoal);
-  evBoard.position.y = 2.15;
-  evBoard.userData.noBake = true;
-  const evFace = photoFace(evMat, 1.5, 1.12);
-  evFace.position.set(0, 2.15, -0.04);
-  evFace.rotation.y = Math.PI;
-  evPost.add(evPole, evBoard, evFace);
-  noRay(evPost);
-  root.add(evPost);
-
-  const doorX = PAVILION.x + PAVILION_DOOR.localX;
-  const doorR = doorX + PAVILION_DOOR.width * 0.5;
-  const southZ = PAVILION.z - PAVILION.d * 0.5;
-  const open = photoFace(openMat, 1.28, 0.95);
-  open.position.set(doorR + 0.95, 2.15, southZ - 0.1);
-  open.rotation.y = Math.PI;
-  root.add(open);
-
-  const eastX = PAVILION.x + PAVILION.w * 0.5;
-  const evLounge = photoFace(evMat, 1.22, 0.91);
-  evLounge.position.set(eastX + 0.08, 1.55, PAVILION.z + 1.95);
-  evLounge.rotation.y = Math.PI / 2;
-  root.add(evLounge);
 }
 
 function addLoungePlate(
@@ -659,10 +637,10 @@ function addLoungeGlass(root: THREE.Group): void {
 }
 
 function addCityRing(root: THREE.Group): void {
-  const n = 8;
-  const radius = 74;
+  const n = 10;
+  const radius = 118;
   const chord = 2 * radius * Math.sin(Math.PI / n) * 0.992;
-  const height = chord / (3072 / 564);
+  const height = (chord / (3072 / 564)) * 0.42;
   for (let i = 0; i < n; i++) {
     const geo = new THREE.PlaneGeometry(chord, height);
     if (i % 2 === 1) {
@@ -691,64 +669,36 @@ export function addRev6LotDressing(root: THREE.Group): void {
   addCityRing(root);
 }
 
-type SkyFit = { repeatY: number; offsetY: number; yaw: number };
-
-/** Put the bright dusk band on the horizon and aim that column at the key light. */
-function fitSky(image: CanvasImageSource): SkyFit {
-  const w = 256;
-  const h = 128;
+/** Believable desert dusk. The generated sky plate is magenta synthwave and stays off the dome. */
+function desertDuskMap(): THREE.CanvasTexture {
   const canvas = document.createElement("canvas");
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return { repeatY: 1.28, offsetY: -0.28, yaw: 0.65 };
-  ctx.drawImage(image, 0, 0, w, h);
-  const data = ctx.getImageData(0, 0, w, h).data;
-  let bestY = 0;
-  let best = -1;
-  const col = new Float64Array(w);
-  for (let y = 0; y < h; y++) {
-    let sum = 0;
-    for (let x = 0; x < w; x++) {
-      const i = (y * w + x) * 4;
-      const lum = data[i] * 0.3 + data[i + 1] * 0.59 + data[i + 2] * 0.11;
-      sum += lum;
-      col[x] += lum;
-    }
-    if (sum > best) {
-      best = sum;
-      bestY = y;
-    }
-  }
-  let bestX = 0;
-  let bestCol = -1;
-  for (let x = 0; x < w; x++) {
-    if (col[x] > bestCol) {
-      bestCol = col[x];
-      bestX = x;
-    }
-  }
-  const fromTop = (bestY + 0.5) / h;
-  const vSunset = 1 - fromTop;
-  // Sphere equator (uv.y = 0.5) should sample the sunset; the zenith keeps the top of the file.
-  const repeatY = Math.min(1.85, Math.max(1, 2 * (1 - vSunset)));
-  const offsetY = 1 - repeatY;
-  const brightU = (bestX + 0.5) / w;
-  const phi = brightU * Math.PI * 2;
-  const bx = -Math.cos(phi);
-  const bz = Math.sin(phi);
-  const sunX = -38;
-  const sunZ = -18;
-  const yaw = Math.atan2(sunX, sunZ) - Math.atan2(bx, bz);
-  return { repeatY, offsetY, yaw };
-}
-
-function applySkyFit(tex: THREE.Texture, fit: SkyFit): void {
-  tex.wrapS = THREE.RepeatWrapping;
+  canvas.width = 2048;
+  canvas.height = 1024;
+  const ctx = canvas.getContext("2d")!;
+  const g = ctx.createLinearGradient(0, 0, 0, 1024);
+  g.addColorStop(0, "#1a2633");
+  g.addColorStop(0.34, "#314456");
+  g.addColorStop(0.48, "#8d7b6c");
+  g.addColorStop(0.53, "#e0c2a4");
+  g.addColorStop(0.58, "#c4a184");
+  g.addColorStop(0.7, "#6a5c52");
+  g.addColorStop(1, "#2c2824");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 2048, 1024);
+  const sun = ctx.createRadialGradient(380, 545, 8, 380, 545, 260);
+  sun.addColorStop(0, "rgba(255, 220, 186, 0.92)");
+  sun.addColorStop(0.22, "rgba(232, 176, 128, 0.38)");
+  sun.addColorStop(1, "rgba(232, 176, 128, 0)");
+  ctx.fillStyle = sun;
+  ctx.fillRect(0, 0, 2048, 1024);
+  ctx.fillStyle = "rgba(245, 236, 224, 0.07)";
+  ctx.fillRect(0, 500, 2048, 28);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.wrapS = THREE.ClampToEdgeWrapping;
   tex.wrapT = THREE.ClampToEdgeWrapping;
-  tex.repeat.set(1, fit.repeatY);
-  tex.offset.set(0, fit.offsetY);
   tex.needsUpdate = true;
+  return tex;
 }
 
 function reflectionCards(env: THREE.Scene): void {
@@ -766,50 +716,46 @@ function reflectionCards(env: THREE.Scene): void {
     card(0xf7f8fb, canopy.x, canopy.y + 0.2, canopy.z, canopy.w * 0.7, 0.28);
   }
   card(0xe63225, PAVILION.x - 2.2, PAVILION.h - 0.1, PAVILION.z - PAVILION.d * 0.5 - 0.4, 2.4, 0.35);
-  card(0x00d4f5, AB_AISLE_X, 0.35, -8, 0.35, 6);
+  card(0x3a4048, AB_AISLE_X, 0.35, -8, 0.2, 4);
 }
 
 let skyMounted = false;
 
 /**
- * Full-res dusk on the skydome. The 2k plate is the PMREM source so the
- * cubemap bake stays small. Both share one horizon fit.
+ * Desert-dusk skydome plus a PMREM of the same grade.
+ * The rev6 sky plates stay loaded for the art gate but are not shown:
+ * they are a magenta synthwave gradient with a giant wordmark.
  */
 export async function mountRev6Sky(renderer: THREE.WebGLRenderer, scene: THREE.Scene): Promise<void> {
   if (skyMounted) return;
   try {
-    const [sky, skyEnv] = await Promise.all([skyP, skyEnvP]);
-    const fit = fitSky(sky.image as CanvasImageSource);
-    applySkyFit(sky, fit);
-    applySkyFit(skyEnv, fit);
-
-    const domeMat = new THREE.MeshBasicMaterial({
-      map: sky,
-      side: THREE.BackSide,
-      depthWrite: false,
-      fog: false,
-      toneMapped: true,
-    });
-    const dome = new THREE.Mesh(new THREE.SphereGeometry(168, 48, 32), domeMat);
-    dome.rotation.y = fit.yaw;
+    const sky = desertDuskMap();
+    const dome = new THREE.Mesh(
+      new THREE.SphereGeometry(168, 48, 32),
+      new THREE.MeshBasicMaterial({
+        map: sky,
+        side: THREE.BackSide,
+        depthWrite: false,
+        fog: false,
+        toneMapped: true,
+      }),
+    );
+    dome.rotation.y = 0.85;
     dome.userData.kind = "skydome";
     dome.frustumCulled = false;
     noRay(dome);
     scene.add(dome);
 
     const env = new THREE.Scene();
-    const envMat = new THREE.MeshBasicMaterial({
-      map: skyEnv,
-      side: THREE.BackSide,
-      depthWrite: false,
-      fog: false,
-    });
-    const envSky = new THREE.Mesh(new THREE.SphereGeometry(48, 32, 20), envMat);
-    envSky.rotation.y = fit.yaw;
+    const envSky = new THREE.Mesh(
+      new THREE.SphereGeometry(48, 32, 20),
+      new THREE.MeshBasicMaterial({ map: sky, side: THREE.BackSide, depthWrite: false, fog: false }),
+    );
+    envSky.rotation.y = 0.85;
     env.add(envSky);
     const ground = new THREE.Mesh(
       new THREE.CircleGeometry(40, 24),
-      new THREE.MeshBasicMaterial({ color: 0x14120e }),
+      new THREE.MeshBasicMaterial({ color: 0x2a2824 }),
     );
     ground.rotation.x = -Math.PI / 2;
     ground.position.y = -1.4;
@@ -822,17 +768,16 @@ export async function mountRev6Sky(renderer: THREE.WebGLRenderer, scene: THREE.S
     const environment = pmrem.fromScene(env, 0.04, 0.1, 70).texture;
     renderer.toneMappingExposure = prev;
     pmrem.dispose();
-    skyEnv.dispose();
 
     scene.environment = environment;
-    scene.environmentIntensity = 0.34;
+    scene.environmentIntensity = 0.58;
     scene.environmentRotation.set(0, 0, 0);
     skyMounted = true;
   } catch (err) {
-    console.warn("rev6 sky failed, using dusk.hdr", err);
+    console.warn("desert sky failed, using dusk.hdr", err);
     const fallback = await loadDuskEnvironment(renderer);
     scene.environment = fallback.environment;
-    scene.environmentIntensity = 0.26;
+    scene.environmentIntensity = 0.4;
     scene.environmentRotation.y = 0.9;
     skyMounted = true;
   }
@@ -856,11 +801,11 @@ function retuneBakedAsphalt(scene: THREE.Scene): void {
       mat.roughnessMap = roughTex;
       mat.emissiveMap = albedoTex;
       mat.emissive.set(0xffffff);
-      mat.emissiveIntensity = 0.46;
+      mat.emissiveIntensity = 0.08;
       mat.color.set(0xffffff);
       mat.roughness = 1;
       mat.metalness = 0.02;
-      mat.envMapIntensity = 0.14;
+      mat.envMapIntensity = 0.32;
       mat.aoMapIntensity = 0.42;
       // Bounce JPEG sits near 30/255. Decoded as sRGB that is a tiny indirect
       // term, so the canopy shadow ate the new grain. A higher intensity

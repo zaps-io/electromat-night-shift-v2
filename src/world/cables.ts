@@ -1,7 +1,7 @@
 import * as THREE from "three";
 
-/** Cable exit under a Slim Zeus holster grip (front face = local -Z). */
-export const ZEUS_CABLE_EXIT = { x: 0.078, y: 0.68, z: -0.21 };
+/** Cable exit at the waist holster (front face = local -Z). */
+export const ZEUS_CABLE_EXIT = { x: 0.185, y: 1.05, z: -0.245 };
 
 /**
  * CCS lead in car space. Port is the right-front quarter; Zeus sits ~3.3 m ahead on -Z.
@@ -18,13 +18,13 @@ export function ccsLeadPoints(inlet: { x: number; y: number; z: number }): THREE
   ];
 }
 
-/** Tight U-hang from the holster grip into the front well — no outward spaghetti. */
+/** Tight hang from the waist holster. Stays in the front z-band so it does not clip the body. */
 export function holsterRestPoints(side: -1 | 1): THREE.Vector3[] {
   return [
-    new THREE.Vector3(ZEUS_CABLE_EXIT.x * side, 0.7, -0.22),
-    new THREE.Vector3(0.1 * side, 0.46, -0.285),
-    new THREE.Vector3(0.096 * side, 0.24, -0.272),
-    new THREE.Vector3(0.09 * side, 0.12, -0.25),
+    new THREE.Vector3(0.185 * side, 1.02, -0.245),
+    new THREE.Vector3(0.18 * side, 0.78, -0.275),
+    new THREE.Vector3(0.176 * side, 0.52, -0.26),
+    new THREE.Vector3(0.172 * side, 0.3, -0.235),
   ];
 }
 

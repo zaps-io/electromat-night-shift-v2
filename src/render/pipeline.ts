@@ -36,7 +36,7 @@ export function createRenderer(canvas: HTMLCanvasElement): THREE.WebGLRenderer {
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 0.8;
+  renderer.toneMappingExposure = 1.02;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   return renderer;
 }
@@ -94,7 +94,7 @@ function addReflectionCards(env: THREE.Scene): void {
     card(0xf7f8fb, canopy.x, canopy.y + 0.2, canopy.z, canopy.w * 0.7, 0.28);
   }
   card(0xe63225, PAVILION.x - 2.2, PAVILION.h - 0.1, PAVILION.z - PAVILION.d * 0.5 - 0.4, 2.4, 0.35);
-  card(0x00d4f5, -17.3, 0.35, -8, 0.35, 6);
+  card(0x3a4048, -17.3, 0.35, -8, 0.2, 4);
 }
 
 /** Golden-hour IBL so metals and clearcoat read as painted, not plastic. */
@@ -184,9 +184,9 @@ export function createPipeline(
     resolutionScale: 0.65,
   });
   const bloom = new BloomEffect({
-    intensity: 0.026,
-    luminanceThreshold: 0.94,
-    luminanceSmoothing: 0.28,
+    intensity: 0.045,
+    luminanceThreshold: 0.86,
+    luminanceSmoothing: 0.22,
     mipmapBlur: true,
     radius: 0.42,
   });
@@ -207,12 +207,12 @@ export function createPipeline(
 
   function setQuality(next: QualityTier): void {
     tier = next;
-    const dprCap = next === "high" ? 1.5 : next === "medium" ? 1.15 : 1;
+    const dprCap = next === "high" ? 1.25 : next === "medium" ? 1 : 1;
     renderer.setPixelRatio(Math.min(devicePixelRatio || 1, dprCap));
     normalPass.enabled = next !== "low";
     ssaoPass.enabled = next !== "low";
     ssao.intensity = next === "high" ? 0.9 : 0.55;
-    bloom.intensity = next === "low" ? 0.01 : next === "medium" ? 0.018 : 0.026;
+    bloom.intensity = next === "low" ? 0.012 : next === "medium" ? 0.028 : 0.045;
     const shadow = next === "high" ? 2048 : next === "medium" ? 1024 : 512;
     sun.shadow.mapSize.set(shadow, shadow);
     sun.castShadow = next !== "low";
@@ -242,19 +242,20 @@ export function configureKeyLight(light: THREE.DirectionalLight): void {
   light.castShadow = true;
   light.shadow.mapSize.set(2048, 2048);
   light.shadow.camera.near = 2;
-  light.shadow.camera.far = 72;
-  light.shadow.camera.left = -36;
-  light.shadow.camera.right = 36;
-  light.shadow.camera.top = 28;
-  light.shadow.camera.bottom = -28;
-  light.shadow.bias = -0.00035;
-  light.shadow.normalBias = 0.035;
+  light.shadow.camera.far = 96;
+  light.shadow.camera.left = -42;
+  light.shadow.camera.right = 42;
+  light.shadow.camera.top = 34;
+  light.shadow.camera.bottom = -34;
+  light.shadow.bias = -0.0008;
+  light.shadow.normalBias = 0.08;
 }
 
 export function initialQuality(): QualityTier {
   const nav = navigator as Navigator & { deviceMemory?: number };
   const cores = navigator.hardwareConcurrency ?? 8;
-  const mem = nav.deviceMemory ?? 8;
-  if (cores <= 4 || mem <= 4) return "medium";
+  const mem = nav.deviceMemory;
+  if (cores <= 2 || (mem != null && mem <= 2)) return "low";
+  if (cores <= 4 && mem != null && mem <= 4) return "medium";
   return "high";
 }
