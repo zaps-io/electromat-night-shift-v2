@@ -48,75 +48,19 @@ export function makeTargetMark(): THREE.Group {
   const ring = new THREE.Mesh(
     new THREE.RingGeometry(0.42, 0.58, 32),
     new THREE.MeshBasicMaterial({
-      color: 0x00d4f5,
+      color: 0xe89a2e,
       transparent: true,
-      opacity: 0.9,
+      opacity: 0.75,
       side: THREE.DoubleSide,
       depthWrite: false,
-      toneMapped: false,
+      toneMapped: true,
     }),
   );
   ring.rotation.x = -Math.PI / 2;
   ring.position.y = 0.04;
-  const chevron = makeChevronSprite();
-  chevron.position.y = 2.85;
-  g.add(ring, chevron);
+  g.add(ring);
   g.visible = false;
   return g;
-}
-
-function makeChevronSprite(): THREE.Sprite {
-  const c = document.createElement("canvas");
-  c.width = 256;
-  c.height = 256;
-  const ctx = c.getContext("2d")!;
-  ctx.clearRect(0, 0, 256, 256);
-  const glow = ctx.createRadialGradient(128, 128, 10, 128, 128, 120);
-  glow.addColorStop(0, "rgba(0,212,245,0.55)");
-  glow.addColorStop(1, "rgba(0,212,245,0)");
-  ctx.fillStyle = glow;
-  ctx.fillRect(0, 0, 256, 256);
-  ctx.fillStyle = "#00D4F5";
-  ctx.beginPath();
-  ctx.moveTo(128, 196);
-  ctx.lineTo(48, 84);
-  ctx.lineTo(92, 84);
-  ctx.lineTo(128, 148);
-  ctx.lineTo(164, 84);
-  ctx.lineTo(208, 84);
-  ctx.closePath();
-  ctx.fill();
-  ctx.strokeStyle = "#F5F0E8";
-  ctx.lineWidth = 8;
-  ctx.stroke();
-  return sprite(new THREE.CanvasTexture(c), 0.72, 0.72, "target");
-}
-
-export function makeDoorChevron(): THREE.Sprite {
-  const c = document.createElement("canvas");
-  c.width = 256;
-  c.height = 256;
-  const ctx = c.getContext("2d")!;
-  ctx.clearRect(0, 0, 256, 256);
-  const glow = ctx.createRadialGradient(128, 128, 10, 128, 128, 124);
-  glow.addColorStop(0, "rgba(232,154,46,0.62)");
-  glow.addColorStop(1, "rgba(232,154,46,0)");
-  ctx.fillStyle = glow;
-  ctx.fillRect(0, 0, 256, 256);
-  ctx.fillStyle = "#E89A2E";
-  ctx.beginPath();
-  ctx.moveTo(128, 208);
-  ctx.lineTo(40, 72);
-  ctx.lineTo(92, 72);
-  ctx.lineTo(128, 148);
-  ctx.lineTo(164, 72);
-  ctx.lineTo(216, 72);
-  ctx.closePath();
-  ctx.fill();
-  ctx.strokeStyle = "#F5F0E8";
-  ctx.lineWidth = 8;
-  ctx.stroke();
-  return sprite(new THREE.CanvasTexture(c), 0.95, 0.95, "door-chevron");
 }
 
 export function makeWalkPuck(): THREE.Mesh {
@@ -135,27 +79,6 @@ export function makeWalkPuck(): THREE.Mesh {
   mesh.position.y = 0.03;
   mesh.visible = false;
   return mesh;
-}
-
-export function makeOpenSign(): THREE.Sprite {
-  const c = document.createElement("canvas");
-  c.width = 320;
-  c.height = 140;
-  const ctx = c.getContext("2d")!;
-  ctx.clearRect(0, 0, 320, 140);
-  ctx.fillStyle = "#0c0d12";
-  round(ctx, 16, 18, 288, 104, 14);
-  ctx.fill();
-  ctx.strokeStyle = "#E89A2E";
-  ctx.lineWidth = 6;
-  round(ctx, 16, 18, 288, 104, 14);
-  ctx.stroke();
-  ctx.fillStyle = "#E89A2E";
-  ctx.font = "800 52px monospace";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText("LOUNGE", 160, 76);
-  return sprite(new THREE.CanvasTexture(c), 1.62, 0.7, "door");
 }
 
 export function makePayIcon(): THREE.Sprite {
@@ -177,7 +100,7 @@ export function makePayIcon(): THREE.Sprite {
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText("PAY", 160, 84);
-  return sprite(new THREE.CanvasTexture(c), 1.15, 0.58, "kiosk");
+  return sprite(new THREE.CanvasTexture(c), 0.62, 0.3, "kiosk");
 }
 
 const WAVE_GLYPHS: Record<string, string[]> = {
@@ -194,12 +117,12 @@ export function makeWaveGuide(point: { x: number; z: number }): THREE.Group {
   const ring = new THREE.Mesh(
     new THREE.RingGeometry(0.72, 1.02, 40),
     new THREE.MeshBasicMaterial({
-      color: 0x00d4f5,
+      color: 0xe89a2e,
       transparent: true,
-      opacity: 0.82,
+      opacity: 0.55,
       side: THREE.DoubleSide,
       depthWrite: false,
-      toneMapped: false,
+      toneMapped: true,
     }),
   );
   ring.rotation.x = -Math.PI / 2;
@@ -221,11 +144,7 @@ export function makeWaveGuide(point: { x: number; z: number }): THREE.Group {
   pad.position.set(point.x, 0.03, point.z);
   g.add(pad);
 
-  for (const zOff of [3.8, 2.45, 1.2]) {
-    const chevron = makeChevronSprite();
-    chevron.position.set(point.x, 0.95, point.z + zOff);
-    chevron.scale.setScalar(0.95);
-    g.add(chevron);
+  for (const zOff of [2.4, 1.15]) {
     const arrow = groundArrow();
     arrow.position.set(point.x, 0.04, point.z + zOff);
     g.add(arrow);
@@ -247,7 +166,7 @@ function groundArrow(): THREE.Mesh {
   const mesh = new THREE.Mesh(
     new THREE.ShapeGeometry(shape),
     new THREE.MeshBasicMaterial({
-      color: 0x00d4f5,
+      color: 0xe89a2e,
       transparent: true,
       opacity: 0.88,
       side: THREE.DoubleSide,
@@ -285,7 +204,7 @@ export function makeWaveIcon(): THREE.Sprite {
     }
     x += 56;
   }
-  return sprite(new THREE.CanvasTexture(c), 1.05, 0.4, "wave");
+  return sprite(new THREE.CanvasTexture(c), 0.62, 0.24, "wave");
 }
 
 export function makeBatteryIcon(): THREE.Sprite {
@@ -294,38 +213,26 @@ export function makeBatteryIcon(): THREE.Sprite {
   c.height = 200;
   const ctx = c.getContext("2d")!;
   ctx.clearRect(0, 0, 320, 200);
-  const g = ctx.createRadialGradient(160, 100, 16, 160, 100, 140);
-  g.addColorStop(0, "rgba(0,212,245,0.18)");
-  g.addColorStop(1, "rgba(0,212,245,0)");
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, 320, 200);
-  ctx.fillStyle = "#00D4F5";
-  round(ctx, 48, 54, 188, 92, 10);
+  ctx.fillStyle = "#1E1E24";
+  round(ctx, 36, 48, 248, 104, 10);
   ctx.fill();
-  ctx.fillRect(236, 80, 18, 40);
-  ctx.fillStyle = "#041418";
-  round(ctx, 58, 64, 168, 72, 7);
-  ctx.fill();
-  ctx.fillStyle = "#7CF6FF";
-  for (let i = 0; i < 4; i++) ctx.fillRect(68 + i * 38, 74, 30, 52);
-  ctx.fillStyle = "#F4FFFF";
-  ctx.beginPath();
-  ctx.moveTo(154, 62);
-  ctx.lineTo(134, 100);
-  ctx.lineTo(154, 100);
-  ctx.lineTo(144, 138);
-  ctx.lineTo(180, 92);
-  ctx.lineTo(158, 92);
-  ctx.closePath();
-  ctx.fill();
-  return sprite(new THREE.CanvasTexture(c), 0.92, 0.58, "battery");
+  ctx.strokeStyle = "#E89A2E";
+  ctx.lineWidth = 6;
+  round(ctx, 36, 48, 248, 104, 10);
+  ctx.stroke();
+  ctx.fillStyle = "#E89A2E";
+  ctx.font = "700 48px monospace";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("CHG", 160, 104);
+  return sprite(new THREE.CanvasTexture(c), 0.62, 0.32, "battery");
 }
 
 const LOT_COLORS: Record<string, { fill: string; ink: string; label: string }> = {
-  unpaid: { fill: "#E89A2E", ink: "#1E1E24", label: "PAY" },
-  charging: { fill: "#00D4F5", ink: "#041418", label: "CHG" },
-  full: { fill: "#F5F0E8", ink: "#1E1E24", label: "FULL" },
-  departing: { fill: "#E63225", ink: "#F5F0E8", label: "ZIP" },
+  unpaid: { fill: "#1E1E24", ink: "#E89A2E", label: "PAY" },
+  charging: { fill: "#1E1E24", ink: "#E89A2E", label: "CHG" },
+  full: { fill: "#1E1E24", ink: "#F5F0E8", label: "FULL" },
+  departing: { fill: "#1E1E24", ink: "#E63225", label: "ZIP" },
 };
 
 const lotTexCache = new Map<string, THREE.CanvasTexture>();
@@ -363,8 +270,8 @@ export function applyLotIcon(spr: THREE.Sprite, read: "unpaid" | "charging" | "f
   const mat = spr.material as THREE.SpriteMaterial;
   mat.map = lotTexture(read);
   mat.needsUpdate = true;
-  const scale = read === "full" || read === "departing" ? 1.12 : 1;
-  spr.scale.set(1.42 * scale, 0.88 * scale, 1);
+  const scale = read === "full" || read === "departing" ? 1.08 : 1;
+  spr.scale.set(0.7 * scale, 0.36 * scale, 1);
 }
 
 function round(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {

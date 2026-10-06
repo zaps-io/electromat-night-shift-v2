@@ -19,7 +19,7 @@ import {
   westVoidWalls,
 } from "./layout";
 import { addPavilion } from "./pavilion";
-import { creamPanels, curbColor, curbRough, gravel } from "./tex";
+import { brushMetal, creamPanels, curbColor, curbRough, gravel } from "./tex";
 import { addRev6LotDressing, rev6AsphaltMaterial } from "./rev6art";
 import { applyBakedLotLight } from "./lightmaps";
 import { makePayIcon, makeWaveGuide, makeWaveIcon } from "./icons";
@@ -137,34 +137,45 @@ function roundedRectShape(w: number, d: number, r: number): THREE.Shape {
   return s;
 }
 
+const canopyBrush = brushMetal();
+const canopyPanels = creamPanels();
+const canopyCream = new THREE.MeshPhysicalMaterial({
+  name: "CanopyCream",
+  color: C.cream,
+  map: canopyPanels,
+  metalness: 0.08,
+  roughness: 0.48,
+  clearcoat: 0.06,
+  clearcoatRoughness: 0.4,
+  envMapIntensity: 0.28,
+});
+const canopyFascia = new THREE.MeshStandardMaterial({
+  color: C.cream,
+  map: canopyPanels,
+  roughness: 0.46,
+  metalness: 0.06,
+  envMapIntensity: 0.22,
+});
+const canopyColumn = new THREE.MeshPhysicalMaterial({
+  color: 0xd5dae0,
+  map: canopyBrush.map,
+  roughnessMap: canopyBrush.rough,
+  normalMap: canopyBrush.normal,
+  normalScale: new THREE.Vector2(0.7, 1.8),
+  metalness: 0.78,
+  roughness: 0.34,
+  clearcoat: 0.12,
+  envMapIntensity: 0.7,
+});
+const canopyTrim = new THREE.MeshPhysicalMaterial({
+  color: C.chrome,
+  metalness: 0.82,
+  roughness: 0.28,
+  envMapIntensity: 0.65,
+});
+
 function addCanopyAt(root: THREE.Group, canopy: Canopy): void {
   const { x: cx, z: cz, w, d, y, face, zeusX } = canopy;
-  const alum = new THREE.MeshPhysicalMaterial({
-    name: "CanopyWhite",
-    color: 0xffffff,
-    emissive: 0xffffff,
-    emissiveIntensity: 0.32,
-    metalness: 0,
-    roughness: 0.52,
-    clearcoat: 0.04,
-    clearcoatRoughness: 0.46,
-    envMapIntensity: 0.03,
-    fog: false,
-  });
-  const panels = creamPanels();
-  const fasciaPlate = mat(0xf7f3ea, {
-    roughness: 0.5,
-    metalness: 0.02,
-    envMapIntensity: 0.16,
-    map: panels,
-  });
-  const redHair = mat(C.red, {
-    roughness: 0.3,
-    metalness: 0.16,
-    envMapIntensity: 0.35,
-    emissive: 0x4a100c,
-    emissiveIntensity: 0.18,
-  });
   const topGeo = new THREE.ExtrudeGeometry(roundedRectShape(w, d, 1.35), {
     depth: 0.16,
     bevelEnabled: true,
@@ -174,7 +185,7 @@ function addCanopyAt(root: THREE.Group, canopy: Canopy): void {
     curveSegments: 10,
   });
   topGeo.rotateX(-Math.PI / 2);
-  const top = new THREE.Mesh(topGeo, alum);
+  const top = new THREE.Mesh(topGeo, canopyCream);
   top.userData.canopyTop = true;
   top.position.set(cx, y, cz);
   top.castShadow = true;
@@ -194,39 +205,34 @@ function addCanopyAt(root: THREE.Group, canopy: Canopy): void {
   root.add(soffit);
 
   const fasciaZ = cz - d * 0.5 - 0.08;
-  const fascia = new THREE.Mesh(new THREE.BoxGeometry(w - 1.6, 0.52, 0.1), fasciaPlate);
-  fascia.position.set(cx, y + 0.02, fasciaZ);
+  const fascia = new THREE.Mesh(new THREE.BoxGeometry(w - 0.8, 0.72, 0.12), canopyFascia);
+  fascia.position.set(cx, y - 0.06, fasciaZ);
   fascia.castShadow = true;
   fascia.userData.canopyFascia = true;
   root.add(fascia);
-  const redBand = new THREE.Mesh(new THREE.BoxGeometry(w - 1.45, 0.028, 0.08), redHair);
-  redBand.position.set(cx, y - 0.22, fasciaZ - 0.01);
-  root.add(redBand);
+  const trim = new THREE.Mesh(new THREE.BoxGeometry(w - 0.55, 0.018, 0.05), canopyTrim);
+  trim.position.set(cx, y - 0.4, fasciaZ - 0.05);
+  root.add(trim);
   const aisleX = cx + face * (w * 0.5 + 0.06);
-  const aisleFascia = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.42, Math.min(d - 1.4, 7.2)), fasciaPlate);
-  aisleFascia.position.set(aisleX, y + 0.02, cz);
+  const aisleFascia = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.72, Math.min(d - 0.8, 8.4)), canopyFascia);
+  aisleFascia.position.set(aisleX, y - 0.06, cz);
   aisleFascia.castShadow = true;
   aisleFascia.userData.canopyFascia = true;
   root.add(aisleFascia);
-  const aisleRed = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.028, Math.min(d - 1.6, 6.8)), redHair);
-  aisleRed.position.set(aisleX + face * 0.04, y - 0.18, cz);
-  root.add(aisleRed);
+  const aisleTrim = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.018, Math.min(d - 1.1, 7.6)), canopyTrim);
+  aisleTrim.position.set(aisleX + face * 0.06, y - 0.4, cz);
+  root.add(aisleTrim);
   for (const [ox, oz] of [
     [-0.22, -0.16],
     [0.2, 0.18],
   ] as const) {
-    const pool = new THREE.PointLight(0xffb060, 10, 7.5, 2);
+    const pool = new THREE.PointLight(0xffc898, 1.6, 7.2, 2);
     pool.position.set(cx + ox * w, y - 0.65, cz + oz * d);
     pool.castShadow = false;
     root.add(pool);
   }
 
-  const col = new THREE.MeshPhysicalMaterial({
-    color: 0xe4e7ec,
-    metalness: 0.28,
-    roughness: 0.48,
-    envMapIntensity: 0.2,
-  });
+  const col = canopyColumn;
   const boltSteel = mat(0x6a7076, { metalness: 0.62, roughness: 0.36, envMapIntensity: 0.28 });
   const insetX = w * 0.5 - 0.62;
   const zStops = d > 16 ? [-0.78, 0, 0.78] : [-0.72, 0.72];
@@ -256,7 +262,7 @@ function addCanopyAt(root: THREE.Group, canopy: Canopy): void {
   const lamp = new THREE.MeshStandardMaterial({
     color: 0xfff4dc,
     emissive: 0xffd090,
-    emissiveIntensity: 1.15,
+    emissiveIntensity: 0.55,
     roughness: 0.42,
     metalness: 0.02,
   });
@@ -406,7 +412,7 @@ function addOneKiosk(
   hit.userData.kind = "kiosk";
   hit.userData.kioskIndex = index;
   const alert = makePayIcon();
-  alert.position.set(x, lounge ? 3.35 : 2.72, z);
+  alert.position.set(x, lounge ? 2.35 : 2.05, z);
   alert.visible = lounge;
   if (lounge) {
     const pole = box(0.08, 2.6, 0.08, mat(C.charcoal, { metalness: 0.28, roughness: 0.4 }), x + 0.42, 1.3, z + 0.02);
@@ -472,15 +478,14 @@ function addWaveKiosk(root: THREE.Group): { kiosk: THREE.Group; alert: THREE.Spr
   const flag = new THREE.Mesh(new THREE.PlaneGeometry(0.95, 0.42), plateMat);
   flag.position.set(x + 0.88, 2.72, z);
   const beacon = new THREE.Mesh(
-    new THREE.SphereGeometry(0.1, 12, 10),
-    new THREE.MeshBasicMaterial({ color: 0x00d4f5, toneMapped: false }),
+    new THREE.SphereGeometry(0.045, 10, 8),
+    new THREE.MeshStandardMaterial({ color: C.amber, emissive: C.amber, emissiveIntensity: 0.35, roughness: 0.4 }),
   );
   beacon.position.set(x + 0.38, 2.92, z);
-  const lamp = new THREE.PointLight(0x66e8ff, 0.45, 8, 2);
+  const lamp = new THREE.PointLight(0xffc898, 0.35, 5, 2);
   lamp.position.set(x + 0.38, 2.7, z);
   const alert = makeWaveIcon();
-  alert.position.set(x, 3.28, z);
-  alert.scale.set(1.45, 0.55, 1);
+  alert.position.set(x, 2.15, z);
   kiosk.add(stand, head, south, north, hit, pole, flag, beacon, lamp, alert);
   const guide = makeWaveGuide({ x, z });
   root.add(kiosk, guide);
@@ -633,7 +638,7 @@ function pylonBoard(): THREE.CanvasTexture {
   ctx.fillText("1 MW", 234, 136);
   ctx.textAlign = "center";
   ctx.font = "600 14px monospace";
-  ctx.fillText("ELECTROMAT", 128, 190);
+  ctx.fillText("kWh", 128, 190);
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.needsUpdate = true;

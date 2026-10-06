@@ -228,7 +228,7 @@ body {
 
 #shift-grade.C,
 #grade-mark.C {
-  color: var(--cyan);
+  color: var(--cream);
 }
 
 #shift-grade.D,
@@ -312,8 +312,8 @@ body {
 }
 
 #auto {
-  color: var(--cyan);
-  text-shadow: 0 0 12px rgba(0, 212, 245, 0.28);
+  color: var(--amber);
+  text-shadow: 0 0 12px rgba(232, 154, 46, 0.28);
 }
 
 #waves {

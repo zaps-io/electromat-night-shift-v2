@@ -3,7 +3,6 @@ import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.j
 import { C } from "../brand";
 import { loungePatio, PAVILION, PAVILION_DOOR, pavilionExteriorWalls, pavilionFurniture } from "./layout";
 import { coolerFace, creteFloor, leather, loungeRug, menuBoard, statusBoard, stucco, stuccoNormal, textureAnisotropy, woodFloor } from "./tex";
-import { makeDoorChevron, makeOpenSign } from "./icons";
 
 function mat(color: number, extras: THREE.MeshPhysicalMaterialParameters = {}): THREE.MeshPhysicalMaterial {
   return new THREE.MeshPhysicalMaterial({
@@ -496,11 +495,13 @@ function addInterior(g: THREE.Group, W: number, D: number, H: number): THREE.Box
   wayMesh.position.set(0.8, 2.05, -D / 2 + 0.22);
   g.add(wayMesh);
 
-  const cafeLamp = new THREE.PointLight(0xffc878, 0.55, 7.4, 2);
+  const cafeLamp = new THREE.PointLight(0xffc898, 1.7, 8.4, 2);
   cafeLamp.position.set(-3.2, 2.35, -4.6);
-  const loungeLamp = new THREE.PointLight(0xffd090, 0.48, 8.2, 2);
+  const loungeLamp = new THREE.PointLight(0xffd0a0, 1.85, 9.2, 2);
   loungeLamp.position.set(2.6, 2.4, 3.2);
-  g.add(cafeLamp, loungeLamp);
+  const hearth = new THREE.PointLight(0xffb878, 1.1, 7.5, 2);
+  hearth.position.set(0.4, 1.8, 0.2);
+  g.add(cafeLamp, loungeLamp, hearth);
 
   return pavilionFurniture().map((w) => worldBox(w.cx, w.cy, w.cz, w.w, w.h, w.d));
 }
@@ -569,13 +570,6 @@ export function addPavilion(root: THREE.Group): THREE.Box3[] {
     metalness: 0.05,
     envMapIntensity: 0.16,
   });
-  const redFascia = mat(C.red, {
-    roughness: 0.32,
-    metalness: 0.12,
-    envMapIntensity: 0.28,
-    emissive: 0x5a120e,
-    emissiveIntensity: 0.28,
-  });
   const plinth = mat(C.charcoal, { roughness: 0.62, metalness: 0.08, envMapIntensity: 0.2 });
   const mullion = mat(0xd0d4da, { roughness: 0.28, metalness: 0.72, envMapIntensity: 0.62 });
   const glass = new THREE.MeshPhysicalMaterial({
@@ -630,29 +624,18 @@ export function addPavilion(root: THREE.Group): THREE.Box3[] {
 
   const jamb = mat(C.chrome, { roughness: 0.32, metalness: 0.72, envMapIntensity: 0.5 });
   const portal = mat(0xc8ccd2, { roughness: 0.34, metalness: 0.68, envMapIntensity: 0.48 });
-  const amberEdge = new THREE.MeshStandardMaterial({
-    color: C.amber,
-    emissive: C.amber,
-    emissiveIntensity: 1.15,
-    roughness: 0.28,
-    metalness: 0.08,
-    toneMapped: false,
-  });
+  const jambHair = mat(C.chrome, { roughness: 0.28, metalness: 0.8, envMapIntensity: 0.55 });
   g.add(box(0.18, doorH + 0.16, 0.2, portal, doorL, doorH * 0.5 + 0.02, south - 0.04));
   g.add(box(0.18, doorH + 0.16, 0.2, portal, doorR, doorH * 0.5 + 0.02, south - 0.04));
   g.add(box(doorW + 0.38, 0.16, 0.2, portal, doorX, doorH + 0.14, south - 0.04));
-  g.add(box(0.03, doorH + 0.04, 0.03, amberEdge, doorL + 0.08, doorH * 0.5, south - 0.14));
-  g.add(box(0.03, doorH + 0.04, 0.03, amberEdge, doorR - 0.08, doorH * 0.5, south - 0.14));
-  g.add(box(doorW + 0.16, 0.03, 0.03, amberEdge, doorX, doorH + 0.04, south - 0.14));
+  g.add(box(0.02, doorH + 0.04, 0.02, jambHair, doorL + 0.08, doorH * 0.5, south - 0.14));
+  g.add(box(0.02, doorH + 0.04, 0.02, jambHair, doorR - 0.08, doorH * 0.5, south - 0.14));
+  g.add(box(doorW + 0.16, 0.02, 0.02, jambHair, doorX, doorH + 0.04, south - 0.14));
   g.add(box(0.14, doorH + 0.08, 0.16, jamb, doorL, doorH * 0.5 + 0.02, south + 0.02));
   g.add(box(0.14, doorH + 0.08, 0.16, jamb, doorR, doorH * 0.5 + 0.02, south + 0.02));
   g.add(box(doorW + 0.28, 0.16, 0.18, jamb, doorX, doorH + 0.1, south + 0.02));
   g.add(box(doorW + 0.2, 0.06, 0.22, jamb, doorX, 0.04, south + 0.04));
 
-  const open = makeOpenSign();
-  open.position.set(doorX, doorH + 0.62, south - 0.16);
-  open.scale.set(1.7, 0.72, 1);
-  g.add(open);
   const spill = new THREE.Mesh(
     new THREE.PlaneGeometry(doorW - 0.12, doorH - 0.12),
     new THREE.MeshBasicMaterial({
@@ -684,17 +667,9 @@ export function addPavilion(root: THREE.Group): THREE.Box3[] {
   );
   warmSpill.rotation.x = -Math.PI / 2;
   warmSpill.position.set(doorX, 0.03, south - 0.7);
-  const chev = mat(C.amber, { roughness: 0.4, emissive: 0x8a4a08, emissiveIntensity: 0.55 });
-  for (const dz of [-1.85, -1.4, -0.95, -0.55, 0.55, 0.95]) {
-    const arrow = box(0.28, 0.025, 0.12, chev, doorX, 0.032, south + dz);
-    arrow.castShadow = false;
-    g.add(arrow);
-  }
-  const doorLamp = new THREE.PointLight(0xffc070, 0.42, 3.4, 2);
-  doorLamp.position.set(doorX, doorH + 0.05, south + 0.35);
-  const doorChevron = makeDoorChevron();
-  doorChevron.position.set(doorX, 2.15, south - 0.55);
-  g.add(spill, matRun, warmSpill, doorLamp, doorChevron);
+  const doorLamp = new THREE.PointLight(0xffc898, 1.35, 6.5, 2);
+  doorLamp.position.set(doorX, doorH + 0.05, south + 0.55);
+  g.add(spill, matRun, warmSpill, doorLamp);
 
   const leaf = new THREE.Group();
   leaf.position.set(doorL + 0.04, 0, south + 0.04);
@@ -750,15 +725,15 @@ export function addPavilion(root: THREE.Group): THREE.Box3[] {
     g.add(box(0.1, 0.08, 1.72, mullion, east - 0.02, 0.74, z));
   }
 
-  const fascia = box(W - 0.4, 0.36, 0.08, fasciaPlate, 0, H - 0.02, south - 0.05);
+  const fascia = box(W - 0.35, 0.82, 0.1, fasciaPlate, 0, H - 0.48, south - 0.06);
   fascia.userData.loungeFascia = true;
   g.add(fascia);
-  const redLip = box(W - 0.55, 0.05, 0.05, redFascia, 0, H - 0.3, south - 0.07);
-  g.add(redLip);
-  const sideFascia = box(0.08, 0.36, D - 0.4, fasciaPlate, east + 0.05, H - 0.02, 0);
+  const fasciaTrim = box(W - 0.2, 0.02, 0.04, mullion, 0, H - 0.9, south - 0.12);
+  g.add(fasciaTrim);
+  const sideFascia = box(0.1, 0.82, D - 0.35, fasciaPlate, east + 0.06, H - 0.48, 0);
   g.add(sideFascia);
-  const sideRed = box(0.04, 0.035, D - 0.55, redFascia, east + 0.08, H - 0.3, 0);
-  g.add(sideRed);
+  const sideTrim = box(0.04, 0.02, D - 0.2, mullion, east + 0.12, H - 0.9, 0);
+  g.add(sideTrim);
 
   const westWindow = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 0.7), glass);
   westWindow.position.set(west + 0.08, 2.55, 1.2);

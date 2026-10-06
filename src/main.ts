@@ -135,14 +135,14 @@ const renderer = createRenderer(canvas);
 setTextureAnisotropy(renderer.capabilities.getMaxAnisotropy());
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x070910);
-scene.fog = new THREE.Fog(0x16141c, 90, 210);
-scene.add(new THREE.HemisphereLight(0xd4d4d4, 0x2c2c30, 0.48));
-const sun = new THREE.DirectionalLight(0xffffff, 1.0);
-const fill = new THREE.DirectionalLight(0xf2f2f2, 0.22);
-fill.position.set(34, 16, 12);
+scene.background = new THREE.Color(0x243040);
+scene.fog = new THREE.Fog(0xc4b5a4, 78, 200);
+scene.add(new THREE.HemisphereLight(0xb7c6d6, 0x4a4036, 0.42));
+const sun = new THREE.DirectionalLight(0xffd2a4, 2.45);
+const fill = new THREE.DirectionalLight(0x9aafc4, 0.22);
+fill.position.set(28, 12, 18);
 scene.add(fill);
-sun.position.set(-38, 14, -18);
+sun.position.set(34, 18, -42);
 configureKeyLight(sun);
 scene.add(sun);
 
@@ -179,6 +179,8 @@ pipeline.setQuality(gfxTier);
 let fpsFrames = 0;
 let fpsStamp = performance.now();
 let fpsRead = 60;
+let lowStreak = 0;
+const gfxWarmupUntil = performance.now() + 9000;
 
 function paintGfx(): void {
   if (gfxBtn) gfxBtn.textContent = `GFX ${gfxTier.toUpperCase()}`;
@@ -640,8 +642,16 @@ function loop(now: number): void {
     fpsRead = (fpsFrames * 1000) / Math.max(1, now - fpsStamp);
     fpsFrames = 0;
     fpsStamp = now;
-    if (!gfxPinned && fpsRead < 48 && gfxTier !== "low") {
-      setGfx(gfxTier === "high" ? "medium" : "low", false);
+    if (now < gfxWarmupUntil) {
+      lowStreak = 0;
+    } else if (!gfxPinned && fpsRead < 30 && gfxTier !== "low") {
+      lowStreak += 1;
+      if (lowStreak >= 3) {
+        setGfx(gfxTier === "high" ? "medium" : "low", false);
+        lowStreak = 0;
+      }
+    } else {
+      lowStreak = 0;
     }
   }
   requestAnimationFrame(loop);
@@ -1005,6 +1015,9 @@ window.__electromat = {
   get gfx() {
     return gfxTier;
   },
+  setGfx(next: QualityTier) {
+    if (next === "high" || next === "medium" || next === "low") setGfx(next, true);
+  },
   carProbe(w = 1280, h = 800) {
     const prev = scene.background;
     const hidden: THREE.Object3D[] = [];
@@ -1026,7 +1039,7 @@ window.__electromat = {
     const data = capture(w, h);
     for (const o of hidden) o.visible = true;
     scene.background = prev;
-    scene.fog = new THREE.Fog(0x16141c, 90, 210);
+    scene.fog = new THREE.Fog(0xc4b5a4, 78, 200);
     return data;
   },
 };

@@ -41,7 +41,7 @@ const night = new THREE.MeshStandardMaterial({
   envMapIntensity: 0.2,
 });
 const darkGlass = new THREE.MeshStandardMaterial({
-  color: 0x2a6870,
+  color: 0x2c333c,
   roughness: 0.08,
   metalness: 0.28,
   envMapIntensity: 1.05,
@@ -501,13 +501,13 @@ export function buildSkyline(): THREE.Group {
   muralWall.position.set(-58, 2.8, -0.4);
   const muralEast = new THREE.Mesh(
     new THREE.PlaneGeometry(16.0, 5.2),
-    new THREE.MeshBasicMaterial({ map: art, toneMapped: false }),
+    new THREE.MeshStandardMaterial({ map: art, roughness: 0.9, metalness: 0.02 }),
   );
   muralEast.position.set(-56.42, 2.9, -0.4);
   muralEast.rotation.y = Math.PI / 2;
   const muralSouth = new THREE.Mesh(
     new THREE.PlaneGeometry(15.6, 5.0),
-    new THREE.MeshBasicMaterial({ map: art, toneMapped: false }),
+    new THREE.MeshStandardMaterial({ map: art, roughness: 0.9, metalness: 0.02 }),
   );
   muralSouth.position.set(-58, 2.9, -1.96);
   muralSouth.rotation.y = Math.PI;
@@ -528,7 +528,7 @@ export function buildSkyline(): THREE.Group {
   pylon.position.set(52.4, 1.3, 14.4);
   const sign = new THREE.Mesh(
     new THREE.BoxGeometry(3.4, 0.7, 0.12),
-    new THREE.MeshStandardMaterial({ color: 0xe89a2e, emissive: 0xc46a20, emissiveIntensity: 0.45 }),
+    new THREE.MeshStandardMaterial({ color: 0x3a3834, roughness: 0.7, metalness: 0.08 }),
   );
   sign.position.set(52.2, 4.6, 17.8);
   const lot = new THREE.Mesh(

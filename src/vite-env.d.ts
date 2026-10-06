@@ -33,6 +33,7 @@ interface ElectromatApi {
   carProbe: (w?: number, h?: number) => string;
   fps: number;
   gfx: "high" | "medium" | "low";
+  setGfx: (tier: "high" | "medium" | "low") => void;
   hullDebug: () => {
     source?: string;
     meshCount?: number;

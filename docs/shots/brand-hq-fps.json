@@ -1,0 +1,12 @@
+{
+  "high": {
+    "tier": "high",
+    "fps": 0.5,
+    "gameFps": 0.4
+  },
+  "low": {
+    "tier": "low",
+    "fps": 0.5,
+    "gameFps": 0.4
+  }
+}
