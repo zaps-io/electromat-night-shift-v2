@@ -51,9 +51,9 @@ const handleSilver = new THREE.MeshPhysicalMaterial({
 });
 
 const cableMat = new THREE.MeshStandardMaterial({
-  color: 0x0c0d10,
-  roughness: 0.9,
-  metalness: 0.02,
+  color: 0x2a2e34,
+  roughness: 0.72,
+  metalness: 0.08,
 });
 
 /** Structural hairline only — no face wash, no ground ring. */
@@ -66,56 +66,66 @@ const cyanHair = new THREE.MeshStandardMaterial({
   toneMapped: false,
 });
 
+/** 7×7 dot matrix. Row 0 is the top of the letter. Gaps stay off so strokes don't fuse into bars. */
 const GLYPHS: Record<string, string[]> = {
-  P: ["11110", "10001", "11110", "10000", "10000"],
-  L: ["10000", "10000", "10000", "10000", "11111"],
-  U: ["10001", "10001", "10001", "10001", "01110"],
-  G: ["01110", "10000", "10111", "10001", "01110"],
-  I: ["11111", "00100", "00100", "00100", "11111"],
-  N: ["10001", "11001", "10101", "10011", "10001"],
-  " ": ["00000", "00000", "00000", "00000", "00000"],
+  P: ["1111110", "1100011", "1100011", "1111110", "1100000", "1100000", "1100000"],
+  L: ["1100000", "1100000", "1100000", "1100000", "1100000", "1100000", "1111111"],
+  U: ["1100011", "1100011", "1100011", "1100011", "1100011", "1100011", "0111110"],
+  G: ["0111110", "1100000", "1100000", "1101111", "1100011", "1100011", "0111110"],
+  I: ["1111111", "0011100", "0011100", "0011100", "0011100", "0011100", "1111111"],
+  N: ["1100011", "1110011", "1111011", "1101111", "1100111", "1100011", "1100011"],
 };
 
 function plugInMatrix(): THREE.DataTexture {
-  const W = 256;
-  const H = 64;
+  // Matches the 0.28 × 0.20 panel so the dots are not stretched into bars.
+  const W = 280;
+  const H = 200;
   const data = new Uint8Array(W * H * 4);
-  const bg: [number, number, number] = [20, 22, 28];
+  const bg: [number, number, number] = [14, 16, 20];
   const fg: [number, number, number] = [232, 154, 46];
-  const pix = (x: number, yTop: number, c: [number, number, number]) => {
-    if (x < 0 || yTop < 0 || x >= W || yTop >= H) return;
-    const y = H - 1 - yTop;
-    const i = (y * W + x) * 4;
-    data[i] = c[0];
-    data[i + 1] = c[1];
-    data[i + 2] = c[2];
-    data[i + 3] = 255;
-  };
-  const rect = (x: number, y: number, w: number, h: number, c: [number, number, number]) => {
-    for (let yy = 0; yy < h; yy++) for (let xx = 0; xx < w; xx++) pix(x + xx, y + yy, c);
-  };
-  rect(0, 0, W, H, bg);
-  rect(0, 0, W, 3, fg);
-  rect(0, H - 3, W, 3, fg);
-  rect(0, 0, 3, H, fg);
-  rect(W - 3, 0, 3, H, fg);
-  let ox = 8;
-  for (const ch of "PLUG IN") {
-    const g = GLYPHS[ch] ?? GLYPHS[" "];
-    for (let row = 0; row < 5; row++) {
-      for (let col = 0; col < 5; col++) {
-        if (g[row][col] !== "1") continue;
-        rect(ox + col * 6, 8 + row * 10, 5, 8, fg);
-      }
-    }
-    ox += 34;
+  for (let i = 0; i < W * H; i++) {
+    data[i * 4] = bg[0];
+    data[i * 4 + 1] = bg[1];
+    data[i * 4 + 2] = bg[2];
+    data[i * 4 + 3] = 255;
   }
+  const pix = (x: number, y: number) => {
+    if (x < 0 || y < 0 || x >= W || y >= H) return;
+    const i = (y * W + x) * 4;
+    data[i] = fg[0];
+    data[i + 1] = fg[1];
+    data[i + 2] = fg[2];
+  };
+  const cell = 7;
+  const dot = 5;
+  const letter = 7 * cell;
+  const gap = 8;
+  const blit = (text: string, y0: number) => {
+    const total = text.length * letter + (text.length - 1) * gap;
+    let ox = Math.floor((W - total) / 2);
+    for (const ch of text) {
+      const g = GLYPHS[ch];
+      if (!g) continue;
+      for (let row = 0; row < 7; row++) {
+        for (let col = 0; col < 7; col++) {
+          if (g[row][col] !== "1") continue;
+          const x0 = ox + col * cell;
+          const yy = y0 + row * cell;
+          for (let dy = 0; dy < dot; dy++) for (let dx = 0; dx < dot; dx++) pix(x0 + dx, yy + dy);
+        }
+      }
+      ox += letter + gap;
+    }
+  };
+  blit("PLUG", 22);
+  blit("IN", 112);
   const tex = new THREE.DataTexture(data, W, H);
   tex.colorSpace = THREE.SRGBColorSpace;
-  tex.magFilter = THREE.LinearFilter;
-  tex.minFilter = THREE.LinearFilter;
+  tex.magFilter = THREE.NearestFilter;
+  tex.minFilter = THREE.NearestFilter;
   tex.generateMipmaps = false;
-  tex.flipY = false;
+  // Row 0 of the buffer is the top of the letters. Flip so that lands on UV v = 1.
+  tex.flipY = true;
   tex.needsUpdate = true;
   return tex;
 }
@@ -125,7 +135,7 @@ const screenMat = new THREE.MeshBasicMaterial({
   map: matrix,
   color: 0xffffff,
   toneMapped: false,
-  side: THREE.DoubleSide,
+  side: THREE.FrontSide,
   polygonOffset: true,
   polygonOffsetFactor: -4,
   polygonOffsetUnits: -4,
@@ -138,9 +148,9 @@ const geo = {
   cap: new RoundedBoxGeometry(0.45, 0.045, 0.23, 3, 0.012),
   hair: new THREE.BoxGeometry(0.4, 0.022, 0.012),
   recess: new THREE.BoxGeometry(0.34, 1.62, 0.02),
-  bezelH: new THREE.BoxGeometry(0.32, 0.014, 0.012),
-  bezelV: new THREE.BoxGeometry(0.014, 0.2, 0.012),
-  display: new THREE.PlaneGeometry(0.3, 0.2),
+  bezelH: new THREE.BoxGeometry(0.3, 0.012, 0.012),
+  bezelV: new THREE.BoxGeometry(0.012, 0.2, 0.012),
+  display: new THREE.PlaneGeometry(0.28, 0.2),
   pocket: new RoundedBoxGeometry(0.07, 0.28, 0.05, 2, 0.01),
   lip: new THREE.BoxGeometry(0.074, 0.016, 0.04),
   barrel: new THREE.CylinderGeometry(0.016, 0.018, 0.12, 10),
@@ -185,15 +195,15 @@ function stallBadgeMat(n: number): THREE.MeshBasicMaterial {
   return mat;
 }
 
-const cableGeoL = tubeFromPoints(holsterRestPoints(-1), 0.011, 10);
-const cableGeoR = tubeFromPoints(holsterRestPoints(1), 0.011, 10);
+const cableGeoL = tubeFromPoints(holsterRestPoints(-1), 0.016, 10);
+const cableGeoR = tubeFromPoints(holsterRestPoints(1), 0.016, 10);
 
 const holstersByStall = new Map<number, { rest: THREE.Mesh; handle: THREE.Group; side: -1 | 1 }[]>();
 
 function addFrontHolster(g: THREE.Group, side: -1 | 1): { rest: THREE.Mesh; handle: THREE.Group; side: -1 | 1 } {
-  const x = 0.155 * side;
+  const x = 0.185 * side;
   const y = 1.02;
-  const z = -0.13;
+  const z = -0.18;
   const pocket = new THREE.Mesh(geo.pocket, charcoal);
   pocket.position.set(x, y, z);
   const lip = new THREE.Mesh(geo.lip, black);
@@ -267,11 +277,13 @@ export function addZeusCharger(
   const bezelBot = new THREE.Mesh(geo.bezelH, black);
   bezelBot.position.set(0, screenY - 0.1, bezelZ);
   const bezelL = new THREE.Mesh(geo.bezelV, black);
-  bezelL.position.set(-0.153, screenY, bezelZ);
+  bezelL.position.set(-0.146, screenY, bezelZ);
   const bezelR = new THREE.Mesh(geo.bezelV, black);
-  bezelR.position.set(0.153, screenY, bezelZ);
+  bezelR.position.set(0.146, screenY, bezelZ);
   const display = new THREE.Mesh(geo.display, screenMat);
   display.position.set(0, screenY, -0.16);
+  // PlaneGeometry's +Z face, turned to the pedestal front (-Z).
+  // With that yaw, u = 0 sits on the viewer's left, so the bitmap is not mirrored.
   display.rotation.y = Math.PI;
   display.renderOrder = 2;
   display.userData.noBake = true;
@@ -316,14 +328,14 @@ export function tintStallBadge(stallId: number, read: string): void {
   mat.color.setHex(STALL_TINT[read] ?? 0xffffff);
 }
 
+/** Both waist holsters keep a connector and a rest cable. The car lead is a separate mesh. */
 export function setZeusHolsterPlugged(stallId: number | undefined, plugged: boolean): void {
-  if (stallId == null) return;
+  if (stallId == null || !plugged) return;
   const bits = holstersByStall.get(stallId);
   if (!bits) return;
   for (const h of bits) {
-    const inUse = plugged && h.side === -1;
-    h.rest.visible = !inUse;
-    h.handle.visible = !inUse;
+    h.rest.visible = true;
+    h.handle.visible = true;
   }
 }
 

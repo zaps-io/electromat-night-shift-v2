@@ -31,6 +31,7 @@ async function main(): Promise<void> {
   await page.setViewport({ width: 1280, height: 800, deviceScaleFactor: 1 });
 
   const stall = STALLS.find((s) => s.id === 1)!;
+  const openFace = STALLS.find((s) => s.id === 3)!;
   const aisle = STALLS.find((s) => s.id === 8)!;
   const south = PAVILION.z - PAVILION.d * 0.5;
 
@@ -71,7 +72,7 @@ async function main(): Promise<void> {
     await setHud(false);
 
     await page.evaluate(
-      ({ x, z, lookX, lookZ }) => {
+      ({ x, z }) => {
         const api = (
           window as unknown as {
             __electromat: {
@@ -80,10 +81,10 @@ async function main(): Promise<void> {
             };
           }
         ).__electromat;
-        api.place(x, z, 0, 0.12, 1.62, 56);
-        api.lookAt(lookX, 2.15, lookZ);
+        api.place(x + 3.15, z + 0.28, 0, 0, 1.5, 42);
+        api.lookAt(x + 0.1, 1.38, z);
       },
-      { x: AB_AISLE_X, z: aisle.z - 4.2, lookX: AB_AISLE_X, lookZ: aisle.z + 10 },
+      { x: openFace.zeusX, z: openFace.zeusZ },
     );
     await new Promise((r) => setTimeout(r, 500));
     await shot("brand-hq-fpv-aisle");
