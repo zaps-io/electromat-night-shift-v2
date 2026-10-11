@@ -86,6 +86,7 @@ import {
   SAFE_LOT_SPAWN,
   STALL_BADGE,
   STALL_DETAIL_SHOT,
+  CANOPIES,
   CANOPY_ROW_SHOT,
   AISLE_WALK,
   parkingStopPose,
@@ -1221,6 +1222,40 @@ if (frontageSrc.includes("PointLight")) throw new Error("street glow stays a dec
 const carsSrc = readFileSync(new URL("../src/world/cars.ts", import.meta.url), "utf8");
 if (/function addDuskDress[\s\S]*PointLight/.test(carsSrc)) {
   throw new Error("dusk dress must not add a light per car");
+}
+if (/function addDuskDress[\s\S]*?tailGlow|function addDuskDress[\s\S]*?PlaneGeometry\(1\.55/.test(carsSrc)) {
+  throw new Error("tail glow must not be a flat rectangle");
+}
+if (!frontageSrc.includes("ellipse")) throw new Error("street trees should be palm billboards");
+const mainSrc = readFileSync(new URL("../src/main.ts", import.meta.url), "utf8");
+if (mainSrc.includes("EdgesGeometry")) throw new Error("job highlight must not be a wireframe box");
+if (!stationSrc.includes("shellBox")) throw new Error("canopy shell must stay a collider");
+if (!stationSrc.includes("solidBox(px, pz, 0.36, 0.36, y)")) {
+  throw new Error("canopy columns must stay solid");
+}
+const cap = CANOPIES[1]!;
+const column = new THREE.Box3(
+  new THREE.Vector3(cap.x - 0.18, 0, cap.z - 0.18),
+  new THREE.Vector3(cap.x + 0.18, cap.y, cap.z + 0.18),
+);
+const shell = new THREE.Box3(
+  new THREE.Vector3(cap.x - cap.w * 0.5, cap.y - 0.28, cap.z - cap.d * 0.5),
+  new THREE.Vector3(cap.x + cap.w * 0.5, cap.y + 0.14, cap.z + cap.d * 0.5),
+);
+const under = new THREE.Vector3(cap.x + 1.6, 1.62, cap.z);
+resolveColliders(under, [column, shell]);
+if (Math.abs(under.x - (cap.x + 1.6)) > 0.05 || Math.abs(under.z - cap.z) > 0.05) {
+  throw new Error("walking under the canopy shell must stay on the aisle");
+}
+const inColumn = new THREE.Vector3(cap.x, 1.62, cap.z);
+resolveColliders(inColumn, [column]);
+if (Math.hypot(inColumn.x - cap.x, inColumn.z - cap.z) < 0.2) {
+  throw new Error("canopy column must push the walker out");
+}
+const inShell = new THREE.Vector3(cap.x, cap.y, cap.z);
+resolveColliders(inShell, [shell]);
+if (Math.hypot(inShell.x - cap.x, inShell.z - cap.z) < 0.4) {
+  throw new Error("canopy shell must push a body that enters the roof");
 }
 if (!stationSrc.includes("bayStrip") || !stationSrc.includes("linear")) {
   throw new Error("canopy must light each bay with linear strips");

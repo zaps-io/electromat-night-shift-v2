@@ -101,7 +101,7 @@ const tailMat = new THREE.MeshStandardMaterial({
   name: "Tail",
   color: 0xff3a32,
   emissive: 0xe63225,
-  emissiveIntensity: 2.4,
+  emissiveIntensity: 3.1,
   roughness: 0.28,
   metalness: 0.04,
   transparent: false,
@@ -135,24 +135,11 @@ const shadowMat = new THREE.MeshBasicMaterial({
   polygonOffsetFactor: -2,
   polygonOffsetUnits: -2,
 });
-const tailGlowMat = new THREE.MeshBasicMaterial({
-  name: "Decal",
-  color: 0xe63225,
-  transparent: true,
-  opacity: 0.38,
-  depthWrite: false,
-  toneMapped: false,
-  polygonOffset: true,
-  polygonOffsetFactor: -2,
-  polygonOffsetUnits: -2,
-});
 
-/** Cabin, thin lamps, and asphalt decals. Paint and glass stay opaque. */
+/** Dark cabin and a soft contact shadow. Lamps stay on the housing meshes. */
 function addDuskDress(root: THREE.Group): void {
   root.updateMatrixWorld(true);
   const box = new THREE.Box3().setFromObject(root);
-  const rear = box.max.z + 0.012;
-  const nose = box.min.z - 0.012;
   const cabin = new THREE.MeshStandardMaterial({
     name: "Cabin",
     color: 0x101318,
@@ -168,26 +155,12 @@ function addDuskDress(root: THREE.Group): void {
   const seatR = seat.clone();
   seatR.position.x = 0.32;
   const dash = new THREE.Mesh(new THREE.BoxGeometry(1.28, 0.26, 0.38), cabin);
-  dash.position.set(0, 0.72, nose + 0.72);
-  const strip = new THREE.BoxGeometry(0.62, 0.05, 0.028);
-  const tailL = new THREE.Mesh(strip, tailMat);
-  tailL.position.set(-0.55, 0.68, rear);
-  const tailR = tailL.clone();
-  tailR.position.x = 0.55;
-  const lampGeo = new THREE.BoxGeometry(0.38, 0.06, 0.026);
-  const lampL = new THREE.Mesh(lampGeo, lampMat);
-  lampL.position.set(-0.52, 0.66, nose);
-  const lampR = lampL.clone();
-  lampR.position.x = 0.52;
+  dash.position.set(0, 0.72, box.min.z + 0.7);
   const shadow = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 3.9), shadowMat);
   shadow.rotation.x = -Math.PI / 2;
   shadow.position.set(0, 0.018, (box.min.z + box.max.z) * 0.5);
   shadow.renderOrder = 1;
-  const glow = new THREE.Mesh(new THREE.PlaneGeometry(1.55, 0.95), tailGlowMat);
-  glow.rotation.x = -Math.PI / 2;
-  glow.position.set(0, 0.022, rear + 0.28);
-  glow.renderOrder = 2;
-  root.add(seat, seatR, dash, tailL, tailR, lampL, lampR, shadow, glow);
+  root.add(seat, seatR, dash, shadow);
 }
 
 function dressSedan(root: THREE.Object3D): void {

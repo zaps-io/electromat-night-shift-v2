@@ -49,27 +49,34 @@ const roadMat = new THREE.MeshStandardMaterial({
   metalness: 0.02,
 });
 
+/** Flat desert palm. Crossed cards read as a crown, not a pine cone. */
 function treeCard(): THREE.CanvasTexture {
   const c = document.createElement("canvas");
   c.width = 128;
   c.height = 256;
   const ctx = c.getContext("2d")!;
   ctx.clearRect(0, 0, 128, 256);
-  ctx.fillStyle = "#3a2a1c";
-  ctx.fillRect(58, 150, 12, 100);
-  ctx.fillStyle = "#1e3420";
+  ctx.fillStyle = "#6a4b32";
   ctx.beginPath();
-  ctx.moveTo(64, 18);
-  ctx.lineTo(118, 168);
-  ctx.lineTo(10, 168);
+  ctx.moveTo(58, 252);
+  ctx.lineTo(70, 252);
+  ctx.lineTo(66, 132);
+  ctx.lineTo(62, 132);
   ctx.closePath();
   ctx.fill();
-  ctx.fillStyle = "#2c4a28";
+  ctx.fillStyle = "#3f6b3c";
+  for (const angle of [-1.15, -0.62, -0.12, 0.38, 0.88, 1.25]) {
+    ctx.save();
+    ctx.translate(64, 136);
+    ctx.rotate(angle);
+    ctx.beginPath();
+    ctx.ellipse(0, -34, 7, 36, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+  ctx.fillStyle = "#2f5530";
   ctx.beginPath();
-  ctx.moveTo(64, 48);
-  ctx.lineTo(108, 150);
-  ctx.lineTo(20, 150);
-  ctx.closePath();
+  ctx.ellipse(64, 128, 16, 10, 0, 0, Math.PI * 2);
   ctx.fill();
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;

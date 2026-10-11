@@ -34,6 +34,16 @@ function solidBox(x: number, z: number, w: number, d: number, h = 3.2): void {
   );
 }
 
+/** Roof slab only. Ground height walks under it; a body inside the shell is pushed out. */
+function shellBox(x: number, z: number, w: number, d: number, y: number): void {
+  lotSolids.push(
+    new THREE.Box3(
+      new THREE.Vector3(x - w * 0.5, y - 0.28, z - d * 0.5),
+      new THREE.Vector3(x + w * 0.5, y + 0.14, z + d * 0.5),
+    ),
+  );
+}
+
 export interface Station {
   root: THREE.Group;
   ground: THREE.Mesh;
@@ -155,7 +165,7 @@ const canopyCream = new THREE.MeshPhysicalMaterial({
   name: "CanopyCream",
   color: C.cream,
   emissive: C.cream,
-  emissiveIntensity: 0.22,
+  emissiveIntensity: 0.06,
   map: canopyPanels,
   metalness: 0.08,
   roughness: 0.48,
@@ -166,7 +176,7 @@ const canopyCream = new THREE.MeshPhysicalMaterial({
 const canopyFascia = new THREE.MeshStandardMaterial({
   color: C.cream,
   emissive: C.cream,
-  emissiveIntensity: 0.34,
+  emissiveIntensity: 0.12,
   map: canopyPanels,
   roughness: 0.46,
   metalness: 0.06,
@@ -246,6 +256,7 @@ function addCanopyAt(root: THREE.Group, canopy: Canopy): void {
   const top = new THREE.Mesh(topGeo, canopyCream);
   top.userData.canopyTop = true;
   top.position.set(cx, y, cz);
+  shellBox(cx, cz, w, d, y);
   top.castShadow = true;
   top.receiveShadow = true;
   root.add(top);

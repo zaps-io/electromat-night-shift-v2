@@ -83,13 +83,13 @@ const endCap = CANOPIES[1]!;
 const endZ = endCap.z - endCap.d * 0.5;
 const canopyEnd: Shot = {
   file: "ns-canopy-end.png",
-  x: endCap.x - 6.2,
-  z: endZ - 3.6,
+  x: -20.2,
+  z: endZ - 6.8,
   yaw: 0,
   pitch: 0,
-  eyeY: 2.35,
-  fov: 32,
-  lookAt: { x: endCap.x + 0.4, y: endCap.y + 0.02, z: endZ + 1.1 },
+  eyeY: 1.72,
+  fov: 42,
+  lookAt: { x: endCap.x, y: endCap.y - 0.25, z: endZ + 0.35 },
 };
 
 const hud: Shot = { ...start, file: "ns-hud-wave.png" };

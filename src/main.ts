@@ -167,18 +167,24 @@ loungeMark.position.set(-20.05, 2.35, 7.95);
 loungeMark.scale.set(1.35, 0.52, 1);
 loungeMark.visible = false;
 scene.add(targetMark, walkPuck, loungeMark);
-const jobOutline = new THREE.LineSegments(
-  new THREE.EdgesGeometry(new THREE.BoxGeometry(1, 1, 1)),
-  new THREE.LineBasicMaterial({
+const jobRing = new THREE.Mesh(
+  new THREE.RingGeometry(1.35, 1.62, 48),
+  new THREE.MeshBasicMaterial({
     color: 0x00d4f5,
     transparent: true,
-    opacity: 0.55,
+    opacity: 0.42,
+    side: THREE.DoubleSide,
+    depthWrite: false,
     depthTest: true,
+    toneMapped: true,
   }),
 );
-jobOutline.visible = false;
-jobOutline.frustumCulled = false;
-scene.add(jobOutline);
+jobRing.rotation.x = -Math.PI / 2;
+jobRing.position.y = 0.045;
+jobRing.visible = false;
+jobRing.frustumCulled = false;
+jobRing.renderOrder = 2;
+scene.add(jobRing);
 
 const pipeline = createPipeline(renderer, scene, walker.camera, sun);
 const gfxBtn = document.querySelector<HTMLButtonElement>("#gfx");
@@ -648,18 +654,11 @@ function paintHud(): void {
   walkPuck.visible = live && walker.destination != null;
   if (walker.destination) walkPuck.position.set(walker.destination.x, 0.03, walker.destination.z);
   const marked = live && !cinematic ? jobFocusCandidate(job, currentCandidates()) : null;
-  jobOutline.visible = !!marked;
+  jobRing.visible = !!marked;
   if (marked) {
-    if (marked.kind === "guest") {
-      const yaw = marked.guestId ? (cars.get(marked.guestId)?.root.rotation.y ?? 0) : 0;
-      jobOutline.scale.set(2.02, 1.48, 4.9);
-      jobOutline.position.set(marked.x, 0.76, marked.z);
-      jobOutline.rotation.y = yaw;
-    } else {
-      jobOutline.scale.set(0.82, 1.9, 0.58);
-      jobOutline.position.set(marked.x, 0.98, marked.z);
-      jobOutline.rotation.y = 0;
-    }
+    const spread = marked.kind === "guest" ? 1 : 0.42;
+    jobRing.scale.set(spread, spread, 1);
+    jobRing.position.set(marked.x, 0.045, marked.z);
   }
 }
 

@@ -101,13 +101,18 @@ export function stepWalk(step: WalkStep, dt: number, colliders: THREE.Box3[] = [
   return { x: pos.x, z: pos.z, dest, route, teleported: false };
 }
 
-/** Slide the walker out of expanded XZ AABBs. Radius includes the near-plane margin. */
+/**
+ * Slide the walker out of expanded XZ AABBs. Radius includes the near-plane margin.
+ * Volumes that start above shoulder height (canopy shells) only block a body that
+ * has actually entered them, so the aisle under the roof stays walkable.
+ */
 export function resolveColliders(
   pos: THREE.Vector3,
   colliders: THREE.Box3[],
   radius = WALK_RADIUS + CAMERA_MARGIN,
 ): void {
   for (const box of colliders) {
+    if (box.min.y > 1.15 && (pos.y < box.min.y - 0.08 || pos.y > box.max.y + 0.15)) continue;
     const x0 = box.min.x - radius;
     const x1 = box.max.x + radius;
     const z0 = box.min.z - radius;
