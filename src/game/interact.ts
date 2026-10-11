@@ -155,6 +155,77 @@ export function nextJob(state: GameState): { need: InteractNeed; name: string; g
   return null;
 }
 
+export type AttendantRow = { bay: string; action: string; wait: string };
+
+function patienceLeft(state: GameState, g: { arriveMin: number; patienceMin: number }): number {
+  return g.arriveMin + g.patienceMin - state.timeMin;
+}
+
+function waitLabel(mins: number, hot: boolean): string {
+  if (hot || mins <= 1) return "NOW";
+  if (mins < 8) return "SOON";
+  return `${Math.ceil(mins)}m`;
+}
+
+/**
+ * Next three attendant jobs. Order is what to do next.
+ * Wait is how long they have: NOW, SOON, or minutes until they walk.
+ */
+export function attendantQueue(state: GameState, limit = 3): AttendantRow[] {
+  const rows: AttendantRow[] = [];
+  const arrived = state.guests.filter((g) => state.timeMin >= g.arriveMin && !g.served && !g.walked);
+  const bayOf = (g: { assignedBay: number | null }) => (g.assignedBay != null ? `B${g.assignedBay}` : "Q");
+  for (const g of arrived) {
+    if (guestAction(g) !== "pay") continue;
+    rows.push({ bay: bayOf(g), action: "PAY", wait: "NOW" });
+  }
+  for (const g of arrived) {
+    if (guestAction(g) !== "auto") continue;
+    rows.push({ bay: bayOf(g), action: "AUTO", wait: "NOW" });
+  }
+  for (const g of arrived) {
+    if (guestAction(g) !== "unplug") continue;
+    rows.push({ bay: bayOf(g), action: "UNPLUG", wait: "NOW" });
+  }
+  const plugs = arrived
+    .filter((g) => guestAction(g) === "plug")
+    .sort((a, b) => patienceLeft(state, a) - patienceLeft(state, b));
+  for (const g of plugs) rows.push({ bay: bayOf(g), action: "PLUG", wait: waitLabel(patienceLeft(state, g), false) });
+  const queued = nextQueueGuest(state);
+  const open = state.bays.find((b) => !b.guestId);
+  if (queued && open) {
+    rows.push({ bay: `B${open.id}`, action: "WAVE", wait: waitLabel(patienceLeft(state, queued), false) });
+  }
+  const aisle = arrived
+    .filter((g) => g.assignedBay == null && g.id !== queued?.id)
+    .filter((g) => {
+      const action = guestAction(g);
+      return action === "talk" || action === "park";
+    })
+    .sort((a, b) => patienceLeft(state, a) - patienceLeft(state, b));
+  for (const g of aisle) {
+    const action = guestAction(g) === "park" ? "PARK" : "TALK";
+    rows.push({ bay: "Q", action, wait: waitLabel(patienceLeft(state, g), false) });
+  }
+  if (!rows.length) rows.push({ bay: "—", action: "CLEAR", wait: "—" });
+  return rows.slice(0, limit);
+}
+
+/** True when the objective line restates the boxed prompt. */
+export function objectiveRepeatsPrompt(prompt: string, objective: string): boolean {
+  if (!prompt.trim() || !objective.trim()) return false;
+  const norm = (s: string) =>
+    s
+      .toUpperCase()
+      .replace(/^E\s+/, "")
+      .replace(/\s+/g, " ")
+      .replace(/\s*·\s*/g, " · ")
+      .trim();
+  const p = norm(prompt);
+  const head = norm(objective).split("—")[0]!.trim();
+  return head === p;
+}
+
 export function jobHint(job: { need: InteractNeed; name: string } | null): string {
   if (!job) return "Lot is clear";
   if (job.need === "pay") return `PAY  ·  ${job.name.toUpperCase()} — walk to the car or a PAY stand`;

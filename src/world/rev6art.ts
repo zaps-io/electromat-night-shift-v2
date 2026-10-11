@@ -10,9 +10,10 @@ import { loadDuskEnvironment } from "../render/pipeline";
  */
 
 const ART = `${import.meta.env.BASE_URL}art/rev6/`;
+const NS = `${import.meta.env.BASE_URL}art/ns/`;
 
-/** ~4.6 m tiles on the 130×130 lot. Square in world metres. */
-const ASPHALT_REPEAT = new THREE.Vector2(28.3, 28.3);
+/** ~6.5 m tiles on the 130×130 lot. The ns albedo is seamless. */
+const ASPHALT_REPEAT = new THREE.Vector2(20, 20);
 
 const BAY_IMG = { w: 1536, h: 1024 };
 const MARK_IMG = { w: 1536, h: 1024 };
@@ -46,8 +47,8 @@ export interface Rev6Textures {
 
 type Crop = { x0: number; y0: number; x1: number; y1: number };
 
-function artUrl(file: string): string {
-  return `${ART}${file}`;
+function nsUrl(file: string): string {
+  return `${NS}${file}`;
 }
 
 function configureMap(tex: THREE.Texture, srgb: boolean): THREE.Texture {
@@ -58,35 +59,6 @@ function configureMap(tex: THREE.Texture, srgb: boolean): THREE.Texture {
   tex.magFilter = THREE.LinearFilter;
   tex.needsUpdate = true;
   return tex;
-}
-
-/**
- * The source albedo averages ~66/255 and the roughness photo is glossy in the
- * puddles. Both are graded into canvases that already sit on the material, so
- * the baked-light clone (which shares the texture) updates in place.
- * Albedo: pow(v, 0.82) * 1.62 lifts the mean toward ~0.53 without clipping grit.
- * Roughness: 0.55 + v * 0.45 keeps the body matte and the dark puddles satin.
- */
-function gradeCanvas(canvas: HTMLCanvasElement, image: CanvasImageSource, mode: "albedo" | "rough"): void {
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return;
-  ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-  const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const d = img.data;
-  for (let i = 0; i < d.length; i += 4) {
-    if (mode === "albedo") {
-      for (let c = 0; c < 3; c++) {
-        const v = d[i + c] / 255;
-        d[i + c] = Math.min(255, Math.pow(v, 0.82) * 1.62 * 255);
-      }
-    } else {
-      const v = d[i] / 255;
-      const b = Math.min(255, (0.55 + v * 0.45) * 255);
-      d[i] = d[i + 1] = d[i + 2] = b;
-    }
-    d[i + 3] = 255;
-  }
-  ctx.putImageData(img, 0, 0);
 }
 
 function makeGradeCanvas(fill: string): HTMLCanvasElement {
@@ -121,17 +93,8 @@ const roughTex = gradeTexture(roughCanvas, false);
 
 const loader = new THREE.TextureLoader();
 
-function imageReady(file: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error(`rev6 art failed: ${file}`));
-    img.src = artUrl(file);
-  });
-}
-
 /** One texture object, created before the lot builds, filled when the file arrives. */
-function holdMap(file: string, srgb: boolean): { tex: THREE.Texture; ready: Promise<THREE.Texture> } {
+function holdMap(file: string, srgb: boolean, root = ART): { tex: THREE.Texture; ready: Promise<THREE.Texture> } {
   let resolve!: (tex: THREE.Texture) => void;
   let reject!: (err: Error) => void;
   const ready = new Promise<THREE.Texture>((res, rej) => {
@@ -139,7 +102,7 @@ function holdMap(file: string, srgb: boolean): { tex: THREE.Texture; ready: Prom
     reject = rej;
   });
   const tex = loader.load(
-    artUrl(file),
+    `${root}${file}`,
     (loaded) => resolve(configureMap(loaded, srgb)),
     undefined,
     () => reject(new Error(`rev6 art failed: ${file}`)),
@@ -152,16 +115,34 @@ function holdMap(file: string, srgb: boolean): { tex: THREE.Texture; ready: Prom
   return { tex, ready };
 }
 
-const albedoP = imageReady("asphalt_albedo.jpg").then((img) => {
-  gradeCanvas(albedoCanvas, img, "albedo");
+function paintNsAsphalt(image: CanvasImageSource): void {
+  const actx = albedoCanvas.getContext("2d");
+  const rctx = roughCanvas.getContext("2d");
+  if (!actx || !rctx) return;
+  actx.drawImage(image, 0, 0, albedoCanvas.width, albedoCanvas.height);
+  const src = actx.getImageData(0, 0, albedoCanvas.width, albedoCanvas.height);
+  const rough = rctx.createImageData(src.width, src.height);
+  for (let i = 0; i < src.data.length; i += 4) {
+    const lum = (src.data[i] * 0.3 + src.data[i + 1] * 0.59 + src.data[i + 2] * 0.11) / 255;
+    const b = Math.min(255, (0.84 + (1 - lum) * 0.12) * 255);
+    rough.data[i] = rough.data[i + 1] = rough.data[i + 2] = b;
+    rough.data[i + 3] = 255;
+  }
+  rctx.putImageData(rough, 0, 0);
   albedoTex.needsUpdate = true;
-  return albedoTex;
-});
-const roughP = imageReady("asphalt_rough.jpg").then((img) => {
-  gradeCanvas(roughCanvas, img, "rough");
   roughTex.needsUpdate = true;
-  return roughTex;
+}
+
+const albedoP = new Promise<THREE.Texture>((resolve, reject) => {
+  const img = new Image();
+  img.onload = () => {
+    paintNsAsphalt(img);
+    resolve(albedoTex);
+  };
+  img.onerror = () => reject(new Error("ns asphalt failed"));
+  img.src = nsUrl("asphalt_albedo.jpg");
 });
+const roughP = albedoP.then(() => roughTex);
 
 const baysHold = holdMap("decal_bays_ev.webp", true);
 const marksHold = holdMap("decal_markings_sheet.webp", true);
@@ -172,6 +153,8 @@ const priceHold = holdMap("sign_price.webp", true);
 const openHold = holdMap("sign_open.webp", true);
 const evHold = holdMap("sign_ev_charging.webp", true);
 const cityHold = holdMap("city_strip.webp", true);
+const wearHold = holdMap("wear_decals.webp", true, NS);
+const nsSkyHold = holdMap("sky_dusk_equirect.jpg", true, NS);
 
 const baysTex = baysHold.tex;
 const marksTex = marksHold.tex;
@@ -184,6 +167,20 @@ const priceP = priceHold.ready;
 const openP = openHold.ready;
 const evP = evHold.ready;
 const cityP = cityHold.ready;
+const wearP = wearHold.ready;
+const nsSkyP = nsSkyHold.ready;
+
+const wearMat = new THREE.MeshBasicMaterial({
+  color: 0xffffff,
+  transparent: true,
+  depthWrite: false,
+  blending: THREE.MultiplyBlending,
+  polygonOffset: true,
+  polygonOffsetFactor: -2,
+  polygonOffsetUnits: -2,
+});
+
+let nsSkyTex: THREE.Texture | null = null;
 
 export const rev6Textures: Rev6Textures = {
   albedo: albedoTex,
@@ -211,7 +208,9 @@ const readyGate = Promise.all([
   openP,
   evP,
   cityP,
-]).then(([albedo, rough, bays, marks, sky, skyEnv, lounge, price, open, ev, city]) => {
+  wearP,
+  nsSkyP,
+]).then(([albedo, rough, bays, marks, sky, skyEnv, lounge, price, open, ev, city, wear, nsSky]) => {
   rev6Textures.albedo = albedo;
   rev6Textures.rough = rough;
   rev6Textures.bays = bays;
@@ -233,10 +232,18 @@ const readyGate = Promise.all([
   repaintCyanDecals(marks);
   gradeCityStrip(city);
   cityMat.map = city;
-  cityMat.color.set(0xc4b8a8);
-  cityMat.opacity = 0.38;
+  cityMat.opacity = 0;
   cityMat.transparent = true;
   cityMat.needsUpdate = true;
+  wear.wrapS = wear.wrapT = THREE.RepeatWrapping;
+  wear.repeat.set(4, 4);
+  wear.anisotropy = 8;
+  wear.needsUpdate = true;
+  wearMat.map = wear;
+  wearMat.needsUpdate = true;
+  nsSky.colorSpace = THREE.SRGBColorSpace;
+  nsSky.needsUpdate = true;
+  nsSkyTex = nsSky;
 });
 
 /**
@@ -371,9 +378,9 @@ const asphaltMat = new THREE.MeshStandardMaterial({
   envMapIntensity: 0.14,
   emissive: 0xffffff,
   emissiveMap: albedoTex,
-  emissiveIntensity: 0.12,
+  emissiveIntensity: 0.04,
   normalMap: asphaltNormal(),
-  normalScale: new THREE.Vector2(0.16, 0.16),
+  normalScale: new THREE.Vector2(0.05, 0.05),
 });
 
 const paintParams: THREE.MeshStandardMaterialParameters = {
@@ -636,29 +643,15 @@ function addLoungeGlass(root: THREE.Group): void {
   });
 }
 
-function addCityRing(root: THREE.Group): void {
-  const n = 10;
-  const radius = 118;
-  const chord = 2 * radius * Math.sin(Math.PI / n) * 0.992;
-  const height = (chord / (3072 / 564)) * 0.42;
-  for (let i = 0; i < n; i++) {
-    const geo = new THREE.PlaneGeometry(chord, height);
-    if (i % 2 === 1) {
-      const uv = geo.getAttribute("uv") as THREE.BufferAttribute;
-      for (let k = 0; k < uv.count; k++) uv.setX(k, 1 - uv.getX(k));
-      uv.needsUpdate = true;
-    }
-    const mesh = new THREE.Mesh(geo, cityMat);
-    mesh.position.set(0, height * 0.5 - 0.35, -radius);
-    const pivot = new THREE.Group();
-    pivot.rotation.y = (i / n) * Math.PI * 2;
-    pivot.add(mesh);
-    mesh.userData.noBake = true;
-    mesh.castShadow = false;
-    mesh.receiveShadow = false;
-    noRay(pivot);
-    root.add(pivot);
-  }
+function addWearDecals(root: THREE.Group): void {
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(130, 130), wearMat);
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.position.y = 0.012;
+  mesh.renderOrder = 2;
+  mesh.receiveShadow = false;
+  mesh.userData.noBake = true;
+  noRay(mesh);
+  root.add(mesh);
 }
 
 export function addRev6LotDressing(root: THREE.Group): void {
@@ -666,7 +659,7 @@ export function addRev6LotDressing(root: THREE.Group): void {
   addDrivePaint(root);
   addSigns(root);
   addLoungeGlass(root);
-  addCityRing(root);
+  addWearDecals(root);
 }
 
 /** Believable desert dusk. The generated sky plate is magenta synthwave and stays off the dome. */
@@ -729,7 +722,7 @@ let skyMounted = false;
 export async function mountRev6Sky(renderer: THREE.WebGLRenderer, scene: THREE.Scene): Promise<void> {
   if (skyMounted) return;
   try {
-    const sky = desertDuskMap();
+    const sky = nsSkyTex ?? desertDuskMap();
     const dome = new THREE.Mesh(
       new THREE.SphereGeometry(168, 48, 32),
       new THREE.MeshBasicMaterial({
@@ -801,7 +794,8 @@ function retuneBakedAsphalt(scene: THREE.Scene): void {
       mat.roughnessMap = roughTex;
       mat.emissiveMap = albedoTex;
       mat.emissive.set(0xffffff);
-      mat.emissiveIntensity = 0.08;
+      mat.emissiveIntensity = 0.04;
+      if (mat.normalScale) mat.normalScale.set(0.05, 0.05);
       mat.color.set(0xffffff);
       mat.roughness = 1;
       mat.metalness = 0.02;
@@ -817,7 +811,8 @@ function retuneBakedAsphalt(scene: THREE.Scene): void {
 }
 
 export function whenRev6Ready(renderer: THREE.WebGLRenderer, scene: THREE.Scene): Promise<void> {
-  return Promise.all([readyGate, mountRev6Sky(renderer, scene)])
+  return readyGate
+    .then(() => mountRev6Sky(renderer, scene))
     .then(() => {
       retuneBakedAsphalt(scene);
     })

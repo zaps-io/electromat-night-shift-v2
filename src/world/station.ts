@@ -145,6 +145,8 @@ const canopyPanels = creamPanels();
 const canopyCream = new THREE.MeshPhysicalMaterial({
   name: "CanopyCream",
   color: C.cream,
+  emissive: C.cream,
+  emissiveIntensity: 0.22,
   map: canopyPanels,
   metalness: 0.08,
   roughness: 0.48,
@@ -154,27 +156,68 @@ const canopyCream = new THREE.MeshPhysicalMaterial({
 });
 const canopyFascia = new THREE.MeshStandardMaterial({
   color: C.cream,
+  emissive: C.cream,
+  emissiveIntensity: 0.34,
   map: canopyPanels,
   roughness: 0.46,
   metalness: 0.06,
   envMapIntensity: 0.22,
 });
 const canopyColumn = new THREE.MeshPhysicalMaterial({
-  color: 0xd5dae0,
+  color: 0xf2f4f6,
   map: canopyBrush.map,
   roughnessMap: canopyBrush.rough,
   normalMap: canopyBrush.normal,
-  normalScale: new THREE.Vector2(0.7, 1.8),
-  metalness: 0.78,
-  roughness: 0.34,
-  clearcoat: 0.12,
-  envMapIntensity: 0.7,
+  normalScale: new THREE.Vector2(0.45, 1.2),
+  metalness: 0.72,
+  roughness: 0.3,
+  clearcoat: 0.16,
+  envMapIntensity: 0.85,
 });
 const canopyTrim = new THREE.MeshPhysicalMaterial({
   color: C.chrome,
   metalness: 0.82,
   roughness: 0.28,
   envMapIntensity: 0.65,
+});
+
+/** Slim sign band. Letters are fitted inside this height in branding.ts. */
+const FASCIA_H = 0.5;
+
+const bayStripGeo = new THREE.BoxGeometry(1, 0.04, 0.1);
+const bayStripMat = new THREE.MeshStandardMaterial({
+  color: 0xfff4e4,
+  emissive: 0xffc898,
+  emissiveIntensity: 0.72,
+  roughness: 0.38,
+  metalness: 0.02,
+});
+
+function warmPoolTexture(): THREE.CanvasTexture {
+  const canvas = document.createElement("canvas");
+  canvas.width = 256;
+  canvas.height = 256;
+  const ctx = canvas.getContext("2d")!;
+  const g = ctx.createRadialGradient(128, 128, 8, 128, 128, 122);
+  g.addColorStop(0, "rgba(255, 196, 140, 0.42)");
+  g.addColorStop(0.45, "rgba(255, 176, 110, 0.16)");
+  g.addColorStop(1, "rgba(255, 176, 110, 0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 256, 256);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.needsUpdate = true;
+  return tex;
+}
+
+const warmPoolMat = new THREE.MeshBasicMaterial({
+  map: warmPoolTexture(),
+  transparent: true,
+  depthWrite: false,
+  toneMapped: true,
+  polygonOffset: true,
+  polygonOffsetFactor: -1,
+  polygonOffsetUnits: -1,
 });
 
 function addCanopyAt(root: THREE.Group, canopy: Canopy): void {
@@ -195,7 +238,13 @@ function addCanopyAt(root: THREE.Group, canopy: Canopy): void {
   top.receiveShadow = true;
   root.add(top);
 
-  const soffitWell = mat(0x2a2c32, { roughness: 0.62, metalness: 0.12, envMapIntensity: 0.2 });
+  const soffitWell = mat(0xe7e0d2, {
+    roughness: 0.58,
+    metalness: 0.04,
+    envMapIntensity: 0.16,
+    emissive: 0xe7e0d2,
+    emissiveIntensity: 0.08,
+  });
   const underGeo = new THREE.ExtrudeGeometry(roundedRectShape(w - 0.55, d - 0.55, 1.1), {
     depth: 0.05,
     bevelEnabled: false,
@@ -207,83 +256,96 @@ function addCanopyAt(root: THREE.Group, canopy: Canopy): void {
   soffit.receiveShadow = true;
   root.add(soffit);
 
-  const fasciaZ = cz - d * 0.5 - 0.08;
-  const fascia = new THREE.Mesh(new THREE.BoxGeometry(w - 0.8, 0.72, 0.12), canopyFascia);
-  fascia.position.set(cx, y - 0.06, fasciaZ);
+  const fasciaY = y - 0.03 - FASCIA_H * 0.5;
+  const fasciaZ = cz - d * 0.5 - 0.06;
+  const fasciaW = Math.max(2.2, w - 2.5);
+  const fascia = new THREE.Mesh(new THREE.BoxGeometry(fasciaW, FASCIA_H, 0.1), canopyFascia);
+  fascia.position.set(cx, fasciaY, fasciaZ);
   fascia.castShadow = true;
   fascia.userData.canopyFascia = true;
+  fascia.userData.fasciaSign = {
+    x: cx,
+    y: fasciaY,
+    z: fasciaZ - 0.1,
+    yaw: Math.PI,
+    maxW: fasciaW * 0.86,
+    maxH: FASCIA_H * 0.72,
+  };
   root.add(fascia);
-  const trim = new THREE.Mesh(new THREE.BoxGeometry(w - 0.55, 0.018, 0.05), canopyTrim);
-  trim.position.set(cx, y - 0.4, fasciaZ - 0.05);
+  const trim = new THREE.Mesh(new THREE.BoxGeometry(fasciaW - 0.12, 0.016, 0.04), canopyTrim);
+  trim.position.set(cx, fasciaY - FASCIA_H * 0.5 - 0.01, fasciaZ - 0.04);
   root.add(trim);
-  const aisleX = cx + face * (w * 0.5 + 0.06);
-  const aisleFascia = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.72, Math.min(d - 0.8, 8.4)), canopyFascia);
-  aisleFascia.position.set(aisleX, y - 0.06, cz);
+  const aisleX = cx + face * (w * 0.5 + 0.05);
+  const aisleD = Math.min(d - 2.4, 6.2);
+  const aisleFascia = new THREE.Mesh(new THREE.BoxGeometry(0.1, FASCIA_H, aisleD), canopyFascia);
+  aisleFascia.position.set(aisleX, fasciaY, cz);
   aisleFascia.castShadow = true;
   aisleFascia.userData.canopyFascia = true;
+  aisleFascia.userData.fasciaSign = {
+    x: aisleX + face * 0.1,
+    y: fasciaY,
+    z: cz,
+    yaw: face > 0 ? Math.PI / 2 : -Math.PI / 2,
+    maxW: aisleD * 0.86,
+    maxH: FASCIA_H * 0.72,
+  };
   root.add(aisleFascia);
-  const aisleTrim = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.018, Math.min(d - 1.1, 7.6)), canopyTrim);
-  aisleTrim.position.set(aisleX + face * 0.06, y - 0.4, cz);
+  const aisleTrim = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.016, Math.max(1.2, aisleD - 0.2)), canopyTrim);
+  aisleTrim.position.set(aisleX + face * 0.06, fasciaY - FASCIA_H * 0.5 - 0.01, cz);
   root.add(aisleTrim);
   for (const [ox, oz] of [
     [-0.22, -0.16],
     [0.2, 0.18],
   ] as const) {
-    const pool = new THREE.PointLight(0xffc898, 1.6, 7.2, 2);
-    pool.position.set(cx + ox * w, y - 0.65, cz + oz * d);
+    const pool = new THREE.PointLight(0xffc898, 1.7, 10.5, 2);
+    pool.position.set(cx + ox * w, y - 0.7, cz + oz * d);
     pool.castShadow = false;
     root.add(pool);
+    const stain = new THREE.Mesh(new THREE.PlaneGeometry(Math.min(w * 0.72, 8.5), Math.min(d * 0.42, 7.2)), warmPoolMat);
+    stain.rotation.x = -Math.PI / 2;
+    stain.position.set(cx + ox * w * 0.35, 0.03, cz + oz * d * 0.35);
+    stain.receiveShadow = false;
+    stain.userData.noBake = true;
+    root.add(stain);
   }
 
   const col = canopyColumn;
-  const boltSteel = mat(0x6a7076, { metalness: 0.62, roughness: 0.36, envMapIntensity: 0.28 });
-  const insetX = w * 0.5 - 0.62;
+  const boltSteel = mat(0x8a9096, { metalness: 0.72, roughness: 0.32, envMapIntensity: 0.4 });
+  const insetX = w * 0.5 - 0.48;
   const zStops = d > 16 ? [-0.78, 0, 0.78] : [-0.72, 0.72];
   for (const sx of [-1, 1]) {
     for (const tz of zStops) {
       const px = cx + sx * insetX;
       const pz = cz + tz * (d * 0.5 - 0.85);
-      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, y - 0.08, 20), col);
-      post.position.set(px, (y - 0.08) * 0.5, pz);
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.062, y - 0.06, 16), col);
+      post.position.set(px, (y - 0.06) * 0.5, pz);
       post.castShadow = true;
-      const plate = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.26, 0.03, 20), col);
-      plate.position.set(px, 0.02, pz);
+      const plate = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.12, 0.025, 16), col);
+      plate.position.set(px, 0.016, pz);
       plate.receiveShadow = true;
-      const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.14, 0.06, 16), col);
-      cap.position.set(px, y - 0.04, pz);
+      const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.06, 0.04, 12), col);
+      cap.position.set(px, y - 0.03, pz);
       root.add(post, plate, cap);
-      for (let i = 0; i < 6; i++) {
-        const a = (i / 6) * Math.PI * 2;
-        const bolt = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.018, 6), boltSteel);
-        bolt.position.set(px + Math.cos(a) * 0.175, 0.038, pz + Math.sin(a) * 0.175);
+      for (let i = 0; i < 4; i++) {
+        const a = (i / 4) * Math.PI * 2 + 0.4;
+        const bolt = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.012, 6), boltSteel);
+        bolt.position.set(px + Math.cos(a) * 0.082, 0.03, pz + Math.sin(a) * 0.082);
         root.add(bolt);
       }
     }
   }
 
-  const well = mat(0x1c1e24, { roughness: 0.7, metalness: 0.08 });
-  const lamp = new THREE.MeshStandardMaterial({
-    color: 0xfff4dc,
-    emissive: 0xffd090,
-    emissiveIntensity: 0.55,
-    roughness: 0.42,
-    metalness: 0.02,
-  });
-  const cols = Math.max(3, Math.round(w / 3.05));
-  const rows = Math.max(4, Math.round(d / 2.85));
-  const cellW = (w - 1.7) / cols;
-  const cellD = (d - 1.7) / rows;
-  for (let i = 0; i < cols; i++) {
-    for (let j = 0; j < rows; j++) {
-      const px = cx - (w - 1.7) * 0.5 + (i + 0.5) * cellW;
-      const pz = cz - (d - 1.7) * 0.5 + (j + 0.5) * cellD;
-      const recess = new THREE.Mesh(new RoundedBoxGeometry(cellW * 0.78, 0.2, cellD * 0.72, 2, 0.055), well);
-      recess.position.set(px, y - 0.1, pz);
-      recess.receiveShadow = true;
-      const disc = new THREE.Mesh(new THREE.PlaneGeometry(cellW * 0.58, cellD * 0.52), lamp);
-      disc.rotation.x = Math.PI / 2;
-      disc.position.set(px, y - 0.2, pz);
-      root.add(recess, disc);
+  const stallsHere = STALLS.filter((s) => Math.abs(s.zeusX - zeusX) < 0.05);
+  const stripLen = Math.max(2.4, w - 2.2);
+  for (const stall of stallsHere) {
+    for (const oz of [-0.38, 0.38] as const) {
+      const strip = new THREE.Mesh(bayStripGeo, bayStripMat);
+      strip.name = "bayStrip";
+      strip.userData.linear = true;
+      strip.position.set(cx, y - 0.16, stall.z + oz);
+      strip.scale.set(stripLen, 1, 1);
+      strip.castShadow = false;
+      root.add(strip);
     }
   }
 
@@ -817,7 +879,15 @@ export function buildStation(): Station {
       addParkingStop(root, stall);
     }
     addZeusPad(root, stall.zeusX, stall.zeusZ);
-    addZeusCharger(root, stall.zeusX, stall.zeusZ, stall.zeusYaw, stall.playable != null ? "full" : "lite", stall.id);
+    addZeusCharger(
+      root,
+      stall.zeusX,
+      stall.zeusZ,
+      stall.zeusYaw,
+      stall.playable != null ? "full" : "lite",
+      stall.id,
+      stall.playable,
+    );
   }
   bayAnchors.sort((a, b) => (a.userData.bayId as number) - (b.userData.bayId as number));
   applyBakedLotLight(root);

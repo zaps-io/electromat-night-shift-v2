@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { C } from "../brand";
-import { CANOPIES, PAVILION } from "./layout";
-import { buildChannelMark, fetchWordmark, placeChannel } from "./channel";
+import { PAVILION } from "./layout";
+import { buildChannelMark, fetchWordmark, fittedChannelWidth, placeChannel } from "./channel";
 import { applyZeusLogos } from "./zeus";
 
 const RED_STYLE = {
@@ -12,6 +12,15 @@ const RED_STYLE = {
   returnMetalness: 0.88,
   returnRoughness: 0.32,
   depth: 58,
+};
+
+type FasciaSign = {
+  x: number;
+  y: number;
+  z: number;
+  yaw: number;
+  maxW: number;
+  maxH: number;
 };
 
 const MOLDED_STYLE = {
@@ -40,13 +49,14 @@ export async function addBrandSignage(root: THREE.Group): Promise<void> {
   const red = buildChannelMark(redSvg, RED_STYLE);
   const molded = buildChannelMark(creamSvg, MOLDED_STYLE);
 
-  for (const canopy of CANOPIES) {
-    const fasciaZ = canopy.z - canopy.d * 0.5 - 0.22;
-    root.add(placeChannel(red, Math.min(2.15, canopy.w * 0.42), canopy.x, canopy.y - 0.02, fasciaZ, Math.PI, false));
-
-    const aisleX = canopy.x + canopy.face * (canopy.w * 0.5 + 0.16);
-    const aisleYaw = canopy.face > 0 ? Math.PI / 2 : -Math.PI / 2;
-    root.add(placeChannel(red, Math.min(1.7, canopy.d * 0.22), aisleX, canopy.y - 0.02, canopy.z, aisleYaw, false));
+  const signs: FasciaSign[] = [];
+  root.traverse((o) => {
+    const spec = o.userData.fasciaSign as FasciaSign | undefined;
+    if (spec) signs.push(spec);
+  });
+  for (const spec of signs) {
+    const width = fittedChannelWidth(red, spec.maxW, spec.maxH);
+    root.add(placeChannel(red, width, spec.x, spec.y, spec.z, spec.yaw, false));
   }
 
   const southZ = PAVILION.z - PAVILION.d * 0.5;

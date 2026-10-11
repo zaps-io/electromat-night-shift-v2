@@ -77,8 +77,18 @@ export function buildChannelMark(svgText: string, style: ChannelStyle): THREE.Gr
   pivot.name = "channel-mark";
   pivot.add(raw);
   pivot.userData.svgWidth = size.x;
+  pivot.userData.svgHeight = size.y;
   pivot.userData.depth = size.z;
   return pivot;
+}
+
+/** Width that keeps the extruded mark inside a fascia rectangle. */
+export function fittedChannelWidth(proto: THREE.Group, maxW: number, maxH: number): number {
+  const svgW = (proto.userData.svgWidth as number) || 1;
+  const svgH = (proto.userData.svgHeight as number) || svgW * 0.34;
+  const aspect = svgH / svgW;
+  const width = Math.min(maxW, maxH / aspect);
+  return Math.max(0.2, width);
 }
 
 /** Yaw 0 faces +Z. PI faces -Z. PI/2 faces +X. -PI/2 faces -X. */
