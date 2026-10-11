@@ -11,6 +11,9 @@ import {
 } from "../world/layout";
 
 export const WALK_RADIUS = 0.34;
+/** Near clip. Collision stops an extra CAMERA_MARGIN before a face so this plane never enters it. */
+export const CAMERA_NEAR = 0.16;
+export const CAMERA_MARGIN = 0.22;
 /**
  * Gameplay look — no zenith / asphalt dump, but wide enough to inspect
  * canopy coffers / fascia and Slim Zeus tops from FPV eye height.
@@ -98,8 +101,12 @@ export function stepWalk(step: WalkStep, dt: number, colliders: THREE.Box3[] = [
   return { x: pos.x, z: pos.z, dest, route, teleported: false };
 }
 
-/** Slide the walker out of expanded XZ AABBs. */
-export function resolveColliders(pos: THREE.Vector3, colliders: THREE.Box3[], radius = WALK_RADIUS): void {
+/** Slide the walker out of expanded XZ AABBs. Radius includes the near-plane margin. */
+export function resolveColliders(
+  pos: THREE.Vector3,
+  colliders: THREE.Box3[],
+  radius = WALK_RADIUS + CAMERA_MARGIN,
+): void {
   for (const box of colliders) {
     const x0 = box.min.x - radius;
     const x1 = box.max.x + radius;
@@ -159,7 +166,7 @@ export class Walker {
   }
 
   constructor() {
-    this.camera = new THREE.PerspectiveCamera(62, 1, 0.12, 220);
+    this.camera = new THREE.PerspectiveCamera(62, 1, CAMERA_NEAR, 220);
     this.bind();
     this.sync();
   }

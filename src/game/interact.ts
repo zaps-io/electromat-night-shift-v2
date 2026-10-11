@@ -174,7 +174,7 @@ function waitLabel(mins: number, hot: boolean): string {
 export function attendantQueue(state: GameState, limit = 3): AttendantRow[] {
   const rows: AttendantRow[] = [];
   const arrived = state.guests.filter((g) => state.timeMin >= g.arriveMin && !g.served && !g.walked);
-  const bayOf = (g: { assignedBay: number | null }) => (g.assignedBay != null ? `B${g.assignedBay}` : "Q");
+  const bayOf = (g: { assignedBay: number | null }) => (g.assignedBay != null ? `B${g.assignedBay}` : "LOUNGE");
   for (const g of arrived) {
     if (guestAction(g) !== "pay") continue;
     rows.push({ bay: bayOf(g), action: "PAY", wait: "NOW" });
@@ -205,10 +205,37 @@ export function attendantQueue(state: GameState, limit = 3): AttendantRow[] {
     .sort((a, b) => patienceLeft(state, a) - patienceLeft(state, b));
   for (const g of aisle) {
     const action = guestAction(g) === "park" ? "PARK" : "TALK";
-    rows.push({ bay: "Q", action, wait: waitLabel(patienceLeft(state, g), false) });
+    rows.push({ bay: "LOUNGE", action, wait: waitLabel(patienceLeft(state, g), false) });
   }
   if (!rows.length) rows.push({ bay: "—", action: "CLEAR", wait: "—" });
   return rows.slice(0, limit);
+}
+
+/**
+ * Handoff toasts append "NEXT · <job>". Hide that line when the prompt or
+ * objective already states the same job, so WAVE does not stack on PLUG.
+ */
+export function toastRepeatsLiveLine(toast: string, prompt: string, objective: string): boolean {
+  const parts = toast.toUpperCase().split("NEXT");
+  if (parts.length < 2) return false;
+  const next = parts
+    .slice(1)
+    .join("NEXT")
+    .replace(/^[\s·:.\-]+/, "")
+    .split("—")[0]!
+    .replace(/\s+/g, " ")
+    .trim();
+  if (next.length < 4) return false;
+  const norm = (s: string) =>
+    s
+      .toUpperCase()
+      .replace(/^E\s+/, "")
+      .replace(/\s+/g, " ")
+      .replace(/\s*·\s*/g, " · ")
+      .split("—")[0]!
+      .trim();
+  const live = [norm(prompt), norm(objective)].filter((s) => s.length > 3);
+  return live.some((s) => s.includes(next) || next.includes(s));
 }
 
 /** True when the objective line restates the boxed prompt. */

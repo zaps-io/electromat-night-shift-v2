@@ -7,7 +7,7 @@ import { applyZeusLogos } from "./zeus";
 const RED_STYLE = {
   face: C.red,
   faceEmissive: C.red,
-  faceEmissiveIntensity: 0.72,
+  faceEmissiveIntensity: 1.15,
   returns: 0x8d939b,
   returnMetalness: 0.88,
   returnRoughness: 0.32,

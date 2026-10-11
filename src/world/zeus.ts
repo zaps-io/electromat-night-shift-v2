@@ -124,7 +124,7 @@ const geo = {
   foot: new THREE.CylinderGeometry(0.014, 0.016, 0.02, 8),
   body: new RoundedBoxGeometry(0.38, 2.5, 0.18, 4, 0.02),
   cap: new RoundedBoxGeometry(0.4, 0.04, 0.2, 3, 0.01),
-  hair: new THREE.BoxGeometry(0.34, 0.024, 0.012),
+  hair: new THREE.BoxGeometry(0.36, 0.032, 0.014),
   stem: new THREE.CylinderGeometry(0.03, 0.038, 0.24, 10),
   recess: new THREE.BoxGeometry(0.3, 1.35, 0.014),
   bezelH: new THREE.BoxGeometry(0.32, 0.012, 0.012),

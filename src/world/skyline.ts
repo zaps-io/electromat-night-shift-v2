@@ -1,7 +1,6 @@
 import * as THREE from "three";
 import { facade, mural, sandColor, street } from "./tex";
 
-const roof = new THREE.MeshStandardMaterial({ color: 0x3a3834, roughness: 0.88, metalness: 0.04 });
 const night = new THREE.MeshStandardMaterial({
   color: 0xffffff,
   map: facade("dark"),
@@ -40,22 +39,6 @@ function addDesert(root: THREE.Group): void {
   sand.position.y = -0.12;
   sand.receiveShadow = false;
   root.add(sand);
-  const mesa = new THREE.MeshStandardMaterial({ color: 0x6a4034, roughness: 0.9, metalness: 0.02 });
-  const far = new THREE.MeshStandardMaterial({ color: 0x4a342c, roughness: 0.92 });
-  for (const [x, z, r, h, mat] of [
-    [-70, 96, 16, 11, far],
-    [-36, 102, 22, 16, far],
-    [8, 108, 18, 13, far],
-    [48, 98, 20, 14, far],
-    [78, 70, 14, 9, mesa],
-    [-88, 40, 12, 8, mesa],
-    [92, -10, 16, 10, mesa],
-    [-96, -20, 18, 9, mesa],
-  ] as const) {
-    const cone = new THREE.Mesh(new THREE.ConeGeometry(r, h, 7), mat);
-    cone.position.set(x, h * 0.28, z);
-    root.add(cone);
-  }
 }
 
 function addPowerLines(root: THREE.Group): void {
@@ -114,59 +97,6 @@ function addRoadsidePalms(root: THREE.Group): void {
   }
 }
 
-function addRidge(root: THREE.Group): void {
-  const hill = new THREE.MeshBasicMaterial({ color: 0x241c16, fog: true });
-  for (const [x, z, w, h] of [
-    [-48, 78, 36, 9],
-    [-18, 82, 28, 12],
-    [12, 80, 32, 10],
-    [42, 76, 30, 8],
-    [-8, 86, 22, 6],
-  ] as const) {
-    const mound = new THREE.Mesh(new THREE.BoxGeometry(w, h, 8), hill);
-    mound.position.set(x, h * 0.28, z);
-    mound.rotation.z = 0.04 * Math.sign(x || 1);
-    root.add(mound);
-  }
-}
-
-const stuccoMats = [
-  new THREE.MeshStandardMaterial({ color: 0xc4a07a, roughness: 0.92, metalness: 0.02 }),
-  new THREE.MeshStandardMaterial({ color: 0xb08968, roughness: 0.9, metalness: 0.02 }),
-  new THREE.MeshStandardMaterial({ color: 0xd2c0a4, roughness: 0.91, metalness: 0.02 }),
-  new THREE.MeshStandardMaterial({ color: 0x8d6b52, roughness: 0.88, metalness: 0.03 }),
-];
-
-/** Low adobe bar. Phoenix edge, not a window-grid tower. */
-function addLowBlock(
-  root: THREE.Group,
-  x: number,
-  z: number,
-  w: number,
-  h: number,
-  d: number,
-  index: number,
-): void {
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), stuccoMats[index % stuccoMats.length]);
-  mesh.position.set(x, h * 0.5 - 0.05, z);
-  mesh.castShadow = false;
-  mesh.receiveShadow = true;
-  const cap = new THREE.Mesh(new THREE.BoxGeometry(w + 0.4, 0.14, d + 0.35), roof);
-  cap.position.set(x, h + 0.02, z);
-  root.add(mesh, cap);
-}
-
-function addSkylineRow(root: THREE.Group): void {
-  const far: Array<[number, number, number, number, number]> = [
-    [-48, 96, 22, 3.4, 8],
-    [-18, 102, 16, 4.6, 7],
-    [8, 98, 26, 2.8, 9],
-    [36, 100, 18, 3.8, 8],
-    [62, 94, 20, 2.6, 7],
-  ];
-  far.forEach(([x, z, w, h, d], i) => addLowBlock(root, x, z, w, h, d, i));
-}
-
 function addTree(root: THREE.Group, x: number, z: number, h = 4.4): void {
   const trunk = new THREE.Mesh(
     new THREE.CylinderGeometry(0.07, 0.11, h * 0.55, 6),
@@ -182,21 +112,14 @@ function addTree(root: THREE.Group, x: number, z: number, h = 4.4): void {
 }
 
 
-function addNeighborhood(root: THREE.Group): void {
-  const near: Array<[number, number, number, number, number]> = [
-    [-36, 46, 14, 3.2, 6],
-    [-16, 50, 11, 4.2, 5.5],
-    [4, 44, 16, 2.8, 6],
-    [26, 48, 12, 3.6, 5],
-    [46, 42, 10, 2.6, 5],
-  ];
-  near.forEach(([x, z, w, h, d], i) => addLowBlock(root, x, z, w, h, d, i + 1));
+function addDesertEdge(root: THREE.Group): void {
   for (const [x, z, h] of [
-    [-26, 34, 5.2],
-    [-8, 32, 4.6],
-    [12, 33, 5.4],
-    [30, 31, 4.4],
-    [44, 34, 5.0],
+    [-40, 38, 5.2],
+    [-22, 34, 4.4],
+    [-6, 40, 5.6],
+    [14, 36, 4.8],
+    [32, 39, 5.1],
+    [50, 34, 4.2],
   ] as const) {
     addTree(root, x, z, h);
   }
@@ -248,10 +171,7 @@ function addStreetLamps(root: THREE.Group): void {
 export function buildSkyline(): THREE.Group {
   const root = new THREE.Group();
   addDesert(root);
-
-  addRidge(root);
-  addSkylineRow(root);
-  addNeighborhood(root);
+  addDesertEdge(root);
   addAlley(root);
 
   const art = mural();

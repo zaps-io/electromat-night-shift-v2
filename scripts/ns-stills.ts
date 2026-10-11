@@ -4,7 +4,7 @@
  */
 import { mkdirSync } from "node:fs";
 import { createServer } from "vite";
-import { BAYS, START_SHOT } from "../src/world/layout.ts";
+import { BAYS, CANOPIES, PAVILION, START_SHOT, WAVE_POINT } from "../src/world/layout.ts";
 
 const OUT = new URL("../docs/shots/", import.meta.url).pathname;
 
@@ -25,23 +25,8 @@ type Shot = {
   lookAt: { x: number; y: number; z: number };
 };
 
-/**
- * South apron, attendant side of the inner rows: both cream shells and the
- * sedan row, without staring into the soffit.
- */
-const canopy: Shot = {
-  file: "ns-canopy-row.png",
-  x: START_SHOT.x,
-  z: START_SHOT.z - 16.5,
-  yaw: 0,
-  pitch: 0.06,
-  eyeY: 1.66,
-  fov: 72,
-  lookAt: { x: START_SHOT.x + 0.6, y: 2.15, z: START_SHOT.z + 2.4 },
-};
-
-const hud: Shot = {
-  file: "ns-hud.png",
+const start: Shot = {
+  file: "ns-start.png",
   x: START_SHOT.x,
   z: START_SHOT.z,
   yaw: START_SHOT.yaw,
@@ -51,16 +36,42 @@ const hud: Shot = {
   lookAt: START_SHOT.lookAt,
 };
 
-const charger: Shot = {
-  file: "ns-charger.png",
-  x: peck.zeusX + fx * 3.35 + sx * 2.45,
-  z: peck.zeusZ + fz * 3.35 + sz * 2.45,
+const row = CANOPIES[1]!;
+const aisleX = row.x + row.face * (row.w * 0.5 + 0.05);
+const fascia: Shot = {
+  file: "ns-fascia.png",
+  x: aisleX + row.face * 8.2,
+  z: row.z - 1.6,
   yaw: 0,
   pitch: 0,
-  eyeY: 1.52,
-  fov: 50,
-  lookAt: { x: peck.zeusX + fx * 0.12, y: 1.38, z: peck.zeusZ },
+  eyeY: 1.62,
+  fov: 34,
+  lookAt: { x: aisleX + row.face * 0.2, y: row.y - 0.62, z: row.z },
 };
+
+const lounge: Shot = {
+  file: "ns-lounge.png",
+  x: PAVILION.x - PAVILION.w * 0.5 - 7.2,
+  z: PAVILION.z + 0.2,
+  yaw: 0,
+  pitch: 0,
+  eyeY: 1.55,
+  fov: 50,
+  lookAt: { x: PAVILION.x - PAVILION.w * 0.5 + 0.2, y: 1.65, z: PAVILION.z + 0.15 },
+};
+
+const charger: Shot = {
+  file: "ns-charger.png",
+  x: peck.zeusX + fx * 1.7 + sx * 2.3,
+  z: peck.zeusZ + fz * 1.7 + sz * 2.3,
+  yaw: 0,
+  pitch: 0,
+  eyeY: 1.35,
+  fov: 58,
+  lookAt: { x: peck.zeusX, y: 1.12, z: peck.zeusZ },
+};
+
+const hud: Shot = { ...start, file: "ns-hud-wave.png" };
 
 async function main(): Promise<void> {
   mkdirSync(OUT, { recursive: true });
@@ -93,27 +104,12 @@ async function main(): Promise<void> {
     });
     await new Promise((r) => setTimeout(r, 600));
 
-    await page.evaluate((s: Shot) => {
-      const api = (
-        window as unknown as {
-          __electromat: {
-            place: (x: number, z: number, yaw?: number, pitch?: number, eyeY?: number, fov?: number) => void;
-            lookAt: (x: number, y: number, z: number) => void;
-          };
-        }
-      ).__electromat;
-      api.place(s.x, s.z, s.yaw, s.pitch, s.eyeY, s.fov);
-      api.lookAt(s.lookAt.x, s.lookAt.y, s.lookAt.z);
-    }, hud);
-    await new Promise((r) => setTimeout(r, 400));
-    await page.screenshot({ path: `${OUT}/ns-title.png` });
-
     await page.evaluate(() => {
       (window as unknown as { __electromat: { startNight: () => void } }).__electromat.startNight();
     });
     await new Promise((r) => setTimeout(r, 500));
 
-    for (const shot of [canopy, hud, charger]) {
+    for (const shot of [start, fascia, lounge, charger]) {
       await page.evaluate((s: Shot) => {
         const api = (
           window as unknown as {
@@ -130,6 +126,38 @@ async function main(): Promise<void> {
       await page.screenshot({ path: `${OUT}/${shot.file}` });
     }
 
+    await page.evaluate((wave: { x: number; z: number }) => {
+      const api = (
+        window as unknown as {
+          __electromat: {
+            act: () => void;
+            place: (x: number, z: number, yaw?: number, pitch?: number, eyeY?: number, fov?: number) => void;
+            lookAt: (x: number, y: number, z: number) => void;
+          };
+        }
+      ).__electromat;
+      api.act();
+      api.place(wave.x, wave.z - 1.4, 0, 0, 1.58, 54);
+      api.lookAt(wave.x, 1.4, wave.z);
+      api.act();
+    }, WAVE_POINT);
+    await new Promise((r) => setTimeout(r, 300));
+
+    await page.evaluate((s: Shot) => {
+      const api = (
+        window as unknown as {
+          __electromat: {
+            place: (x: number, z: number, yaw?: number, pitch?: number, eyeY?: number, fov?: number) => void;
+            lookAt: (x: number, y: number, z: number) => void;
+          };
+        }
+      ).__electromat;
+      api.place(s.x, s.z, s.yaw, s.pitch, s.eyeY, s.fov);
+      api.lookAt(s.lookAt.x, s.lookAt.y, s.lookAt.z);
+    }, hud);
+    await new Promise((r) => setTimeout(r, 400));
+    await page.screenshot({ path: `${OUT}/${hud.file}` });
+
     const hudText = await page.evaluate(() => {
       const prompt = document.querySelector("#prompt")?.textContent ?? "";
       const objective = document.querySelector("#objective")?.textContent ?? "";
@@ -137,7 +165,7 @@ async function main(): Promise<void> {
       return { prompt, objective, queue };
     });
     console.log("hud", hudText);
-    console.log("ns stills", ["ns-title.png", canopy.file, hud.file, charger.file]);
+    console.log("ns stills", [start.file, fascia.file, lounge.file, charger.file, hud.file]);
   } finally {
     await browser.close();
     await server.close();
