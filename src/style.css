@@ -293,9 +293,10 @@ body {
 .q-head,
 .q-row {
   display: grid;
-  grid-template-columns: 2.15rem 4.4rem 3.1rem;
-  gap: 0.28rem;
-  width: 10rem;
+  /* LOUNGE / UNPLUG / SOON, plus tracking, so cells never paint over each other. */
+  grid-template-columns: 5.15rem 5.15rem 3.7rem;
+  column-gap: 0.45rem;
+  width: max-content;
 }
 
 .q-head {
@@ -311,6 +312,12 @@ body {
   letter-spacing: 0.06em;
   line-height: 1.15;
   font-variant-numeric: tabular-nums;
+}
+
+.q-head > span,
+.q-row > span {
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .q-bay {

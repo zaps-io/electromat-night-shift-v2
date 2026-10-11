@@ -165,6 +165,34 @@ async function main(): Promise<void> {
       return { prompt, objective, queue };
     });
     console.log("hud", hudText);
+    for (const [width, height] of [
+      [1280, 720],
+      [1600, 900],
+    ] as const) {
+      await page.setViewport({ width, height, deviceScaleFactor: 1 });
+      await new Promise((r) => setTimeout(r, 80));
+      const problems = await page.evaluate(() => {
+        const issues: string[] = [];
+        for (const row of document.querySelectorAll(".q-head, .q-row")) {
+          const cells = [...row.children] as HTMLElement[];
+          for (let i = 0; i < cells.length; i++) {
+            const cell = cells[i]!;
+            if (cell.scrollWidth > cell.clientWidth + 1) {
+              issues.push(`${cell.textContent} clipped ${cell.scrollWidth}>${cell.clientWidth}`);
+            }
+            if (i === 0) continue;
+            const prev = cells[i - 1]!.getBoundingClientRect();
+            const cur = cell.getBoundingClientRect();
+            if (prev.right > cur.left + 0.5) {
+              issues.push(`${cells[i - 1]!.textContent} overlaps ${cell.textContent}`);
+            }
+          }
+        }
+        return issues;
+      });
+      if (problems.length) throw new Error(`${width}x${height} queue: ${problems.join("; ")}`);
+      console.log("queue columns", `${width}x${height}`, "ok");
+    }
     console.log("ns stills", [start.file, fascia.file, lounge.file, charger.file, hud.file]);
   } finally {
     await browser.close();
