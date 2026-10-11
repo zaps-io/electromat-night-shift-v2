@@ -1621,6 +1621,14 @@ const stationPay = readFileSync(new URL("../src/world/station.ts", import.meta.u
 if (stationPay.includes("map: payTex, toneMapped: false, side: THREE.DoubleSide")) {
   throw new Error("PAY plaque must face the lot, not a mirrored double side");
 }
+if (stationPay.includes("south.scale.x = -1")) throw new Error("WAVE south face must not flip the bitmap");
+if (/map: waveTex[\s\S]{0,160}DoubleSide/.test(stationPay)) {
+  throw new Error("WAVE faces must be single-sided so the back is not a mirror");
+}
+const zeusSrc = readFileSync(new URL("../src/world/zeus.ts", import.meta.url), "utf8");
+if (/function stallBadgeMat[\s\S]{0,280}DoubleSide/.test(zeusSrc)) {
+  throw new Error("bay digits must not use a mirrored double side");
+}
 const brandSrc = readFileSync(new URL("../src/world/branding.ts", import.meta.url), "utf8");
 if (brandSrc.includes("loungeFront")) throw new Error("south zaps mark must not duplicate over the LOUNGE sign");
 

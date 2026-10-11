@@ -562,20 +562,22 @@ function addWaveKiosk(root: THREE.Group): { kiosk: THREE.Group; alert: THREE.Spr
   const plinth = box(0.9, 0.16, 0.58, waveMetal, x, 0.08, z);
   solidBox(x, z, 1.05, 0.72, 1.7);
   const head = box(0.7, 0.5, 0.12, mat(C.charcoal), x, 1.72, z);
-  const plateMat = new THREE.MeshBasicMaterial({ map: waveTex, toneMapped: false, side: THREE.DoubleSide });
+  const plateMat = new THREE.MeshBasicMaterial({ map: waveTex, toneMapped: false, side: THREE.FrontSide });
   const north = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.4), plateMat);
   north.position.set(x, 1.72, z + 0.08);
   const south = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.4), plateMat);
   south.position.set(x, 1.72, z - 0.08);
   south.rotation.y = Math.PI;
-  south.scale.x = -1;
   const ghost = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
   const hit = new THREE.Mesh(new THREE.BoxGeometry(3.2, 2.8, 3.0), ghost);
   hit.position.set(x, 1.2, z);
   hit.userData.kind = "wave";
   const pole = box(0.08, 2.85, 0.08, mat(C.charcoal, { metalness: 0.28, roughness: 0.4 }), x + 0.38, 1.42, z);
   const flag = new THREE.Mesh(new THREE.PlaneGeometry(0.95, 0.42), plateMat);
-  flag.position.set(x + 0.88, 2.72, z);
+  flag.position.set(x + 0.88, 2.72, z + 0.012);
+  const flagBack = new THREE.Mesh(new THREE.PlaneGeometry(0.95, 0.42), plateMat);
+  flagBack.position.set(x + 0.88, 2.72, z - 0.012);
+  flagBack.rotation.y = Math.PI;
   const beacon = new THREE.Mesh(
     new THREE.SphereGeometry(0.045, 10, 8),
     new THREE.MeshStandardMaterial({ color: C.amber, emissive: C.amber, emissiveIntensity: 0.35, roughness: 0.4 }),
@@ -585,7 +587,7 @@ function addWaveKiosk(root: THREE.Group): { kiosk: THREE.Group; alert: THREE.Spr
   lamp.position.set(x + 0.38, 2.7, z);
   const alert = makeWaveIcon();
   alert.position.set(x, 2.15, z);
-  kiosk.add(plinth, stand, head, south, north, hit, pole, flag, beacon, lamp, alert);
+  kiosk.add(plinth, stand, head, south, north, hit, pole, flag, flagBack, beacon, lamp, alert);
   const guide = makeWaveGuide({ x, z });
   root.add(kiosk, guide);
   return { kiosk, alert, guide };

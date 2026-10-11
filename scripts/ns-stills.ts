@@ -107,6 +107,18 @@ const layers: Shot = {
   lookAt: { x: AB_AISLE_X, y: 1.55, z: -54 },
 };
 
+/** North face of the aisle WAVE stand. */
+const waveFront: Shot = {
+  file: "ns-wave-front.png",
+  x: WAVE_POINT.x - 1.35,
+  z: WAVE_POINT.z + 2.55,
+  yaw: 0,
+  pitch: 0,
+  eyeY: 1.62,
+  fov: 38,
+  lookAt: { x: WAVE_POINT.x + 0.15, y: 1.85, z: WAVE_POINT.z },
+};
+
 /** Peck's rear quarter: dark paint, glass, tail strips, contact shadow. */
 const carDusk: Shot = {
   file: "ns-car-dusk.png",
@@ -156,7 +168,7 @@ async function main(): Promise<void> {
     });
     await new Promise((r) => setTimeout(r, 500));
 
-    for (const shot of [start, layers, carDusk, fascia, lounge, charger, leftEdge, canopyEnd]) {
+    for (const shot of [start, layers, carDusk, fascia, lounge, charger, leftEdge, canopyEnd, waveFront]) {
       await page.evaluate((s: Shot) => {
         const api = (
           window as unknown as {
@@ -297,6 +309,7 @@ async function main(): Promise<void> {
       leftEdge.file,
       charger.file,
       canopyEnd.file,
+      waveFront.file,
       hudPay.file,
       fascia.file,
       lounge.file,

@@ -176,7 +176,7 @@ function stallBadgeMat(stallId: number, label: number): THREE.MeshBasicMaterial 
   const mat = new THREE.MeshBasicMaterial({
     map: digitTexture(label),
     toneMapped: false,
-    side: THREE.DoubleSide,
+    side: THREE.FrontSide,
   });
   badgeCache.set(stallId, mat);
   return mat;
@@ -297,13 +297,17 @@ export function addZeusCharger(
     disc.rotation.x = Math.PI / 2;
     disc.scale.setScalar(lift);
     disc.position.set(0, badgeY, badgeZ);
-    const face = new THREE.Mesh(geo.badge, stallBadgeMat(stallId, label));
+    const badgeMat = stallBadgeMat(stallId, label);
+    const face = new THREE.Mesh(geo.badge, badgeMat);
     face.scale.setScalar(lift);
     face.position.set(0, badgeY, badgeZ - 0.014);
     face.rotation.y = Math.PI;
     face.userData.kind = "stall-badge";
     face.userData.stallId = stallId;
-    g.add(stem, disc, face);
+    const back = new THREE.Mesh(geo.badge, badgeMat);
+    back.scale.setScalar(lift);
+    back.position.set(0, badgeY, badgeZ + 0.02);
+    g.add(stem, disc, face, back);
   }
 
   g.add(base, body, cap, hair, recess, bezelTop, bezelBot, bezelL, bezelR, display, logo);
