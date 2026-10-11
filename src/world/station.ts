@@ -13,6 +13,7 @@ import {
   VISITOR_WEST,
   WAVE_POINT,
   YARD,
+  ZEUS_COLLIDER,
   type Canopy,
   parkingStopPose,
   planterColliders,
@@ -30,6 +31,16 @@ const lotSolids: THREE.Box3[] = [];
 function solidBox(x: number, z: number, w: number, d: number, h = 3.2): void {
   lotSolids.push(
     new THREE.Box3(new THREE.Vector3(x - w * 0.5, 0, z - d * 0.5), new THREE.Vector3(x + w * 0.5, h, z + d * 0.5)),
+  );
+}
+
+/** Roof slab only. Ground height walks under it; a body inside the shell is pushed out. */
+function shellBox(x: number, z: number, w: number, d: number, y: number): void {
+  lotSolids.push(
+    new THREE.Box3(
+      new THREE.Vector3(x - w * 0.5, y - 0.28, z - d * 0.5),
+      new THREE.Vector3(x + w * 0.5, y + 0.14, z + d * 0.5),
+    ),
   );
 }
 
@@ -154,7 +165,7 @@ const canopyCream = new THREE.MeshPhysicalMaterial({
   name: "CanopyCream",
   color: C.cream,
   emissive: C.cream,
-  emissiveIntensity: 0.22,
+  emissiveIntensity: 0.06,
   map: canopyPanels,
   metalness: 0.08,
   roughness: 0.48,
@@ -165,7 +176,7 @@ const canopyCream = new THREE.MeshPhysicalMaterial({
 const canopyFascia = new THREE.MeshStandardMaterial({
   color: C.cream,
   emissive: C.cream,
-  emissiveIntensity: 0.34,
+  emissiveIntensity: 0.12,
   map: canopyPanels,
   roughness: 0.46,
   metalness: 0.06,
@@ -231,18 +242,21 @@ const warmPoolMat = new THREE.MeshBasicMaterial({
 
 function addCanopyAt(root: THREE.Group, canopy: Canopy): void {
   const { x: cx, z: cz, w, d, y, face, zeusX } = canopy;
-  const topGeo = new THREE.ExtrudeGeometry(roundedRectShape(w, d, 1.35), {
+  // Capsule ends: radius is almost half the short side, so the row finishes in a round nose.
+  const endR = Math.min(w * 0.5 - 0.12, d * 0.46);
+  const topGeo = new THREE.ExtrudeGeometry(roundedRectShape(w, d, endR), {
     depth: 0.16,
     bevelEnabled: true,
-    bevelThickness: 0.04,
-    bevelSize: 0.08,
-    bevelSegments: 2,
-    curveSegments: 10,
+    bevelThickness: 0.05,
+    bevelSize: 0.12,
+    bevelSegments: 3,
+    curveSegments: 16,
   });
   topGeo.rotateX(-Math.PI / 2);
   const top = new THREE.Mesh(topGeo, canopyCream);
   top.userData.canopyTop = true;
   top.position.set(cx, y, cz);
+  shellBox(cx, cz, w, d, y);
   top.castShadow = true;
   top.receiveShadow = true;
   root.add(top);
@@ -254,10 +268,10 @@ function addCanopyAt(root: THREE.Group, canopy: Canopy): void {
     emissive: 0xe7e0d2,
     emissiveIntensity: 0.08,
   });
-  const underGeo = new THREE.ExtrudeGeometry(roundedRectShape(w - 0.55, d - 0.55, 1.1), {
+  const underGeo = new THREE.ExtrudeGeometry(roundedRectShape(w - 0.55, d - 0.55, Math.max(0.4, endR - 0.28)), {
     depth: 0.05,
     bevelEnabled: false,
-    curveSegments: 8,
+    curveSegments: 14,
   });
   underGeo.rotateX(-Math.PI / 2);
   const soffit = new THREE.Mesh(underGeo, soffitWell);
@@ -266,26 +280,31 @@ function addCanopyAt(root: THREE.Group, canopy: Canopy): void {
   root.add(soffit);
 
   const fasciaY = y - 0.03 - FASCIA_H * 0.5;
-  const fasciaZ = cz - d * 0.5 - 0.06;
-  const fasciaW = Math.max(2.2, w - 2.5);
-  const fascia = new THREE.Mesh(new THREE.BoxGeometry(fasciaW, FASCIA_H, 0.1), canopyFascia);
-  fascia.position.set(cx, fasciaY, fasciaZ);
-  fascia.castShadow = true;
-  fascia.userData.canopyFascia = true;
-  fascia.userData.fasciaSign = {
-    x: cx,
-    y: fasciaY,
-    z: fasciaZ - 0.1,
-    yaw: Math.PI,
-    maxW: fasciaW * 0.86,
-    maxH: FASCIA_H * 0.8,
-  };
-  root.add(fascia);
-  const trim = new THREE.Mesh(new THREE.BoxGeometry(fasciaW - 0.12, 0.016, 0.04), canopyTrim);
-  trim.position.set(cx, fasciaY - FASCIA_H * 0.5 - 0.01, fasciaZ - 0.04);
-  root.add(trim);
+  // The short ends are curves. A square fascia board there would square the shell back off.
+  const flatEnd = w - endR * 2;
+  if (flatEnd > 2.6) {
+    const fasciaZ = cz - d * 0.5 - 0.06;
+    const fasciaW = Math.min(flatEnd - 0.3, Math.max(2.2, w - 2.5));
+    const fascia = new THREE.Mesh(new THREE.BoxGeometry(fasciaW, FASCIA_H, 0.1), canopyFascia);
+    fascia.position.set(cx, fasciaY, fasciaZ);
+    fascia.castShadow = true;
+    fascia.userData.canopyFascia = true;
+    fascia.userData.fasciaSign = {
+      x: cx,
+      y: fasciaY,
+      z: fasciaZ - 0.1,
+      yaw: Math.PI,
+      maxW: fasciaW * 0.86,
+      maxH: FASCIA_H * 0.8,
+    };
+    root.add(fascia);
+    const trim = new THREE.Mesh(new THREE.BoxGeometry(fasciaW - 0.12, 0.016, 0.04), canopyTrim);
+    trim.position.set(cx, fasciaY - FASCIA_H * 0.5 - 0.01, fasciaZ - 0.04);
+    root.add(trim);
+  }
   const aisleX = cx + face * (w * 0.5 + 0.05);
-  const aisleD = Math.min(d - 2.4, 6.2);
+  const flatSide = Math.max(1.4, d - endR * 2 - 0.5);
+  const aisleD = Math.min(d - 2.4, 6.2, flatSide);
   const aisleFascia = new THREE.Mesh(new THREE.BoxGeometry(0.1, FASCIA_H, aisleD), canopyFascia);
   aisleFascia.position.set(aisleX, fasciaY, cz);
   aisleFascia.castShadow = true;
@@ -320,12 +339,13 @@ function addCanopyAt(root: THREE.Group, canopy: Canopy): void {
 
   const col = canopyColumn;
   const boltSteel = mat(0x8a9096, { metalness: 0.72, roughness: 0.32, envMapIntensity: 0.4 });
-  const insetX = w * 0.5 - 0.48;
-  const zStops = d > 16 ? [-0.78, 0, 0.78] : [-0.72, 0.72];
+  const insetX = Math.min(w * 0.5 - 0.7, w * 0.5 - endR * 0.55);
+  const zEdge = Math.max(0.7, d * 0.5 - endR - 0.5);
+  const zStops = d > 16 ? [-1, 0, 1] : [-1, 1];
   for (const sx of [-1, 1]) {
     for (const tz of zStops) {
       const px = cx + sx * insetX;
-      const pz = cz + tz * (d * 0.5 - 0.85);
+      const pz = cz + tz * zEdge;
       const post = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.062, y - 0.06, 16), col);
       post.position.set(px, (y - 0.06) * 0.5, pz);
       solidBox(px, pz, 0.36, 0.36, y);
@@ -542,20 +562,22 @@ function addWaveKiosk(root: THREE.Group): { kiosk: THREE.Group; alert: THREE.Spr
   const plinth = box(0.9, 0.16, 0.58, waveMetal, x, 0.08, z);
   solidBox(x, z, 1.05, 0.72, 1.7);
   const head = box(0.7, 0.5, 0.12, mat(C.charcoal), x, 1.72, z);
-  const plateMat = new THREE.MeshBasicMaterial({ map: waveTex, toneMapped: false, side: THREE.DoubleSide });
+  const plateMat = new THREE.MeshBasicMaterial({ map: waveTex, toneMapped: false, side: THREE.FrontSide });
   const north = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.4), plateMat);
   north.position.set(x, 1.72, z + 0.08);
   const south = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.4), plateMat);
   south.position.set(x, 1.72, z - 0.08);
   south.rotation.y = Math.PI;
-  south.scale.x = -1;
   const ghost = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
   const hit = new THREE.Mesh(new THREE.BoxGeometry(3.2, 2.8, 3.0), ghost);
   hit.position.set(x, 1.2, z);
   hit.userData.kind = "wave";
   const pole = box(0.08, 2.85, 0.08, mat(C.charcoal, { metalness: 0.28, roughness: 0.4 }), x + 0.38, 1.42, z);
   const flag = new THREE.Mesh(new THREE.PlaneGeometry(0.95, 0.42), plateMat);
-  flag.position.set(x + 0.88, 2.72, z);
+  flag.position.set(x + 0.88, 2.72, z + 0.012);
+  const flagBack = new THREE.Mesh(new THREE.PlaneGeometry(0.95, 0.42), plateMat);
+  flagBack.position.set(x + 0.88, 2.72, z - 0.012);
+  flagBack.rotation.y = Math.PI;
   const beacon = new THREE.Mesh(
     new THREE.SphereGeometry(0.045, 10, 8),
     new THREE.MeshStandardMaterial({ color: C.amber, emissive: C.amber, emissiveIntensity: 0.35, roughness: 0.4 }),
@@ -565,7 +587,7 @@ function addWaveKiosk(root: THREE.Group): { kiosk: THREE.Group; alert: THREE.Spr
   lamp.position.set(x + 0.38, 2.7, z);
   const alert = makeWaveIcon();
   alert.position.set(x, 2.15, z);
-  kiosk.add(plinth, stand, head, south, north, hit, pole, flag, beacon, lamp, alert);
+  kiosk.add(plinth, stand, head, south, north, hit, pole, flag, flagBack, beacon, lamp, alert);
   const guide = makeWaveGuide({ x, z });
   root.add(kiosk, guide);
   return { kiosk, alert, guide };
@@ -894,7 +916,7 @@ export function buildStation(): Station {
       addParkingStop(root, stall);
     }
     addZeusPad(root, stall.zeusX, stall.zeusZ);
-    solidBox(stall.zeusX, stall.zeusZ, 0.62, 0.48, 2.75);
+    solidBox(stall.zeusX, stall.zeusZ, ZEUS_COLLIDER.x, ZEUS_COLLIDER.z, ZEUS_COLLIDER.h);
     addZeusCharger(
       root,
       stall.zeusX,

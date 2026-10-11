@@ -36,7 +36,7 @@ export function createRenderer(canvas: HTMLCanvasElement): THREE.WebGLRenderer {
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.02;
+  renderer.toneMappingExposure = 1.18;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   return renderer;
 }
@@ -178,7 +178,7 @@ export function createPipeline(
     radius: 0.11,
     bias: 0.04,
     fade: 0.012,
-    luminanceInfluence: 0.32,
+    luminanceInfluence: 0.16,
     worldDistanceThreshold: 18,
     worldDistanceFalloff: 6,
     resolutionScale: 0.65,
@@ -190,7 +190,7 @@ export function createPipeline(
     mipmapBlur: true,
     radius: 0.42,
   });
-  const grade = new BrightnessContrastEffect({ brightness: 0, contrast: 0.06 });
+  const grade = new BrightnessContrastEffect({ brightness: 0.035, contrast: 0.04 });
   const hue = new HueSaturationEffect({ hue: 0, saturation: -0.06 });
   const vignette = new VignetteEffect({
     eskil: false,

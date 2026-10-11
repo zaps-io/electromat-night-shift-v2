@@ -36,8 +36,8 @@ import {
   doorTakesPrompt,
   formatHandoff,
   attendantQueue,
+  jobFocusCandidate,
   jobHint,
-  jobLabel,
   jobNeedLocked,
   objectiveRepeatsPrompt,
   toastRepeatsLiveLine,
@@ -94,6 +94,7 @@ import {
 import { addBrandSignage } from "./world/branding";
 import { makeAttendantHand, tickHand } from "./world/hand";
 import { makeTargetMark, makeWalkPuck, makeWaveIcon } from "./world/icons";
+import { HORIZON, mountSkylineRing } from "./world/frontage";
 import { buildSkyline } from "./world/skyline";
 import { setTextureAnisotropy } from "./world/tex";
 import { whenRev6Ready } from "./world/rev6art";
@@ -124,6 +125,7 @@ const promptEl = document.querySelector("#prompt")!;
 const doorLineEl = document.querySelector("#door-line")!;
 const objectiveEl = document.querySelector("#objective")!;
 const toastEl = document.querySelector("#toast")!;
+const floaterEl = document.querySelector<HTMLElement>("#floater")!;
 const heatEl = document.querySelector("#heat")!;
 const flashEl = document.querySelector<HTMLElement>("#flash")!;
 const gradeEl = document.querySelector("#grade")!;
@@ -135,8 +137,8 @@ const renderer = createRenderer(canvas);
 setTextureAnisotropy(renderer.capabilities.getMaxAnisotropy());
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x6a5344);
-scene.fog = new THREE.Fog(0xc4a888, 96, 220);
+scene.background = new THREE.Color(HORIZON);
+scene.fog = new THREE.Fog(HORIZON, 34, 128);
 scene.add(new THREE.HemisphereLight(0xe7d2bc, 0x4a4036, 0.5));
 const sun = new THREE.DirectionalLight(0xffd2a4, 2.45);
 const fill = new THREE.DirectionalLight(0x9aafc4, 0.22);
@@ -150,6 +152,7 @@ const station = buildStation();
 addLotMirror(station.root, renderer);
 scene.add(station.root);
 const skyline = buildSkyline();
+mountSkylineRing(skyline);
 scene.add(skyline);
 
 const walker = new Walker();
@@ -164,6 +167,24 @@ loungeMark.position.set(-20.05, 2.35, 7.95);
 loungeMark.scale.set(1.35, 0.52, 1);
 loungeMark.visible = false;
 scene.add(targetMark, walkPuck, loungeMark);
+const jobRing = new THREE.Mesh(
+  new THREE.RingGeometry(1.35, 1.62, 48),
+  new THREE.MeshBasicMaterial({
+    color: 0x00d4f5,
+    transparent: true,
+    opacity: 0.42,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+    depthTest: true,
+    toneMapped: true,
+  }),
+);
+jobRing.rotation.x = -Math.PI / 2;
+jobRing.position.y = 0.045;
+jobRing.visible = false;
+jobRing.frustumCulled = false;
+jobRing.renderOrder = 2;
+scene.add(jobRing);
 
 const pipeline = createPipeline(renderer, scene, walker.camera, sun);
 const gfxBtn = document.querySelector<HTMLButtonElement>("#gfx");
@@ -355,15 +376,28 @@ function refreshTarget(): InteractResult {
   return lockedTarget;
 }
 
-/** Papers stamp: toast names the next job in the same beat the last one clears. */
+/** Papers stamp: toast names the next job. DOM is painted by commitAct on this same turn. */
 function punch(verb: "PAID" | "WAVE" | "ZIP", name: string): void {
   const job = nextJob(state);
-  const line = formatHandoff(verb, name, job);
-  state.toast = line;
+  state.toast = formatHandoff(verb, name, job);
   state.toastUntil = state.timeMin + 7;
-  toastEl.textContent = line;
-  toastEl.classList.add("loud");
-  if (job) objectiveEl.textContent = jobNeedLocked(job) ? jobLabel(job.need, job.name) : jobHint(job);
+}
+
+let scoreAtAct = 0;
+
+function showFloater(points: number): void {
+  floaterEl.textContent = `+${points}`;
+  floaterEl.classList.remove("show");
+  void floaterEl.offsetWidth;
+  floaterEl.classList.add("show");
+}
+
+/** Queue, score, and prompt update before the stamp reflow, on the action's own turn. */
+function commitAct(): void {
+  paintHud();
+  const gained = state.score - scoreAtAct;
+  if (gained <= 0) return;
+  showFloater(gained);
   flashEl.classList.remove("on");
   void flashEl.offsetWidth;
   flashEl.classList.add("on");
@@ -460,6 +494,7 @@ function applyLockedJob(): boolean {
 }
 
 function act(): void {
+  scoreAtAct = state.score;
   if (state.phase === "title") {
     beginShift(true);
     return;
@@ -475,9 +510,18 @@ function act(): void {
   const resolved = refreshTarget();
   const home = inLoungeAttention(walker.position.x, walker.position.z);
   let ready = resolved.ready ?? (home ? null : jobReadyFallback(walker.position, job, cands));
-  if (ready && applyReady(ready)) return;
-  if (!home && ready && applyLockedJob()) return;
-  if (!home && !ready && jobReadyFallback(walker.position, job, cands) && applyLockedJob()) return;
+  if (ready && applyReady(ready)) {
+    commitAct();
+    return;
+  }
+  if (!home && ready && applyLockedJob()) {
+    commitAct();
+    return;
+  }
+  if (!home && !ready && jobReadyFallback(walker.position, job, cands) && applyLockedJob()) {
+    commitAct();
+    return;
+  }
   if (pendingPayGuest(state)) nudgePay(state);
   else if (job?.need === "unplug") {
     state.toast = `${job.name} is full — walk to the car.`;
@@ -489,6 +533,7 @@ function act(): void {
     state.toast = "Walk closer · look at the marker.";
     state.toastUntil = state.timeMin + 6;
   }
+  paintHud();
 }
 
 let objectiveRead = "";
@@ -608,6 +653,13 @@ function paintHud(): void {
   }
   walkPuck.visible = live && walker.destination != null;
   if (walker.destination) walkPuck.position.set(walker.destination.x, 0.03, walker.destination.z);
+  const marked = live && !cinematic ? jobFocusCandidate(job, currentCandidates()) : null;
+  jobRing.visible = !!marked;
+  if (marked) {
+    const spread = marked.kind === "guest" ? 1 : 0.42;
+    jobRing.scale.set(spread, spread, 1);
+    jobRing.position.set(marked.x, 0.045, marked.z);
+  }
 }
 
 const walkPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
@@ -1062,7 +1114,7 @@ window.__electromat = {
     const data = capture(w, h);
     for (const o of hidden) o.visible = true;
     scene.background = prev;
-    scene.fog = new THREE.Fog(0xc4a888, 96, 220);
+    scene.fog = new THREE.Fog(HORIZON, 34, 128);
     return data;
   },
 };

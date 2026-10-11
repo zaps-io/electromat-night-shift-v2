@@ -99,16 +99,69 @@ const lampMat = new THREE.MeshStandardMaterial({
 });
 const tailMat = new THREE.MeshStandardMaterial({
   name: "Tail",
-  color: 0xb01412,
+  color: 0xff3a32,
   emissive: 0xe63225,
-  emissiveIntensity: 1.6,
-  roughness: 0.32,
-  metalness: 0.08,
+  emissiveIntensity: 3.1,
+  roughness: 0.28,
+  metalness: 0.04,
   transparent: false,
   opacity: 1,
   depthWrite: true,
   toneMapped: false,
 });
+
+function contactShadowTexture(): THREE.CanvasTexture {
+  const c = document.createElement("canvas");
+  c.width = 128;
+  c.height = 256;
+  const ctx = c.getContext("2d")!;
+  const g = ctx.createRadialGradient(64, 128, 8, 64, 128, 120);
+  g.addColorStop(0, "rgba(8, 8, 12, 0.55)");
+  g.addColorStop(0.55, "rgba(8, 8, 12, 0.22)");
+  g.addColorStop(1, "rgba(8, 8, 12, 0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 128, 256);
+  const tex = new THREE.CanvasTexture(c);
+  tex.needsUpdate = true;
+  return tex;
+}
+
+const shadowMat = new THREE.MeshBasicMaterial({
+  name: "Decal",
+  map: contactShadowTexture(),
+  transparent: true,
+  depthWrite: false,
+  polygonOffset: true,
+  polygonOffsetFactor: -2,
+  polygonOffsetUnits: -2,
+});
+
+/** Dark cabin and a soft contact shadow. Lamps stay on the housing meshes. */
+function addDuskDress(root: THREE.Group): void {
+  root.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(root);
+  const cabin = new THREE.MeshStandardMaterial({
+    name: "Cabin",
+    color: 0x101318,
+    roughness: 0.94,
+    metalness: 0.02,
+    envMapIntensity: 0.08,
+    transparent: false,
+    opacity: 1,
+    depthWrite: true,
+  });
+  const seat = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.36, 0.38), cabin);
+  seat.position.set(-0.32, 0.66, 0.15);
+  const seatR = seat.clone();
+  seatR.position.x = 0.32;
+  const dash = new THREE.Mesh(new THREE.BoxGeometry(1.28, 0.26, 0.38), cabin);
+  dash.position.set(0, 0.72, box.min.z + 0.7);
+  const shadow = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 3.9), shadowMat);
+  shadow.rotation.x = -Math.PI / 2;
+  shadow.position.set(0, 0.018, (box.min.z + box.max.z) * 0.5);
+  shadow.renderOrder = 1;
+  root.add(seat, seatR, dash, shadow);
+}
 
 function dressSedan(root: THREE.Object3D): void {
   root.traverse((o) => {
@@ -256,6 +309,7 @@ async function loadSedan(): Promise<THREE.Group> {
   const gltf = await loader.loadAsync(url);
   const fitted = fitFacingNegZ(gltf.scene, 4.72);
   dressSedan(fitted);
+  addDuskDress(fitted);
   fitted.userData.source = "zaps-ev-sedan.glb";
   let meshes = 0;
   let paint = 0;
@@ -614,8 +668,9 @@ export function carColliders(map: Map<string, CarView>): THREE.Box3[] {
     const yaw = view.root.rotation.y;
     const c = Math.abs(Math.cos(yaw));
     const s = Math.abs(Math.sin(yaw));
-    const hx = halfL * c + halfW * s;
-    const hz = halfL * s + halfW * c;
+    // Hull length is local Z (model faces -Z). Yaw ±90° puts that length on X.
+    const hx = halfL * s + halfW * c;
+    const hz = halfL * c + halfW * s;
     const x = view.root.position.x;
     const z = view.root.position.z;
     boxes.push(new THREE.Box3(new THREE.Vector3(x - hx, 0, z - hz), new THREE.Vector3(x + hx, 1.55, z + hz)));
