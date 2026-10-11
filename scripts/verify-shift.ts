@@ -44,6 +44,8 @@ import {
   planarDist,
   reachScale,
   relaxAllowed,
+  attendantQueue,
+  objectiveRepeatsPrompt,
   presentHud,
   resolveInteract,
   toastConflictsJob,
@@ -316,6 +318,23 @@ const bays = BAYS.map((bay) => ({
 const cands = collectCandidates(opening, carPos, PAY_POINTS, KIOSK_REACH, WAVE_POINT, WAVE_REACH, bays);
 const job = nextJob(opening);
 if (job?.need !== "pay" || job.name !== "Peck") throw new Error("opening job must be PAY Peck");
+const queue = attendantQueue(opening);
+if (queue.length < 3) throw new Error(`opening queue must list three jobs, got ${queue.length}`);
+if (queue[0]?.bay !== "B4" || queue[0]?.action !== "PAY" || queue[0]?.wait !== "NOW") {
+  throw new Error(`opening queue head must be B4 PAY NOW, got ${JSON.stringify(queue[0])}`);
+}
+if (!queue.some((row) => row.action === "WAVE" && row.bay === "B6")) {
+  throw new Error(`open bay must be the WAVE row, got ${JSON.stringify(queue)}`);
+}
+if (!queue.some((row) => row.action === "TALK" && row.bay === "Q")) {
+  throw new Error(`queue must name a talk, got ${JSON.stringify(queue)}`);
+}
+if (!objectiveRepeatsPrompt("E  PAY  ·  PECK", "PAY  ·  PECK")) throw new Error("PAY prompt and label must count as one prompt");
+if (!objectiveRepeatsPrompt("E  PAY  ·  PECK", "PAY  ·  PECK — walk to the car or a PAY stand")) {
+  throw new Error("long PAY objective must not stack on the prompt");
+}
+if (objectiveRepeatsPrompt("", "PAY  ·  PECK")) throw new Error("empty prompt must keep the objective");
+if (objectiveRepeatsPrompt("E  WAVE  ·  NG", "Lot is clear")) throw new Error("unrelated objective must stay");
 
 const startLook = {
   x: START_SHOT.lookAt.x - START_SHOT.x,
@@ -1151,9 +1170,10 @@ const texSrc = readFileSync(new URL("../src/world/tex.ts", import.meta.url), "ut
 if (stationSrc.includes("Reflector") || pavilionSrc.includes("Reflector")) {
   throw new Error("no extra Reflectors — WebGL stay stable");
 }
-if (!stationSrc.includes("cellW") || !stationSrc.includes("RoundedBoxGeometry(cellW")) {
-  throw new Error("canopy must build a modular coffer grid");
+if (!stationSrc.includes("bayStrip") || !stationSrc.includes("linear")) {
+  throw new Error("canopy must light each bay with linear strips");
 }
+if (!stationSrc.includes("fasciaSign")) throw new Error("canopy fascia must host the fitted wordmark");
 if (!/depth:\s*0\.16/.test(stationSrc)) throw new Error("canopy roof must stay a thin floating slab");
 if (!texSrc.includes("CHARGE") || !texSrc.includes("RELAX") || !texSrc.includes("DEPART")) {
   throw new Error("status board must show CHARGE / RELAX / DEPART");

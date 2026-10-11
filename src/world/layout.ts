@@ -966,15 +966,15 @@ export const BOARD_SHOT = {
   fov: 58,
 } as const;
 
-/** Slim Zeus 3/4 of row A stall 1 — face, holsters, cyan base, parking stop. */
+/** Slim Zeus 3/4 — screen and bay number sit above the car roof. */
 export const ZEUS_SHOT = {
-  x: rowA.zeusX + 1.7,
-  z: rowA.zeusZ - 2.15,
-  eyeY: 1.16,
+  x: rowA.zeusX + 1.55,
+  z: rowA.zeusZ - 1.35,
+  eyeY: 1.48,
   yaw: -0.6,
-  pitch: 0.02,
-  lookAt: { x: rowA.zeusX, y: 0.92, z: rowA.zeusZ },
-  fov: 40,
+  pitch: 0.08,
+  lookAt: { x: rowA.zeusX, y: 1.95, z: rowA.zeusZ },
+  fov: 38,
 } as const;
 
 /** Inside the lounge, looking across seating toward the east storefront. */

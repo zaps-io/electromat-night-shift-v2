@@ -35,9 +35,11 @@ import {
   doorHintBesidePrompt,
   doorTakesPrompt,
   formatHandoff,
+  attendantQueue,
   jobHint,
   jobLabel,
   jobNeedLocked,
+  objectiveRepeatsPrompt,
   jobReadyFallback,
   nextJob,
   presentHud,
@@ -112,10 +114,8 @@ const scoreEl = document.querySelector("#score")!;
 const streakEl = document.querySelector<HTMLElement>("#streak")!;
 const streakMulEl = document.querySelector("#streak-mul")!;
 const streakCountEl = document.querySelector("#streak-count")!;
-const metersEl = document.querySelector<HTMLElement>("#meters")!;
-const autoEl = document.querySelector("#auto")!;
-const wavesEl = document.querySelector("#waves")!;
-const zipsEl = document.querySelector("#zips")!;
+const queueEl = document.querySelector<HTMLElement>("#queue")!;
+const queueRowsEl = document.querySelector<HTMLElement>("#queue-rows")!;
 const optEl = document.querySelector<HTMLElement>("#opt")!;
 const gradeMarkEl = document.querySelector<HTMLElement>("#grade-mark")!;
 const gradeStarsEl = document.querySelector("#grade-stars")!;
@@ -134,9 +134,9 @@ const renderer = createRenderer(canvas);
 setTextureAnisotropy(renderer.capabilities.getMaxAnisotropy());
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x243040);
-scene.fog = new THREE.Fog(0xc4b5a4, 78, 200);
-scene.add(new THREE.HemisphereLight(0xb7c6d6, 0x4a4036, 0.42));
+scene.background = new THREE.Color(0x6a5344);
+scene.fog = new THREE.Fog(0xc4a888, 96, 220);
+scene.add(new THREE.HemisphereLight(0xe7d2bc, 0x4a4036, 0.5));
 const sun = new THREE.DirectionalLight(0xffd2a4, 2.45);
 const fill = new THREE.DirectionalLight(0x9aafc4, 0.22);
 fill.position.set(28, 12, 18);
@@ -490,6 +490,27 @@ function act(): void {
   }
 }
 
+let objectiveRead = "";
+
+function paintQueue(rows: { bay: string; action: string; wait: string }[]): void {
+  queueRowsEl.replaceChildren();
+  for (const row of rows) {
+    const line = document.createElement("div");
+    line.className = "q-row";
+    const bay = document.createElement("span");
+    bay.className = "q-bay";
+    bay.textContent = row.bay;
+    const act = document.createElement("span");
+    act.className = "q-act";
+    act.textContent = row.action;
+    const wait = document.createElement("span");
+    wait.className = "q-wait" + (row.wait === "NOW" ? " now" : row.wait === "SOON" ? " soon" : "");
+    wait.textContent = row.wait;
+    line.append(bay, act, wait);
+    queueRowsEl.append(line);
+  }
+}
+
 function paintHud(): void {
   const live = state.phase === "shift";
   const cinematic = walker.position.y > 3.2;
@@ -512,7 +533,8 @@ function paintHud(): void {
   clockPlate.classList.toggle("hidden", !showClock);
   gradeRowEl.classList.toggle("hidden", !showStats);
   scoreLineEl.classList.toggle("hidden", !showStats);
-  metersEl.classList.toggle("hidden", !showStats);
+  queueEl.classList.toggle("hidden", !showStats);
+  paintQueue(showStats ? attendantQueue(state) : []);
   heatEl.classList.toggle("hidden", !showStats);
   shiftGradeEl.textContent = state.grade;
   shiftGradeEl.className = state.grade;
@@ -522,9 +544,6 @@ function paintHud(): void {
   streakEl.classList.toggle("hidden", !streakOn);
   streakMulEl.textContent = `x${state.comboMul}`;
   streakCountEl.textContent = `STREAK ${state.combo}`;
-  autoEl.textContent = `AUTO ${state.autochargeSignups}`;
-  wavesEl.textContent = `WAVE ${state.queueWaves}`;
-  zipsEl.textContent = `ZIP ${state.sessionsDone}`;
   heatEl.textContent = pressureLabel(state);
   heatEl.classList.toggle("hot", !earlyShift(state) && state.heat >= 1);
   optEl.textContent = showStats ? optionalObjective(state) : "";
@@ -549,9 +568,13 @@ function paintHud(): void {
   promptEl.textContent = presented.prompt;
   promptEl.classList.toggle("door-hint", presented.doorHint);
   doorLineEl.textContent = presented.doorLine;
-  objectiveEl.classList.toggle("with-aside", !!presented.aside);
+  objectiveRead = presented.objective;
+  const showObjective = !objectiveRepeatsPrompt(presented.prompt, presented.objective);
+  objectiveEl.classList.toggle("with-aside", showObjective && !!presented.aside);
   objectiveEl.replaceChildren();
-  if (presented.aside) {
+  if (!showObjective) {
+    objectiveEl.textContent = "";
+  } else if (presented.aside) {
     const main = document.createElement("span");
     main.id = "objective-main";
     main.textContent = presented.objective;
@@ -991,8 +1014,7 @@ window.__electromat = {
     return promptEl.textContent ?? "";
   },
   get hudObjective() {
-    const main = objectiveEl.querySelector("#objective-main");
-    return (main?.textContent || objectiveEl.textContent) ?? "";
+    return objectiveRead;
   },
   get hudAside() {
     return objectiveEl.querySelector("#objective-aside")?.textContent ?? "";
@@ -1038,7 +1060,7 @@ window.__electromat = {
     const data = capture(w, h);
     for (const o of hidden) o.visible = true;
     scene.background = prev;
-    scene.fog = new THREE.Fog(0xc4b5a4, 78, 200);
+    scene.fog = new THREE.Fog(0xc4a888, 96, 220);
     return data;
   },
 };
