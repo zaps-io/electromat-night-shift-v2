@@ -4,9 +4,13 @@ import type { HullKind } from "../game/state";
 /** Southeast pull-through. Noses point south so a rig can enter from the street and leave north. */
 export const MCS_NOSE_Z = -38;
 export const MCS_LANE = { xmin: 4.2, xmax: 27.5, zmin: -40.6, zmax: -17.5 };
-/** Box truck only. The slab semi and bus are not parked. */
-export const MCS_RIGS: { kind: "box"; x: number; paint: number }[] = [
-  { kind: "box", x: 21.6, paint: 0x8a9098 },
+/** Empty. No truck passed the realism bar, so nothing is parked here. */
+export const MCS_RIGS: { x: number; paint: number }[] = [];
+
+/** East edge of the pad. The hardware stays; the stalls do not. */
+const MCS_DISPENSERS = [
+  { x: 25.6, z: -33.5 },
+  { x: 25.6, z: -24.5 },
 ];
 
 const charcoal = new THREE.MeshStandardMaterial({
@@ -30,15 +34,6 @@ const cyan = new THREE.MeshStandardMaterial({
 });
 const laneMat = new THREE.MeshStandardMaterial({ color: 0x2a2826, roughness: 0.94, metalness: 0.02 });
 const stripeMat = new THREE.MeshBasicMaterial({ color: 0xf5f0e8, toneMapped: false });
-const cableMat = new THREE.MeshStandardMaterial({
-  color: 0x111214,
-  roughness: 0.82,
-  metalness: 0.04,
-  transparent: false,
-  opacity: 1,
-  depthWrite: true,
-});
-
 function mcsFace(): THREE.CanvasTexture {
   const c = document.createElement("canvas");
   c.width = 256;
@@ -84,14 +79,7 @@ function dispenser(x: number, z: number): THREE.Group {
   return g;
 }
 
-function lead(from: THREE.Vector3, to: THREE.Vector3): THREE.Mesh {
-  const mid = from.clone().lerp(to, 0.5);
-  mid.y = Math.min(from.y, to.y) - 0.35;
-  const geo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3([from, mid, to]), 18, 0.035, 6, false);
-  return new THREE.Mesh(geo, cableMat);
-}
-
-/** Painted lane plus two dispensers. Trucks are parked once the fleet prototypes exist. */
+/** Painted lane. Dispensers are added with the rigs, which stay empty. */
 export function addMcsLane(root: THREE.Group): void {
   const { xmin, xmax, zmin, zmax } = MCS_LANE;
   const pad = new THREE.Mesh(new THREE.PlaneGeometry(xmax - xmin, zmax - zmin), laneMat);
@@ -116,36 +104,22 @@ export function addMcsLane(root: THREE.Group): void {
 }
 
 /**
- * Box truck only. The semi slot stays empty. Noses on the south line.
- * Returns walk colliders for the rig and the dispenser.
+ * Dispensers only. A rig is parked only when MCS_RIGS has one.
+ * Returns walk colliders for any rig and for the dispensers.
  */
 export function parkMcsRigs(
   scene: THREE.Object3D,
-  makeHull: (color: number, kind: HullKind) => THREE.Group,
+  _makeHull: (color: number, kind: HullKind) => THREE.Group,
 ): THREE.Box3[] {
   const boxes: THREE.Box3[] = [];
-  for (const rig of MCS_RIGS) {
-    const body = makeHull(rig.paint, rig.kind);
-    const halfL = body.userData.halfL as number;
-    const halfW = body.userData.halfW as number;
-    const inlet = body.userData.inlet as { x: number; y: number; z: number };
-    const z = MCS_NOSE_Z + halfL;
-    body.position.set(rig.x, 0, z);
-    body.userData.kind = "mcs-rig";
-    scene.add(body);
+  for (const spot of MCS_DISPENSERS) {
+    scene.add(dispenser(spot.x, spot.z));
     boxes.push(
       new THREE.Box3(
-        new THREE.Vector3(rig.x - halfW, 0, z - halfL),
-        new THREE.Vector3(rig.x + halfW, (body.userData.roof as number) + 0.2, z + halfL),
+        new THREE.Vector3(spot.x - 0.45, 0, spot.z - 0.4),
+        new THREE.Vector3(spot.x + 0.45, 2.9, spot.z + 0.4),
       ),
     );
-    const port = new THREE.Vector3(rig.x + inlet.x, inlet.y, z + inlet.z);
-    const dispX = port.x + 1.35;
-    const disp = dispenser(dispX, port.z);
-    scene.add(disp);
-    boxes.push(new THREE.Box3(new THREE.Vector3(dispX - 0.45, 0, port.z - 0.4), new THREE.Vector3(dispX + 0.45, 2.9, port.z + 0.4)));
-    const from = new THREE.Vector3(dispX - 0.2, 1.7, port.z);
-    scene.add(lead(from, port));
   }
   return boxes;
 }

@@ -4,9 +4,9 @@
  */
 import { mkdirSync } from "node:fs";
 import { createServer } from "vite";
-import { LINEUP_ORDER, LINEUP_Z, lineupPose } from "../src/cars/fleet.ts";
+import { LINEUP_Z, SEDAN_PAINTS, lineupPose } from "../src/cars/fleet.ts";
 import { AB_AISLE_X, BAYS, CANOPIES, PAVILION, START_SHOT, WAIT_SLOTS, WAVE_POINT } from "../src/world/layout.ts";
-import { MCS_NOSE_Z, MCS_RIGS } from "../src/world/mcs.ts";
+import { MCS_NOSE_Z } from "../src/world/mcs.ts";
 
 const OUT = new URL("../docs/shots/", import.meta.url).pathname;
 
@@ -109,7 +109,7 @@ const layers: Shot = {
   lookAt: { x: AB_AISLE_X, y: 1.55, z: -54 },
 };
 
-const lineupFocusX = (lineupPose(0).x + lineupPose(LINEUP_ORDER.length - 1).x) * 0.5;
+const lineupFocusX = (lineupPose(0).x + lineupPose(SEDAN_PAINTS.length - 1).x) * 0.5;
 const fleetLineup: Shot = {
   file: "ns-fleet-lineup.png",
   x: lineupFocusX,
@@ -121,21 +121,20 @@ const fleetLineup: Shot = {
   lookAt: { x: lineupFocusX, y: 1.35, z: LINEUP_Z },
 };
 
-const semiRig = MCS_RIGS[0]!;
 const mcsSemi: Shot = {
-  file: "ns-mcs-semi.png",
-  x: semiRig.x - 8,
+  file: "ns-mcs-lane.png",
+  x: 10,
   z: MCS_NOSE_Z - 8,
   yaw: 0,
   pitch: 0,
-  eyeY: 2.4,
-  fov: 42,
-  lookAt: { x: semiRig.x + 1.4, y: 1.8, z: MCS_NOSE_Z + 7 },
+  eyeY: 2.2,
+  fov: 48,
+  lookAt: { x: 22, y: 1.2, z: MCS_NOSE_Z + 10 },
 };
 
 const voraBay = BAYS.find((b) => b.playable === 3)!;
 const pickupPlug: Shot = {
-  file: "ns-pickup-plug.png",
+  file: "ns-plug.png",
   x: voraBay.x - 1.1,
   z: voraBay.z + 8.4,
   yaw: 0,

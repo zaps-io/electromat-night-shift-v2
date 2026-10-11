@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import {
   COMBO_GAP,
   DISRUPT_MIN,
@@ -1632,7 +1632,7 @@ if (/function stallBadgeMat[\s\S]{0,280}DoubleSide/.test(zeusSrc)) {
 const brandSrc = readFileSync(new URL("../src/world/branding.ts", import.meta.url), "utf8");
 if (brandSrc.includes("loungeFront")) throw new Error("south zaps mark must not duplicate over the LOUNGE sign");
 
-const { BAY_WEIGHTS, FLEET_WEIGHTS, buildFleetVehicle, pickWeighted } = await import("../src/cars/fleet.ts");
+const { BAY_WEIGHTS, FLEET_WEIGHTS, SEDAN_PAINTS, buildFleetVehicle, pickWeighted } = await import("../src/cars/fleet.ts");
 const fleetKinds = ["hatch", "suv", "pickup", "van", "box", "bus", "semi"] as const;
 const fleetLengths: number[] = [];
 for (const kind of fleetKinds) {
@@ -1700,25 +1700,29 @@ const sedanW = BAY_WEIGHTS.find((row) => row.kind === "sedan")?.weight ?? 0;
 const suvW = BAY_WEIGHTS.find((row) => row.kind === "suv")?.weight ?? 0;
 const otherW = BAY_WEIGHTS.filter((row) => row.kind !== "sedan" && row.kind !== "suv").reduce((sum, row) => sum + row.weight, 0);
 if (sedanW + suvW <= otherW) throw new Error("passenger stalls should be mostly sedans and crossovers");
-if (!carsSrc.includes("loadKenneyVehicle") || carsSrc.includes("buildFleetVehicle")) {
-  throw new Error("passenger fleet must load the CC0 glTFs, not the box hulls");
+if (carsSrc.includes("loadKenneyVehicle") || carsSrc.includes("buildFleetVehicle")) {
+  throw new Error("the lot must spawn the Model 3, not Kenney or the box hulls");
 }
-for (const file of ["hatch.glb", "suv.glb", "pickup.glb", "van.glb", "box.glb"]) {
-  const path = new URL(`../public/cars/cc0/${file}`, import.meta.url);
-  if (!existsSync(path)) throw new Error(`missing CC0 model ${file}`);
+const paintIds = SEDAN_PAINTS.map((row) => row.id).join(",");
+if (paintIds !== "white,black,silver,blue,red,pearl") {
+  throw new Error("Model 3 paint set drifted");
 }
-if (FLEET_WEIGHTS.length < 6) throw new Error("weighted mix should cover the shipped fleet");
-if (FLEET_WEIGHTS.some((row) => row.kind === "semi" || row.kind === "bus")) {
-  throw new Error("semi and bus are left out of the spawn mix");
+if (new Set(SEDAN_PAINTS.map((row) => row.color)).size !== SEDAN_PAINTS.length) {
+  throw new Error("paint variants collapsed to one color");
+}
+if (FLEET_WEIGHTS.some((row) => row.kind !== "sedan") || BAY_WEIGHTS.some((row) => row.kind !== "sedan")) {
+  throw new Error("only the Model 3 sedan is in the spawn mix");
 }
 for (let i = 0; i < 30; i++) {
   const kind = pickWeighted(i);
-  if (kind === "box" || kind === "semi" || kind === "bus") throw new Error("passenger mix spawned a long vehicle");
+  if (kind !== "sedan") throw new Error("passenger mix spawned a non-sedan");
 }
 const mcsSrc = readFileSync(new URL("../src/world/mcs.ts", import.meta.url), "utf8");
-if (!mcsSrc.includes('{ kind: "box"')) throw new Error("MCS lane needs the box truck");
-if (mcsSrc.includes('{ kind: "semi"') || mcsSrc.includes("MCS_BUS")) {
-  throw new Error("slab semi and bus must stay off the MCS lane");
+if (mcsSrc.includes('kind: "box"') || mcsSrc.includes('kind: "semi"') || mcsSrc.includes("MCS_BUS")) {
+  throw new Error("no truck or toy body on the MCS lane");
+}
+if (!mcsSrc.includes("MCS_RIGS") || !mcsSrc.includes("= []")) {
+  throw new Error("MCS lane must stay empty");
 }
 if ((mcsSrc.match(/mcs-dispenser/g) ?? []).length < 1) throw new Error("MCS dispensers missing");
 

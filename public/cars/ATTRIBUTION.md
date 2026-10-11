@@ -12,4 +12,4 @@ Source GLBs live in `vendor/models/` and are not copied into the Pages build.
 Dusk IBL: Poly Haven “Qwantani Dusk 2 (Pure Sky)” by Greg Zaal, CC0.  
 `public/env/dusk.hdr`
 
-Hatch, crossover, pickup, van, and box truck are Kenney Car Kit models, CC0, in `public/cars/cc0/`, with the kit colormap left on the UVs. See `CREDITS.md`. The semi and transit bus are not spawned. No badges. The passenger sedan remains the CC BY Model 3 derive above.
+The lot spawns only this Model 3, in several paints. No badges. See `CREDITS.md`.

@@ -1,8 +1,7 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
-import { chargePortRing, lineupPose, LINEUP_ORDER, pickWeighted } from "../cars/fleet";
-import { loadKenneyVehicle } from "../cars/kenney";
+import { chargePortRing, lineupPose, pickWeighted, SEDAN_PAINTS, type SedanPaintId } from "../cars/fleet";
 import {
   assertOpaqueCarMaterials,
   forceOpaque,
@@ -50,9 +49,45 @@ function paintFor(color: number): THREE.MeshPhysicalMaterial {
   let mat = paintCache.get(color);
   if (!mat) {
     mat = paintMaterial(color);
+    const swatch = SEDAN_PAINTS.find((row) => row.color === color);
+    if (swatch) dressPaint(mat, swatch.id);
     paintCache.set(color, mat);
   }
   return mat;
+}
+
+/** Clearcoat stays. Silver and the deep colors pick up the dusk env; pearl gets a light sheen. */
+function dressPaint(mat: THREE.MeshPhysicalMaterial, id: SedanPaintId): void {
+  if (id === "white") {
+    mat.metalness = 0.06;
+    mat.roughness = 0.3;
+    mat.clearcoat = 0.84;
+  } else if (id === "black") {
+    mat.metalness = 0.46;
+    mat.roughness = 0.22;
+    mat.clearcoat = 0.96;
+  } else if (id === "silver") {
+    mat.metalness = 0.74;
+    mat.roughness = 0.24;
+    mat.clearcoat = 0.92;
+  } else if (id === "blue") {
+    mat.metalness = 0.5;
+    mat.roughness = 0.18;
+    mat.clearcoat = 0.95;
+  } else if (id === "red") {
+    mat.metalness = 0.4;
+    mat.roughness = 0.18;
+    mat.clearcoat = 0.96;
+  } else {
+    mat.metalness = 0.2;
+    mat.roughness = 0.14;
+    mat.clearcoat = 0.98;
+    mat.iridescence = 0.42;
+    mat.iridescenceIOR = 1.33;
+    mat.sheen = 0.32;
+    mat.sheenRoughness = 0.4;
+    mat.sheenColor = new THREE.Color(0xd5e2f2);
+  }
 }
 
 function labelOf(mesh: THREE.Mesh): string {
@@ -321,11 +356,6 @@ async function loadSedan(): Promise<THREE.Group> {
 
 export async function loadCarPrototypes(): Promise<void> {
   prototypes.sedan = await loadSedan();
-  for (const kind of ["hatch", "suv", "pickup", "van", "box"] as const) {
-    const body = await loadKenneyVehicle(kind);
-    prototypes[kind] = body;
-    inletByKind[kind] = body.userData.inlet as { x: number; y: number; z: number };
-  }
 }
 
 export function parkBackdropCars(root: THREE.Object3D): void {
@@ -355,8 +385,6 @@ export function paintedHull(color: number, hull: HullKind): THREE.Group {
   return body;
 }
 
-const LINEUP_PAINT = [0xd0d4da, 0x2a4e86, 0xc4a06a, 0x2f6b3a, 0xf3efe4, 0x8a9098, 0x1a2744, 0xd5d8de] as const;
-
 function lineupLabel(kind: string): THREE.Sprite {
   const c = document.createElement("canvas");
   c.width = 512;
@@ -384,11 +412,11 @@ function lineupLabel(kind: string): THREE.Sprite {
 export function addFleetLineup(parent: THREE.Object3D): THREE.Group {
   const row = new THREE.Group();
   row.name = "fleet-lineup";
-  LINEUP_ORDER.forEach((kind, i) => {
+  SEDAN_PAINTS.forEach((swatch, i) => {
     const pose = lineupPose(i);
-    const hull = paintedHull(LINEUP_PAINT[i] ?? 0xf4f1ea, kind);
+    const hull = paintedHull(swatch.color, "sedan");
     hull.position.set(pose.x, 0, pose.z);
-    const label = lineupLabel(kind);
+    const label = lineupLabel(swatch.label);
     label.position.set(pose.x, ((hull.userData.roof as number) ?? 1.6) + 0.85, pose.z);
     row.add(hull, label);
   });
@@ -400,7 +428,7 @@ const lodFillerRoots: THREE.Group[] = [];
 export let lodFillerBudget = 4;
 
 const FILLER_IDS = [2, 10, 13, 18, 22] as const;
-const FILLER_PAINT = [0xd0d4da, 0x2a4e86, 0xc4a06a, 0x2f6b3a, 0xf3efe4] as const;
+const FILLER_PAINT = SEDAN_PAINTS.map((swatch) => swatch.color);
 export const LOD_FILLERS = FILLER_IDS.map((id, i) => {
   const stall = STALLS.find((s) => s.id === id)!;
   return {

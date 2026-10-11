@@ -11,21 +11,26 @@ import { glassMaterial, paintMaterial } from "./opaque";
 export const BAY_KINDS = ["hatch", "sedan", "suv", "pickup", "van"] as const;
 export type BayKind = (typeof BAY_KINDS)[number];
 
-/** Passenger stalls and street slots. Trucks stay on the MCS lane. */
-/** Mostly sedans and crossovers. A hatch, pickup, or van is the exception. */
-export const BAY_WEIGHTS: { kind: BayKind; weight: number }[] = [
-  { kind: "sedan", weight: 8 },
-  { kind: "suv", weight: 5 },
-  { kind: "hatch", weight: 1 },
-  { kind: "pickup", weight: 1 },
-  { kind: "van", weight: 1 },
-];
+/**
+ * Model 3 paint set. Kenney and the other hulls are not spawned.
+ * Midnight silver is the darker metallic; pearl is the warm clearcoat, not a second white.
+ */
+export const SEDAN_PAINTS = [
+  { id: "white", label: "WHITE", color: 0xf7f6f2 },
+  { id: "black", label: "BLACK", color: 0x1a1c20 },
+  { id: "silver", label: "SILVER", color: 0x4a4e55 },
+  { id: "blue", label: "BLUE", color: 0x152a4a },
+  { id: "red", label: "RED", color: 0x8c1c22 },
+  { id: "pearl", label: "PEARL", color: 0xe4dcd0 },
+] as const;
 
-/** Passenger mix plus the box truck. Semi and bus are not spawned. */
-export const FLEET_WEIGHTS: { kind: HullKind; weight: number }[] = [
-  ...BAY_WEIGHTS,
-  { kind: "box", weight: 2 },
-];
+export type SedanPaintId = (typeof SEDAN_PAINTS)[number]["id"];
+
+/** Passenger stalls are the Model 3 only. */
+export const BAY_WEIGHTS: { kind: BayKind; weight: number }[] = [{ kind: "sedan", weight: 1 }];
+
+/** Same mix. No truck, van, or toy body is weighted in. */
+export const FLEET_WEIGHTS: { kind: HullKind; weight: number }[] = [...BAY_WEIGHTS];
 
 export function pickWeighted(seed: number, table: { kind: HullKind; weight: number }[] = BAY_WEIGHTS): HullKind {
   const total = table.reduce((sum, row) => sum + row.weight, 0);
@@ -452,13 +457,10 @@ export function buildFleetVehicle(kind: Exclude<HullKind, "sedan">): THREE.Group
   return root;
 }
 
-/** Debug row on the north sand, side profiles facing -Z. */
+/** Debug row on the north sand. Six Model 3 paints, noses toward -Z. */
 export const LINEUP_Z = 24;
-export const LINEUP_ORDER: HullKind[] = ["hatch", "sedan", "suv", "pickup", "van", "box"];
+export const LINEUP_ORDER: HullKind[] = SEDAN_PAINTS.map(() => "sedan");
 
 export function lineupPose(index: number): { x: number; z: number } {
-  const step = [0, 3.8, 4.2, 4.4, 4.6, 5.0];
-  let x = -12;
-  for (let i = 0; i < index; i++) x += step[i + 1] ?? 5;
-  return { x, z: LINEUP_Z };
+  return { x: -14 + index * 5.6, z: LINEUP_Z };
 }

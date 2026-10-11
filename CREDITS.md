@@ -13,14 +13,7 @@ The shipped file is `public/cars/zaps-ev-sedan.glb` (interior and the duplicate 
 
 ## Other fleet bodies
 
-Hatch, crossover, pickup, van, and box truck are Kenney Car Kit models (CC0). The shared colormap stays on the mesh UVs, with clearcoat on top. Glass and lamps are colormap regions.
-
-- Author: [Kenney](https://kenney.nl)
-- Source: https://kenney.nl/assets/car-kit
-- License: [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/)
-- Files: `public/cars/cc0/hatch.glb`, `suv.glb`, `pickup.glb`, `van.glb`, `box.glb` (from `hatchback-sports`, `suv`, `truck`, `van`, `delivery`)
-
-The Class 8 semi and the transit bus are not spawned. The shaped bodies in `src/cars/shaped.ts` are unused.
+No other body is spawned. Kenney Car Kit meshes, the shaped semi, and the shaped bus are not in the lot. Variety on the stalls is the Model 3 in white, black, midnight silver, deep blue, red, and pearl.
 
 ## Dusk environment
 
