@@ -1,6 +1,6 @@
 /**
- * North-star stills for the dusk-lot pass:
- * title, canopy row from the attendant start, Slim Zeus close-up, HUD queue.
+ * North-star stills: start, left-edge gear house, walkway charger,
+ * rounded canopy end, and the HUD on the same turn as PAY.
  */
 import { mkdirSync } from "node:fs";
 import { createServer } from "vite";
@@ -9,10 +9,6 @@ import { BAYS, CANOPIES, PAVILION, START_SHOT, WAVE_POINT } from "../src/world/l
 const OUT = new URL("../docs/shots/", import.meta.url).pathname;
 
 const peck = BAYS.find((b) => b.playable === 4)!;
-const fx = -Math.sin(peck.zeusYaw);
-const fz = -Math.cos(peck.zeusYaw);
-const sx = Math.cos(peck.zeusYaw);
-const sz = -Math.sin(peck.zeusYaw);
 
 type Shot = {
   file: string;
@@ -60,18 +56,44 @@ const lounge: Shot = {
   lookAt: { x: PAVILION.x - PAVILION.w * 0.5 + 0.2, y: 1.65, z: PAVILION.z + 0.15 },
 };
 
+const aisle = Math.sign(peck.x - peck.zeusX) || 1;
 const charger: Shot = {
   file: "ns-charger.png",
-  x: peck.zeusX + fx * 1.7 + sx * 2.3,
-  z: peck.zeusZ + fz * 1.7 + sz * 2.3,
+  x: peck.zeusX + aisle * 1.15,
+  z: peck.zeusZ + 1.35,
   yaw: 0,
   pitch: 0,
-  eyeY: 1.35,
-  fov: 58,
-  lookAt: { x: peck.zeusX, y: 1.12, z: peck.zeusZ },
+  eyeY: 1.48,
+  fov: 56,
+  lookAt: { x: peck.zeusX, y: 1.28, z: peck.zeusZ },
+};
+
+const leftEdge: Shot = {
+  file: "ns-left-edge.png",
+  x: -36.8,
+  z: -1.6,
+  yaw: 0,
+  pitch: 0,
+  eyeY: 1.62,
+  fov: 48,
+  lookAt: { x: -43.3, y: 2.05, z: -1.6 },
+};
+
+const endCap = CANOPIES[1]!;
+const endZ = endCap.z - endCap.d * 0.5;
+const canopyEnd: Shot = {
+  file: "ns-canopy-end.png",
+  x: endCap.x - 6.2,
+  z: endZ - 3.6,
+  yaw: 0,
+  pitch: 0,
+  eyeY: 2.35,
+  fov: 32,
+  lookAt: { x: endCap.x + 0.4, y: endCap.y + 0.02, z: endZ + 1.1 },
 };
 
 const hud: Shot = { ...start, file: "ns-hud-wave.png" };
+const hudPay: Shot = { ...start, file: "ns-hud-pay.png" };
 
 async function main(): Promise<void> {
   mkdirSync(OUT, { recursive: true });
@@ -109,7 +131,7 @@ async function main(): Promise<void> {
     });
     await new Promise((r) => setTimeout(r, 500));
 
-    for (const shot of [start, fascia, lounge, charger]) {
+    for (const shot of [start, fascia, lounge, charger, leftEdge, canopyEnd]) {
       await page.evaluate((s: Shot) => {
         const api = (
           window as unknown as {
@@ -125,6 +147,56 @@ async function main(): Promise<void> {
       await new Promise((r) => setTimeout(r, 450));
       await page.screenshot({ path: `${OUT}/${shot.file}` });
     }
+
+    const paid = await page.evaluate((s: Shot) => {
+      const api = (
+        window as unknown as {
+          __electromat: {
+            act: () => void;
+            place: (x: number, z: number, yaw?: number, pitch?: number, eyeY?: number, fov?: number) => void;
+            lookAt: (x: number, y: number, z: number) => void;
+          };
+        }
+      ).__electromat;
+      api.place(s.x, s.z, s.yaw, s.pitch, s.eyeY, s.fov);
+      api.lookAt(s.lookAt.x, s.lookAt.y, s.lookAt.z);
+      api.act();
+      const prompt = document.querySelector("#prompt")?.textContent ?? "";
+      const objective = document.querySelector("#objective")?.textContent ?? "";
+      const queue = document.querySelector("#queue-rows")?.textContent ?? "";
+      const score = document.querySelector("#score")?.textContent ?? "";
+      const floater = document.querySelector("#floater")?.textContent ?? "";
+      return { prompt, objective, queue, score, floater };
+    }, start);
+    console.log("pay same turn", paid);
+    if (paid.score === "0") throw new Error("score still 0 on the PAY turn");
+    if (paid.queue.includes("PAY")) throw new Error(`queue still shows PAY: ${paid.queue}`);
+    const lines = [paid.prompt, paid.objective].map((s) => s.trim()).filter(Boolean);
+    if (lines.length > 1) throw new Error(`prompt showed two lines: ${lines.join(" | ")}`);
+    if (!paid.floater.startsWith("+")) throw new Error(`missing score floater, got ${paid.floater}`);
+    await page.evaluate((s: Shot) => {
+      const api = (
+        window as unknown as {
+          __electromat: {
+            place: (x: number, z: number, yaw?: number, pitch?: number, eyeY?: number, fov?: number) => void;
+            lookAt: (x: number, y: number, z: number) => void;
+          };
+        }
+      ).__electromat;
+      api.place(s.x, s.z, s.yaw, s.pitch, s.eyeY, s.fov);
+      api.lookAt(s.lookAt.x, s.lookAt.y, s.lookAt.z);
+    }, hudPay);
+    await new Promise((r) => setTimeout(r, 180));
+    await page.screenshot({ path: `${OUT}/${hudPay.file}` });
+
+    await page.reload({ waitUntil: "domcontentloaded", timeout: 60000 });
+    await page.waitForFunction(() => Boolean((window as unknown as { __electromat?: { ready?: boolean } }).__electromat?.ready), {
+      timeout: 40000,
+    });
+    await page.evaluate(() => {
+      (window as unknown as { __electromat: { startNight: () => void } }).__electromat.startNight();
+    });
+    await new Promise((r) => setTimeout(r, 400));
 
     await page.evaluate((wave: { x: number; z: number }) => {
       const api = (
@@ -193,7 +265,7 @@ async function main(): Promise<void> {
       if (problems.length) throw new Error(`${width}x${height} queue: ${problems.join("; ")}`);
       console.log("queue columns", `${width}x${height}`, "ok");
     }
-    console.log("ns stills", [start.file, fascia.file, lounge.file, charger.file, hud.file]);
+    console.log("ns stills", [start.file, leftEdge.file, charger.file, canopyEnd.file, hudPay.file, fascia.file, lounge.file, hud.file]);
   } finally {
     await browser.close();
     await server.close();

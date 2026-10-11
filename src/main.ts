@@ -36,8 +36,8 @@ import {
   doorTakesPrompt,
   formatHandoff,
   attendantQueue,
+  jobFocusCandidate,
   jobHint,
-  jobLabel,
   jobNeedLocked,
   objectiveRepeatsPrompt,
   toastRepeatsLiveLine,
@@ -124,6 +124,7 @@ const promptEl = document.querySelector("#prompt")!;
 const doorLineEl = document.querySelector("#door-line")!;
 const objectiveEl = document.querySelector("#objective")!;
 const toastEl = document.querySelector("#toast")!;
+const floaterEl = document.querySelector<HTMLElement>("#floater")!;
 const heatEl = document.querySelector("#heat")!;
 const flashEl = document.querySelector<HTMLElement>("#flash")!;
 const gradeEl = document.querySelector("#grade")!;
@@ -164,6 +165,18 @@ loungeMark.position.set(-20.05, 2.35, 7.95);
 loungeMark.scale.set(1.35, 0.52, 1);
 loungeMark.visible = false;
 scene.add(targetMark, walkPuck, loungeMark);
+const jobOutline = new THREE.LineSegments(
+  new THREE.EdgesGeometry(new THREE.BoxGeometry(1, 1, 1)),
+  new THREE.LineBasicMaterial({
+    color: 0x00d4f5,
+    transparent: true,
+    opacity: 0.55,
+    depthTest: true,
+  }),
+);
+jobOutline.visible = false;
+jobOutline.frustumCulled = false;
+scene.add(jobOutline);
 
 const pipeline = createPipeline(renderer, scene, walker.camera, sun);
 const gfxBtn = document.querySelector<HTMLButtonElement>("#gfx");
@@ -355,15 +368,28 @@ function refreshTarget(): InteractResult {
   return lockedTarget;
 }
 
-/** Papers stamp: toast names the next job in the same beat the last one clears. */
+/** Papers stamp: toast names the next job. DOM is painted by commitAct on this same turn. */
 function punch(verb: "PAID" | "WAVE" | "ZIP", name: string): void {
   const job = nextJob(state);
-  const line = formatHandoff(verb, name, job);
-  state.toast = line;
+  state.toast = formatHandoff(verb, name, job);
   state.toastUntil = state.timeMin + 7;
-  toastEl.textContent = line;
-  toastEl.classList.add("loud");
-  if (job) objectiveEl.textContent = jobNeedLocked(job) ? jobLabel(job.need, job.name) : jobHint(job);
+}
+
+let scoreAtAct = 0;
+
+function showFloater(points: number): void {
+  floaterEl.textContent = `+${points}`;
+  floaterEl.classList.remove("show");
+  void floaterEl.offsetWidth;
+  floaterEl.classList.add("show");
+}
+
+/** Queue, score, and prompt update before the stamp reflow, on the action's own turn. */
+function commitAct(): void {
+  paintHud();
+  const gained = state.score - scoreAtAct;
+  if (gained <= 0) return;
+  showFloater(gained);
   flashEl.classList.remove("on");
   void flashEl.offsetWidth;
   flashEl.classList.add("on");
@@ -460,6 +486,7 @@ function applyLockedJob(): boolean {
 }
 
 function act(): void {
+  scoreAtAct = state.score;
   if (state.phase === "title") {
     beginShift(true);
     return;
@@ -475,9 +502,18 @@ function act(): void {
   const resolved = refreshTarget();
   const home = inLoungeAttention(walker.position.x, walker.position.z);
   let ready = resolved.ready ?? (home ? null : jobReadyFallback(walker.position, job, cands));
-  if (ready && applyReady(ready)) return;
-  if (!home && ready && applyLockedJob()) return;
-  if (!home && !ready && jobReadyFallback(walker.position, job, cands) && applyLockedJob()) return;
+  if (ready && applyReady(ready)) {
+    commitAct();
+    return;
+  }
+  if (!home && ready && applyLockedJob()) {
+    commitAct();
+    return;
+  }
+  if (!home && !ready && jobReadyFallback(walker.position, job, cands) && applyLockedJob()) {
+    commitAct();
+    return;
+  }
   if (pendingPayGuest(state)) nudgePay(state);
   else if (job?.need === "unplug") {
     state.toast = `${job.name} is full — walk to the car.`;
@@ -489,6 +525,7 @@ function act(): void {
     state.toast = "Walk closer · look at the marker.";
     state.toastUntil = state.timeMin + 6;
   }
+  paintHud();
 }
 
 let objectiveRead = "";
@@ -608,6 +645,20 @@ function paintHud(): void {
   }
   walkPuck.visible = live && walker.destination != null;
   if (walker.destination) walkPuck.position.set(walker.destination.x, 0.03, walker.destination.z);
+  const marked = live && !cinematic ? jobFocusCandidate(job, currentCandidates()) : null;
+  jobOutline.visible = !!marked;
+  if (marked) {
+    if (marked.kind === "guest") {
+      const yaw = marked.guestId ? (cars.get(marked.guestId)?.root.rotation.y ?? 0) : 0;
+      jobOutline.scale.set(2.02, 1.48, 4.9);
+      jobOutline.position.set(marked.x, 0.76, marked.z);
+      jobOutline.rotation.y = yaw;
+    } else {
+      jobOutline.scale.set(0.82, 1.9, 0.58);
+      jobOutline.position.set(marked.x, 0.98, marked.z);
+      jobOutline.rotation.y = 0;
+    }
+  }
 }
 
 const walkPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);

@@ -124,12 +124,12 @@ const geo = {
   foot: new THREE.CylinderGeometry(0.014, 0.016, 0.02, 8),
   body: new RoundedBoxGeometry(0.38, 2.5, 0.18, 4, 0.02),
   cap: new RoundedBoxGeometry(0.4, 0.04, 0.2, 3, 0.01),
-  hair: new THREE.BoxGeometry(0.36, 0.032, 0.014),
+  hair: new THREE.BoxGeometry(0.36, 0.05, 0.018),
   stem: new THREE.CylinderGeometry(0.03, 0.038, 0.24, 10),
   recess: new THREE.BoxGeometry(0.3, 1.35, 0.014),
-  bezelH: new THREE.BoxGeometry(0.32, 0.012, 0.012),
-  bezelV: new THREE.BoxGeometry(0.012, 0.42, 0.012),
-  display: new THREE.PlaneGeometry(0.3, 0.4),
+  bezelH: new THREE.BoxGeometry(0.36, 0.014, 0.012),
+  bezelV: new THREE.BoxGeometry(0.014, 0.5, 0.012),
+  display: new THREE.PlaneGeometry(0.34, 0.48),
   pocket: new RoundedBoxGeometry(0.07, 0.28, 0.05, 2, 0.01),
   lip: new THREE.BoxGeometry(0.074, 0.016, 0.04),
   barrel: new THREE.CylinderGeometry(0.016, 0.018, 0.12, 10),
@@ -261,13 +261,13 @@ export function addZeusCharger(
   const screenY = 2.16;
   const bezelZ = -0.104;
   const bezelTop = new THREE.Mesh(geo.bezelH, black);
-  bezelTop.position.set(0, screenY + 0.21, bezelZ);
+  bezelTop.position.set(0, screenY + 0.25, bezelZ);
   const bezelBot = new THREE.Mesh(geo.bezelH, black);
-  bezelBot.position.set(0, screenY - 0.21, bezelZ);
+  bezelBot.position.set(0, screenY - 0.25, bezelZ);
   const bezelL = new THREE.Mesh(geo.bezelV, black);
-  bezelL.position.set(-0.156, screenY, bezelZ);
+  bezelL.position.set(-0.178, screenY, bezelZ);
   const bezelR = new THREE.Mesh(geo.bezelV, black);
-  bezelR.position.set(0.156, screenY, bezelZ);
+  bezelR.position.set(0.178, screenY, bezelZ);
   const display = new THREE.Mesh(geo.display, stallId != null ? screenMaterial(stallId) : screenMaterial(-1));
   display.position.set(0, screenY, -0.108);
   // PlaneGeometry's +Z face, turned to the pedestal front (-Z).

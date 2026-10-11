@@ -56,15 +56,22 @@ const RYAN_ROWS: RowDef[] = [
 export const CAR_LENGTH = 4.72;
 export const QUEUE_GAP = 1.7;
 export const ZEUS_HALF_DEPTH = 0.28;
-/** Bumper-to-Zeus face. Live playtest stills showed ~0 gap at 1.5m centers. */
-export const STALL_CLEARANCE = 0.9;
+/**
+ * Bumper-to-Zeus face. Wide enough for a pedestrian strip between the island
+ * and the car nose: walker diameter plus camera margin still clears both.
+ */
+export const STALL_CLEARANCE = 1.62;
 
-/** Rubber wheel stop in the Zeus–bumper gap. Visual only — never a walk collider. */
+/** Axis-aligned pedestal blocker. Stays inside the brushed body so the strip is walkable. */
+export const ZEUS_COLLIDER = { x: 0.46, z: 0.42, h: 2.75 } as const;
+
+/** Rubber wheel stop near the tire line. Visual only — never a walk collider. */
 export const PARK_STOP = {
   length: 1.78,
   height: 0.12,
   depth: 0.16,
-  fromZeusFace: 0.62,
+  /** Just short of the bumper, so the island-to-nose strip stays open. */
+  fromZeusFace: STALL_CLEARANCE - 0.2,
 } as const;
 
 /** White stall disc on the Slim Zeus face — sized to read at FPV (~2–3 m). */

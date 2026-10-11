@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { facade, mural, sandColor, street } from "./tex";
+import { facade, sandColor, street } from "./tex";
 
 const night = new THREE.MeshStandardMaterial({
   color: 0xffffff,
@@ -168,31 +168,83 @@ function addStreetLamps(root: THREE.Group): void {
   }
 }
 
+/** West-edge gear house. Louvers and a channel wordmark — not a plain tan mass. */
+function addGearHouse(root: THREE.Group): void {
+  const x = -44.4;
+  const z = -1.6;
+  const depth = 2.35;
+  const height = 4.5;
+  const length = 11.2;
+  const shell = new THREE.MeshStandardMaterial({
+    color: 0x1e1e24,
+    roughness: 0.4,
+    metalness: 0.62,
+    envMapIntensity: 0.5,
+  });
+  const recessMat = new THREE.MeshStandardMaterial({ color: 0x0c0d10, roughness: 0.7, metalness: 0.2 });
+  const blade = new THREE.MeshStandardMaterial({
+    color: 0xe7ebf0,
+    roughness: 0.28,
+    metalness: 0.78,
+    envMapIntensity: 0.7,
+  });
+  const body = new THREE.Mesh(new THREE.BoxGeometry(depth, height, length), shell);
+  body.position.set(x, height * 0.5, z);
+  body.castShadow = true;
+  body.receiveShadow = true;
+  const plinth = new THREE.Mesh(new THREE.BoxGeometry(depth + 0.45, 0.2, length + 0.4), shell);
+  plinth.position.set(x, 0.1, z);
+  plinth.receiveShadow = true;
+  const hair = new THREE.MeshStandardMaterial({
+    color: 0x00d4f5,
+    emissive: 0x00d4f5,
+    emissiveIntensity: 1.6,
+    roughness: 0.35,
+    toneMapped: false,
+  });
+  const faceX = x + depth * 0.5;
+  const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.06, length - 0.5), hair);
+  stripe.position.set(faceX + 0.04, 0.38, z);
+  const recess = new THREE.Mesh(new THREE.BoxGeometry(0.08, 2.55, length - 1.1), recessMat);
+  recess.position.set(faceX + 0.02, 1.85, z - 0.15);
+  root.add(body, plinth, stripe, recess);
+
+  for (let i = 0; i < 8; i++) {
+    const slat = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.09, length - 1.5), blade);
+    slat.position.set(faceX + 0.1, 0.95 + i * 0.3, z - 0.15);
+    slat.rotation.z = -0.55;
+    slat.castShadow = true;
+    root.add(slat);
+  }
+  const doorMat = new THREE.MeshStandardMaterial({ color: 0x121418, roughness: 0.48, metalness: 0.45 });
+  const door = new THREE.Mesh(new THREE.BoxGeometry(0.08, 2.2, 1.25), doorMat);
+  door.position.set(faceX + 0.05, 1.28, z + length * 0.5 - 1.2);
+  const handle = new THREE.Mesh(
+    new THREE.BoxGeometry(0.05, 0.1, 0.32),
+    new THREE.MeshStandardMaterial({ color: 0xe89a2e, emissive: 0xe89a2e, emissiveIntensity: 0.45, roughness: 0.4 }),
+  );
+  handle.position.set(faceX + 0.12, 1.28, z + length * 0.5 - 1.55);
+  root.add(door, handle);
+
+  const sign = new THREE.Object3D();
+  sign.userData.fasciaSign = {
+    x: faceX + 0.16,
+    y: height - 0.42,
+    z: z - 0.2,
+    yaw: Math.PI / 2,
+    maxW: 4.8,
+    maxH: 0.95,
+  };
+  root.add(sign);
+}
+
 export function buildSkyline(): THREE.Group {
   const root = new THREE.Group();
   addDesert(root);
   addDesertEdge(root);
   addAlley(root);
 
-  const art = mural();
-  const muralWall = new THREE.Mesh(
-    new THREE.BoxGeometry(16.4, 5.8, 3.0),
-    new THREE.MeshStandardMaterial({ color: 0xeee8dc, roughness: 0.74 }),
-  );
-  muralWall.position.set(-58, 2.8, -0.4);
-  const muralEast = new THREE.Mesh(
-    new THREE.PlaneGeometry(16.0, 5.2),
-    new THREE.MeshStandardMaterial({ map: art, roughness: 0.9, metalness: 0.02 }),
-  );
-  muralEast.position.set(-56.42, 2.9, -0.4);
-  muralEast.rotation.y = Math.PI / 2;
-  const muralSouth = new THREE.Mesh(
-    new THREE.PlaneGeometry(15.6, 5.0),
-    new THREE.MeshStandardMaterial({ map: art, roughness: 0.9, metalness: 0.02 }),
-  );
-  muralSouth.position.set(-58, 2.9, -1.96);
-  muralSouth.rotation.y = Math.PI;
-  root.add(muralWall, muralEast, muralSouth);
+  addGearHouse(root);
 
   const shop = new THREE.Mesh(new THREE.BoxGeometry(13.6, 5.6, 8.0), night);
   shop.position.set(58, 2.7, 22);

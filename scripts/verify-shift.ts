@@ -94,6 +94,7 @@ import {
   STOREFRONT_SHOT,
   STALL_CLEARANCE,
   STALLS,
+  ZEUS_COLLIDER,
   UNPLUG_SHOT,
   WAIT_ORDER,
   WAIT_SLOTS,
@@ -132,7 +133,7 @@ import {
 } from "../src/world/layout.ts";
 import { cableHitsCarBody, ccsLeadPoints, holsterRestPoints } from "../src/world/cables.ts";
 import { OPAQUE_SEDAN_INLET } from "../src/cars/opaque.ts";
-import { beginWalk, CANOPY_INSPECT_PITCH, clampGameplayPitch, horizonInView, keyToken, PITCH_MAX, PITCH_MIN, resolveColliders, stepWalk, WALK_RADIUS } from "../src/input/walker.ts";
+import { beginWalk, CAMERA_MARGIN, CANOPY_INSPECT_PITCH, clampGameplayPitch, horizonInView, keyToken, PITCH_MAX, PITCH_MIN, resolveColliders, stepWalk, WALK_RADIUS } from "../src/input/walker.ts";
 import * as THREE from "three";
 
 for (const name of [
@@ -266,7 +267,20 @@ if (DOOR_SHOT.x < WALK_BOUNDS.xmin || DOOR_SHOT.x > WALK_BOUNDS.xmax) throw new 
 if (DOOR_SHOT.z < WALK_BOUNDS.zmin || DOOR_SHOT.z > WALK_BOUNDS.zmax) throw new Error("door shot Z outside walk");
 const doorCenterX = PAVILION.x + PAVILION_DOOR.localX;
 if (Math.abs(doorCenterX - 0.8) > 0.2) throw new Error("door center drifted");
-if (STALL_CLEARANCE !== 0.9) throw new Error("stall clearance must stay 0.9");
+if (STALL_CLEARANCE < 1.5) throw new Error("stall clearance must leave a pedestrian strip");
+const walkNeed = (WALK_RADIUS + CAMERA_MARGIN) * 2 + 0.22;
+for (const stall of BAYS) {
+  const bumper = Math.abs(stall.x - stall.zeusX) - CAR_LENGTH * 0.5;
+  const gap = bumper - ZEUS_COLLIDER.x * 0.5;
+  if (gap < walkNeed) throw new Error(`bay ${stall.playable} walkway ${gap.toFixed(2)} < ${walkNeed.toFixed(2)}`);
+}
+const rearOf = (id: number) => {
+  const stall = STALLS.find((s) => s.id === id)!;
+  const sign = Math.sign(stall.x - stall.zeusX) || 1;
+  return stall.x + sign * CAR_LENGTH * 0.5;
+};
+const abAisle = Math.abs(rearOf(1) - rearOf(5));
+if (abAisle < 4.2) throw new Error(`A-B aisle collapsed to ${abAisle.toFixed(2)}`);
 
 const gap = pavilionDoorGap();
 if (gap.width < WALK_RADIUS * 2 + 1.2) {
@@ -942,7 +956,10 @@ for (const stop of stops) {
   }
   if (Math.abs(stop.z - stall.z) > 0.02) throw new Error(`parking stop ${stop.bayId} left its stall`);
   const gap = Math.abs(stop.x - stall.zeusX);
-  if (gap < 0.6 || gap > 1.15) throw new Error(`parking stop ${stop.bayId} not in the Zeus–bumper gap`);
+  const bumperFromZeus = ZEUS_HALF_DEPTH + STALL_CLEARANCE;
+  if (gap < bumperFromZeus - 0.5 || gap > bumperFromZeus - 0.05) {
+    throw new Error(`parking stop ${stop.bayId} not on the tire line`);
+  }
   if (stallBadgeLabel(stall) !== String(stall.id)) throw new Error("stall badge label drifted");
   const pose = parkingStopPose(stall);
   if (pose.x !== stop.x || pose.z !== stop.z) throw new Error("parking stop pose helper drifted");
@@ -952,6 +969,27 @@ for (const stop of stops) {
   if (Math.hypot(onStop.x - stop.x, onStop.z - stop.z) > 0.05) {
     throw new Error(`parking stop ${stop.bayId} acts as a walk collider`);
   }
+}
+
+const peckStall = BAYS.find((b) => b.playable === 4)!;
+const peckAisle = Math.sign(peckStall.x - peckStall.zeusX) || 1;
+const stripX = peckStall.zeusX + peckAisle * (ZEUS_COLLIDER.x * 0.5 + WALK_RADIUS + CAMERA_MARGIN + 0.06);
+const halfL = CAR_LENGTH * 0.5;
+const halfW = 0.94;
+const carBox = new THREE.Box3(
+  new THREE.Vector3(peckStall.x - halfL, 0, peckStall.z - halfW),
+  new THREE.Vector3(peckStall.x + halfL, 1.55, peckStall.z + halfW),
+);
+const zx = ZEUS_COLLIDER.x * 0.5;
+const zz = ZEUS_COLLIDER.z * 0.5;
+const zeusBox = new THREE.Box3(
+  new THREE.Vector3(peckStall.zeusX - zx, 0, peckStall.zeusZ - zz),
+  new THREE.Vector3(peckStall.zeusX + zx, ZEUS_COLLIDER.h, peckStall.zeusZ + zz),
+);
+const stripProbe = new THREE.Vector3(stripX, 1.64, peckStall.z);
+resolveColliders(stripProbe, [carBox, zeusBox]);
+if (Math.hypot(stripProbe.x - stripX, stripProbe.z - peckStall.z) > 0.02) {
+  throw new Error("walker cannot stand in the charger walkway");
 }
 
 if (!inPlayableVolume(STALL_DETAIL_SHOT.x, STALL_DETAIL_SHOT.z)) {

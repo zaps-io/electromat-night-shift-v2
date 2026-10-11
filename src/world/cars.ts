@@ -614,8 +614,9 @@ export function carColliders(map: Map<string, CarView>): THREE.Box3[] {
     const yaw = view.root.rotation.y;
     const c = Math.abs(Math.cos(yaw));
     const s = Math.abs(Math.sin(yaw));
-    const hx = halfL * c + halfW * s;
-    const hz = halfL * s + halfW * c;
+    // Hull length is local Z (model faces -Z). Yaw ±90° puts that length on X.
+    const hx = halfL * s + halfW * c;
+    const hz = halfL * c + halfW * s;
     const x = view.root.position.x;
     const z = view.root.position.z;
     boxes.push(new THREE.Box3(new THREE.Vector3(x - hx, 0, z - hz), new THREE.Vector3(x + hx, 1.55, z + hz)));
