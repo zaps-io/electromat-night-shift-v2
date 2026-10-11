@@ -34,6 +34,7 @@ import {
   doorHintBesidePrompt,
   doorTakesPrompt,
   formatHandoff,
+  toastRepeatsLiveLine,
   hudActionPrompt,
   GUEST_HULL_R,
   GUEST_REACH,
@@ -326,8 +327,8 @@ if (queue[0]?.bay !== "B4" || queue[0]?.action !== "PAY" || queue[0]?.wait !== "
 if (!queue.some((row) => row.action === "WAVE" && row.bay === "B6")) {
   throw new Error(`open bay must be the WAVE row, got ${JSON.stringify(queue)}`);
 }
-if (!queue.some((row) => row.action === "TALK" && row.bay === "Q")) {
-  throw new Error(`queue must name a talk, got ${JSON.stringify(queue)}`);
+if (!queue.some((row) => row.action === "TALK" && row.bay === "LOUNGE")) {
+  throw new Error(`queue must name a lounge talk, got ${JSON.stringify(queue)}`);
 }
 if (!objectiveRepeatsPrompt("E  PAY  ·  PECK", "PAY  ·  PECK")) throw new Error("PAY prompt and label must count as one prompt");
 if (!objectiveRepeatsPrompt("E  PAY  ·  PECK", "PAY  ·  PECK — walk to the car or a PAY stand")) {
@@ -1267,6 +1268,9 @@ if (!nextLine.includes("NEXT") || !nextLine.includes("WAVE") || !nextLine.includ
   throw new Error(`handoff must name the next job, got ${nextLine}`);
 }
 if (toastConflictsJob(nextLine, nextJob(handoff))) throw new Error("NEXT toast must not fight the live job");
+if (!toastRepeatsLiveLine("WAVE · NG.  NEXT · PLUG · NG — walk to the inlet", "E  PLUG  ·  NG", "PLUG  ·  NG")) {
+  throw new Error("WAVE handoff must collapse when the prompt already says PLUG");
+}
 if (pressureLabel(handoff) !== "EASY") throw new Error("opening minute must read EASY");
 
 const glare = resetNight();

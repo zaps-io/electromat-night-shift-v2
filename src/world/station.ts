@@ -25,6 +25,14 @@ import { applyBakedLotLight } from "./lightmaps";
 import { makePayIcon, makeWaveGuide, makeWaveIcon } from "./icons";
 import { addZeusCharger } from "./zeus";
 
+const lotSolids: THREE.Box3[] = [];
+
+function solidBox(x: number, z: number, w: number, d: number, h = 3.2): void {
+  lotSolids.push(
+    new THREE.Box3(new THREE.Vector3(x - w * 0.5, 0, z - d * 0.5), new THREE.Vector3(x + w * 0.5, h, z + d * 0.5)),
+  );
+}
+
 export interface Station {
   root: THREE.Group;
   ground: THREE.Mesh;
@@ -182,7 +190,8 @@ const canopyTrim = new THREE.MeshPhysicalMaterial({
 });
 
 /** Slim sign band. Letters are fitted inside this height in branding.ts. */
-const FASCIA_H = 0.5;
+/** Tall enough for a fascia wordmark about 2.5× the old smudge, still under the shell. */
+const FASCIA_H = 1.05;
 
 const bayStripGeo = new THREE.BoxGeometry(1, 0.04, 0.1);
 const bayStripMat = new THREE.MeshStandardMaterial({
@@ -269,7 +278,7 @@ function addCanopyAt(root: THREE.Group, canopy: Canopy): void {
     z: fasciaZ - 0.1,
     yaw: Math.PI,
     maxW: fasciaW * 0.86,
-    maxH: FASCIA_H * 0.72,
+    maxH: FASCIA_H * 0.8,
   };
   root.add(fascia);
   const trim = new THREE.Mesh(new THREE.BoxGeometry(fasciaW - 0.12, 0.016, 0.04), canopyTrim);
@@ -287,7 +296,7 @@ function addCanopyAt(root: THREE.Group, canopy: Canopy): void {
     z: cz,
     yaw: face > 0 ? Math.PI / 2 : -Math.PI / 2,
     maxW: aisleD * 0.86,
-    maxH: FASCIA_H * 0.72,
+    maxH: FASCIA_H * 0.8,
   };
   root.add(aisleFascia);
   const aisleTrim = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.016, Math.max(1.2, aisleD - 0.2)), canopyTrim);
@@ -319,6 +328,7 @@ function addCanopyAt(root: THREE.Group, canopy: Canopy): void {
       const pz = cz + tz * (d * 0.5 - 0.85);
       const post = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.062, y - 0.06, 16), col);
       post.position.set(px, (y - 0.06) * 0.5, pz);
+      solidBox(px, pz, 0.36, 0.36, y);
       post.castShadow = true;
       const plate = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.12, 0.025, 16), col);
       plate.position.set(px, 0.016, pz);
@@ -453,8 +463,9 @@ function addOneKiosk(
   const kiosk = new THREE.Group();
   kiosk.userData.kind = "kiosk";
   kiosk.userData.kioskIndex = index;
-  const cream = mat(0xf3eee4);
+  const cream = mat(C.charcoal, { metalness: 0.4, roughness: 0.4, envMapIntensity: 0.3 });
   const standH = lounge ? 1.72 : 1.42;
+  solidBox(x, z, lounge ? 1.05 : 0.95, lounge ? 0.7 : 0.64, standH);
   const stand = box(lounge ? 0.86 : 0.78, standH, lounge ? 0.52 : 0.48, cream, x, standH * 0.5, z);
   const headY = lounge ? 1.88 : 1.58;
   const head = box(lounge ? 0.78 : 0.7, 0.52, 0.12, mat(C.charcoal), x, headY, z - 0.18);
@@ -525,8 +536,11 @@ function addWaveKiosk(root: THREE.Group): { kiosk: THREE.Group; alert: THREE.Spr
   const { x, z } = WAVE_POINT;
   const kiosk = new THREE.Group();
   kiosk.userData.kind = "wave";
-  const cream = mat(0xf3eee4);
-  const stand = box(0.78, 1.58, 0.48, cream, x, 0.79, z);
+  const waveChar = mat(C.charcoal, { metalness: 0.42, roughness: 0.38, envMapIntensity: 0.35 });
+  const waveMetal = mat(0xc5c9ce, { metalness: 0.78, roughness: 0.28, envMapIntensity: 0.7 });
+  const stand = box(0.78, 1.42, 0.48, waveChar, x, 0.87, z);
+  const plinth = box(0.9, 0.16, 0.58, waveMetal, x, 0.08, z);
+  solidBox(x, z, 1.05, 0.72, 1.7);
   const head = box(0.7, 0.5, 0.12, mat(C.charcoal), x, 1.72, z);
   const plateMat = new THREE.MeshBasicMaterial({ map: waveTex, toneMapped: false, side: THREE.DoubleSide });
   const north = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.4), plateMat);
@@ -551,7 +565,7 @@ function addWaveKiosk(root: THREE.Group): { kiosk: THREE.Group; alert: THREE.Spr
   lamp.position.set(x + 0.38, 2.7, z);
   const alert = makeWaveIcon();
   alert.position.set(x, 2.15, z);
-  kiosk.add(stand, head, south, north, hit, pole, flag, beacon, lamp, alert);
+  kiosk.add(plinth, stand, head, south, north, hit, pole, flag, beacon, lamp, alert);
   const guide = makeWaveGuide({ x, z });
   root.add(kiosk, guide);
   return { kiosk, alert, guide };
@@ -858,6 +872,7 @@ function addStreetlights(root: THREE.Group): void {
 
 
 export function buildStation(): Station {
+  lotSolids.length = 0;
   const root = new THREE.Group();
   const ground = makeAsphalt(root);
   addCanopies(root);
@@ -879,6 +894,7 @@ export function buildStation(): Station {
       addParkingStop(root, stall);
     }
     addZeusPad(root, stall.zeusX, stall.zeusZ);
+    solidBox(stall.zeusX, stall.zeusZ, 0.62, 0.48, 2.75);
     addZeusCharger(
       root,
       stall.zeusX,
@@ -910,7 +926,7 @@ export function buildStation(): Station {
     waveGuide: wave.guide,
     payGlare,
     bayAnchors,
-    colliders: [...pavilionBoxes, ...westLot, ...planters],
+    colliders: [...pavilionBoxes, ...westLot, ...planters, ...lotSolids],
     walkGrounds: collectWalkGrounds(root),
   };
 }

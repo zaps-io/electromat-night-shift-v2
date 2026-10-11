@@ -603,3 +603,22 @@ export function syncCars(map: Map<string, CarView>, scene: THREE.Scene, state: G
   stepDeparts(now, scene);
   syncStallBadges(state, scene);
 }
+
+/** Hull AABBs. Walker radius adds the near-plane margin on top of these. */
+export function carColliders(map: Map<string, CarView>): THREE.Box3[] {
+  const boxes: THREE.Box3[] = [];
+  const halfL = 2.36;
+  const halfW = 0.94;
+  for (const view of map.values()) {
+    if (!view.root.parent) continue;
+    const yaw = view.root.rotation.y;
+    const c = Math.abs(Math.cos(yaw));
+    const s = Math.abs(Math.sin(yaw));
+    const hx = halfL * c + halfW * s;
+    const hz = halfL * s + halfW * c;
+    const x = view.root.position.x;
+    const z = view.root.position.z;
+    boxes.push(new THREE.Box3(new THREE.Vector3(x - hx, 0, z - hz), new THREE.Vector3(x + hx, 1.55, z + hz)));
+  }
+  return boxes;
+}

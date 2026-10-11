@@ -540,6 +540,73 @@ function addPatio(root: THREE.Group): void {
   root.add(pot, frond);
 }
 
+/** Aisle face behind the chargers: glass, a door, mullions, warm interior glow. */
+function addWestStorefront(
+  g: THREE.Group,
+  west: number,
+  D: number,
+  H: number,
+  T: number,
+  wall: THREE.Material,
+  mullionMat: THREE.Material,
+  glass: THREE.Material,
+): void {
+  g.add(box(T + 0.02, 0.42, D, wall, west + T * 0.35, H - 0.22, 0));
+  g.add(box(T + 0.02, 0.32, D, wall, west + T * 0.35, 0.2, 0));
+  const glowMat = new THREE.MeshBasicMaterial({
+    color: 0xffe0b0,
+    transparent: true,
+    opacity: 0.34,
+    toneMapped: false,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+  });
+  const doorW = 1.4;
+  const doorH = 2.24;
+  const doorZ = 0.15;
+  const door0 = doorZ - doorW * 0.5 - 0.06;
+  const door1 = doorZ + doorW * 0.5 + 0.06;
+  const z0 = -D * 0.5 + 0.35;
+  const z1 = D * 0.5 - 0.35;
+  const spans: Array<[number, number]> = [];
+  let z = z0;
+  while (z < z1 - 0.2) {
+    const next = Math.min(z + 1.7, z1);
+    if (next <= door0 || z >= door1) spans.push([z, next]);
+    else {
+      if (z < door0) spans.push([z, door0]);
+      if (next > door1) spans.push([door1, next]);
+    }
+    z = next;
+  }
+  for (const [a, b] of spans) {
+    const span = b - a;
+    if (span < 0.4) continue;
+    const mid = (a + b) * 0.5;
+    const pane = new THREE.Mesh(new THREE.PlaneGeometry(span - 0.1, 1.82), glass);
+    pane.position.set(west + 0.05, 1.46, mid);
+    pane.rotation.y = -Math.PI / 2;
+    const glow = new THREE.Mesh(new THREE.PlaneGeometry(span - 0.18, 1.66), glowMat);
+    glow.position.set(west + 0.22, 1.46, mid);
+    glow.rotation.y = -Math.PI / 2;
+    g.add(pane, glow);
+    g.add(box(0.07, 2.02, 0.06, mullionMat, west + 0.01, 1.46, a));
+    g.add(box(0.07, 0.06, span, mullionMat, west + 0.01, 2.4, mid));
+    g.add(box(0.07, 0.06, span, mullionMat, west + 0.01, 0.5, mid));
+  }
+  const doorGlass = new THREE.Mesh(new THREE.PlaneGeometry(doorW - 0.18, doorH - 0.16), glass);
+  doorGlass.position.set(west + 0.04, doorH * 0.48, doorZ);
+  doorGlass.rotation.y = -Math.PI / 2;
+  const doorGlow = new THREE.Mesh(new THREE.PlaneGeometry(doorW - 0.28, doorH - 0.28), glowMat);
+  doorGlow.position.set(west + 0.2, doorH * 0.48, doorZ);
+  doorGlow.rotation.y = -Math.PI / 2;
+  g.add(doorGlass, doorGlow);
+  g.add(box(0.09, doorH, 0.07, mullionMat, west - 0.02, doorH * 0.5, doorZ - doorW * 0.5));
+  g.add(box(0.09, doorH, 0.07, mullionMat, west - 0.02, doorH * 0.5, doorZ + doorW * 0.5));
+  g.add(box(0.09, 0.08, doorW, mullionMat, west - 0.02, doorH, doorZ));
+  g.add(box(0.04, 0.46, 0.05, mullionMat, west - 0.07, 1.05, doorZ + 0.42));
+}
+
 export function addPavilion(root: THREE.Group): THREE.Box3[] {
   const g = new THREE.Group();
   g.userData.noBake = true;
@@ -608,7 +675,7 @@ export function addPavilion(root: THREE.Group): THREE.Box3[] {
   const headerY = H - 0.28;
   g.add(box(W, 0.42, T, wall, 0, headerY, south + T * 0.5));
   g.add(box(T, 0.42, D, wall, east - T * 0.5, headerY, 0));
-  g.add(box(T, H - 0.12, D, wall, west + T * 0.5, H * 0.5, 0));
+  addWestStorefront(g, west, D, H, T, wall, mullion, glass);
   g.add(box(W, H - 0.12, T, wall, 0, H * 0.5, north - T * 0.5));
 
   g.add(box(southLeftW, 0.22, T, wall, west + southLeftW * 0.5, kick + 0.11, south + T * 0.5));
@@ -734,11 +801,6 @@ export function addPavilion(root: THREE.Group): THREE.Box3[] {
   g.add(sideFascia);
   const sideTrim = box(0.04, 0.02, D - 0.2, mullion, east + 0.12, H - 0.9, 0);
   g.add(sideTrim);
-
-  const westWindow = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 0.7), glass);
-  westWindow.position.set(west + 0.08, 2.55, 1.2);
-  westWindow.rotation.y = Math.PI / 2;
-  g.add(westWindow);
 
   const interiorBoxes = addInterior(g, W, D, H);
 

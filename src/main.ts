@@ -40,6 +40,7 @@ import {
   jobLabel,
   jobNeedLocked,
   objectiveRepeatsPrompt,
+  toastRepeatsLiveLine,
   jobReadyFallback,
   nextJob,
   presentHud,
@@ -58,7 +59,7 @@ import {
   initialQuality,
   type QualityTier,
 } from "./render/pipeline";
-import { addLodFillers, hullDebug, loadCarPrototypes, parkBackdropCars, syncCars, trimLodFillers, type CarView } from "./world/cars";
+import { addLodFillers, carColliders, hullDebug, loadCarPrototypes, parkBackdropCars, syncCars, trimLodFillers, type CarView } from "./world/cars";
 import {
   BAYS,
   BOARD_SHOT,
@@ -592,7 +593,8 @@ function paintHud(): void {
     state.toastUntil = state.timeMin + 8;
   }
   const shownToast = live && state.toastUntil > state.timeMin ? state.toast : "";
-  toastEl.textContent = toastYieldsToDoor(shownToast, presented.doorHint, job) ? "" : shownToast;
+  const toastDup = toastRepeatsLiveLine(shownToast, presented.prompt, objectiveRead);
+  toastEl.textContent = toastDup || toastYieldsToDoor(shownToast, presented.doorHint, job) ? "" : shownToast;
   toastEl.classList.toggle("loud", /NEXT ·/.test(toastEl.textContent ?? ""));
   crossEl.classList.toggle("ready", !!resolved.prompt && !presented.doorHint);
   const markAt = resolved.focus;
@@ -651,7 +653,7 @@ function loop(now: number): void {
   last = now;
   resize();
   if (state.phase === "shift") tick(state, (dt * 1000) / MS_PER_GAME_MIN);
-  walker.tick(dt, station.colliders);
+  walker.tick(dt, station.colliders.concat(carColliders(cars)));
   tickHand(hand, now / 1000, walker.position.y);
   if (ready) syncCars(cars, scene, state, now / 1000);
   paintHud();
@@ -977,7 +979,7 @@ window.__electromat = {
     document.dispatchEvent(new KeyboardEvent("keyup", { code, key: code.replace("Key", "").toLowerCase(), bubbles: true }));
   },
   step(dt = 0.05) {
-    walker.tick(dt, station.colliders);
+    walker.tick(dt, station.colliders.concat(carColliders(cars)));
   },
   triggerRush() {
     startRush(state);
