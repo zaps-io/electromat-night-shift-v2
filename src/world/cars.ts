@@ -416,7 +416,6 @@ function liftGreenhouse(root: THREE.Object3D, roof0: number, roof1: number): voi
     }
     if (!moved) return;
     pos.needsUpdate = true;
-    geo.computeVertexNormals();
     geo.computeBoundingBox();
     geo.computeBoundingSphere();
   });
@@ -428,8 +427,15 @@ function loadCrossover(sedan: THREE.Group): THREE.Group {
   liftGreenhouse(body, roof0, CROSSOVER_ROOF);
   const roof1 = worldMaxY(body, (n) => n.includes("paint") || n.includes("glass"));
   const rubberTop = worldMaxY(body, (n) => n.includes("rubber"));
-  if (roof1 < roof0 + 0.12) throw new Error(`crossover roof did not lift (${roof0.toFixed(2)} -> ${roof1.toFixed(2)})`);
+  if (!Number.isFinite(roof1) || roof1 > 2.2 || roof1 < roof0 + 0.12) {
+    throw new Error(`crossover roof did not lift (${roof0.toFixed(2)} -> ${roof1.toFixed(2)})`);
+  }
   if (rubberTop > 0.75) throw new Error(`crossover stretched a tire (${rubberTop.toFixed(2)})`);
+  let wild = 0;
+  body.updateMatrixWorld(true);
+  const span = new THREE.Box3().setFromObject(body);
+  if (span.max.y > 2.4 || span.min.y < -0.05 || Math.abs(span.max.x) > 1.6 || Math.abs(span.max.z) > 2.7) wild = 1;
+  if (wild) throw new Error(`crossover bounds left the Model 3 footprint (${span.min.toArray()} ${span.max.toArray()})`);
   body.userData.source = "zaps-ev-sedan.glb";
   body.userData.roof = Number(roof1.toFixed(3));
   body.userData.halfL = 2.36;

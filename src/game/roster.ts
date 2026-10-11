@@ -16,7 +16,7 @@ export function nightRoster(): Guest[] {
     guest("ng", "Ng", "LOT-17", "kiosk", "Pearl sedan. I'll wait, then pay.", base + 3, 24, paint.pearl, 34, "sedan"),
     guest("vora", "Vora", "CYN-09", "auto", "Midnight silver crossover. Front port.", base + 2, 20, paint.silver, 40, "suv"),
     guest("kim", "Kim", "FLT-3", "kiosk", "Black sedan. Nose port, then a stall.", base + 3, 22, paint.black, 36, "sedan"),
-    guest("chen", "Chen", "PHX-12", "auto", "Deep blue sedan. Just plug.", base + 2, 20, paint.blue, 32, "sedan"),
+    guest("chen", "Chen", "PHX-12", "auto", "Deep blue crossover. Just plug.", base + 2, 20, paint.blue, 32, "suv"),
     guest("das", "Das", "LOT-22", "kiosk", "White sedan. I can wait.", base + 18, 24, paint.white, 34, "sedan"),
     guest("ortiz", "Ortiz", "NS-90", "kiosk", "Red sedan. Queue's long. Still here.", base + 4, 24, paint.red, 30, "sedan"),
   ];
