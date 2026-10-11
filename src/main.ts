@@ -59,7 +59,9 @@ import {
   initialQuality,
   type QualityTier,
 } from "./render/pipeline";
-import { addLodFillers, carColliders, hullDebug, loadCarPrototypes, parkBackdropCars, syncCars, trimLodFillers, type CarView } from "./world/cars";
+import { addFleetLineup, addLodFillers, carColliders, hullDebug, loadCarPrototypes, paintedHull, parkBackdropCars, syncCars, trimLodFillers, type CarView } from "./world/cars";
+import { parkMcsRigs } from "./world/mcs";
+import { addPedestrians } from "./world/people";
 import {
   BAYS,
   BOARD_SHOT,
@@ -151,6 +153,7 @@ scene.add(sun);
 const station = buildStation();
 addLotMirror(station.root, renderer);
 scene.add(station.root);
+const pedestrians = addPedestrians(station.root);
 const skyline = buildSkyline();
 mountSkylineRing(skyline);
 scene.add(skyline);
@@ -706,6 +709,7 @@ function loop(now: number): void {
   resize();
   if (state.phase === "shift") tick(state, (dt * 1000) / MS_PER_GAME_MIN);
   walker.tick(dt, station.colliders.concat(carColliders(cars)));
+  pedestrians.tick(now / 1000);
   tickHand(hand, now / 1000, walker.position.y);
   if (ready) syncCars(cars, scene, state, now / 1000);
   paintHud();
@@ -992,6 +996,16 @@ window.__electromat = {
     return state;
   },
   startNight: dropIn,
+  showLineup() {
+    const prev = scene.getObjectByName("fleet-lineup");
+    if (prev) scene.remove(prev);
+    addFleetLineup(scene);
+    return true;
+  },
+  hideLineup() {
+    const prev = scene.getObjectByName("fleet-lineup");
+    if (prev) scene.remove(prev);
+  },
   act,
   place(x: number, z: number, yaw = 0, pitch = 0, eyeY = 1.64, fov?: number) {
     walker.setFov(fov ?? (eyeY > 3.2 ? WIDE_SHOT.fov : START_SHOT.fov));
@@ -1122,6 +1136,7 @@ window.__electromat = {
 void Promise.all([loadCarPrototypes(), brandingReady, artReady]).then(() => {
   addLodFillers(scene);
   parkBackdropCars(skyline);
+  station.colliders.push(...parkMcsRigs(scene, paintedHull));
   ready = true;
 });
 

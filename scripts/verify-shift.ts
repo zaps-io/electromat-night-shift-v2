@@ -1632,4 +1632,55 @@ if (/function stallBadgeMat[\s\S]{0,280}DoubleSide/.test(zeusSrc)) {
 const brandSrc = readFileSync(new URL("../src/world/branding.ts", import.meta.url), "utf8");
 if (brandSrc.includes("loungeFront")) throw new Error("south zaps mark must not duplicate over the LOUNGE sign");
 
+const { BAY_WEIGHTS, FLEET_WEIGHTS, buildFleetVehicle, pickWeighted } = await import("../src/cars/fleet.ts");
+const fleetKinds = ["hatch", "suv", "pickup", "van", "box", "semi"] as const;
+const fleetLengths: number[] = [];
+for (const kind of fleetKinds) {
+  const body = buildFleetVehicle(kind);
+  body.updateMatrixWorld(true);
+  const size = new THREE.Box3().setFromObject(body).getSize(new THREE.Vector3());
+  fleetLengths.push(size.z);
+  let clearcoat = 0;
+  let tails = 0;
+  body.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    if (mesh.name === "Tail") tails += 1;
+    const mat = mesh.material as THREE.MeshPhysicalMaterial;
+    if (mesh.userData.paint) {
+      if ((mat.clearcoat ?? 0) < 0.5) throw new Error(`${kind} paint lost its clearcoat`);
+      if ((mat.transmission ?? 0) > 0.001) throw new Error(`${kind} paint has transmission`);
+      if (mat.transparent) throw new Error(`${kind} paint is transparent`);
+    }
+    if (mesh.name === "Glass" && ((mat.transmission ?? 0) > 0.001 || mat.transparent)) {
+      throw new Error(`${kind} glass must stay opaque`);
+    }
+  });
+  if (!tails) throw new Error(`${kind} is missing tail lamps`);
+  const inlet = body.userData.inlet as { x: number; y: number; z: number };
+  if (inlet.x < 0.7) throw new Error(`${kind} charge port is not on the right side`);
+  if (inlet.z > -0.4) throw new Error(`${kind} charge port is not toward the nose`);
+}
+if (fleetLengths[0]! >= fleetLengths[1]!) throw new Error("hatch should be shorter than the crossover");
+if (fleetLengths[2]! <= fleetLengths[1]!) throw new Error("pickup should be longer than the crossover");
+if (fleetLengths[3]! <= fleetLengths[2]!) throw new Error("van should be longer than the pickup");
+if (fleetLengths[4]! <= fleetLengths[3]!) throw new Error("box truck should be longer than the van");
+if (fleetLengths[5]! < 14) throw new Error("semi tractor and trailer should read as a long rig");
+if (new Set(fleetLengths.map((n) => n.toFixed(2))).size !== fleetLengths.length) {
+  throw new Error("fleet silhouettes collapsed to one length");
+}
+if (BAY_WEIGHTS.some((row) => row.kind === "box" || row.kind === "semi")) {
+  throw new Error("box and semi must not spawn in a passenger bay");
+}
+if (FLEET_WEIGHTS.length < 7) throw new Error("weighted mix should cover every fleet type");
+for (let i = 0; i < 30; i++) {
+  const kind = pickWeighted(i);
+  if (kind === "box" || kind === "semi") throw new Error("passenger mix spawned a truck");
+}
+const mcsSrc = readFileSync(new URL("../src/world/mcs.ts", import.meta.url), "utf8");
+if (!mcsSrc.includes('kind: "semi"') || !mcsSrc.includes('kind: "box"')) {
+  throw new Error("MCS lane needs a semi and a box truck");
+}
+if ((mcsSrc.match(/mcs-dispenser/g) ?? []).length < 1) throw new Error("MCS dispensers missing");
+
 console.log("verify-shift ok");

@@ -66,6 +66,8 @@ export async function addBrandSignage(root: THREE.Group): Promise<void> {
   root.add(placeChannel(red, 1.85, eastX + 0.16, PAVILION.h - 0.48, PAVILION.z, Math.PI / 2, false));
 
   root.add(placeChannel(red, 0.78, -9.12, 2.55, -13.6, Math.PI / 2, false));
+  // South end of the row-B aisle fascia, turned toward the spawn so the start view reads ZAPS.
+  root.add(placeChannel(red, 1.65, -15.55, 2.92, -1.55, -2.85, false));
 
   applyZeusLogos(root, () => placeChannel(molded, 0.15, 0, 0, 0, 0, false));
 }

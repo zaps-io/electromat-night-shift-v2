@@ -1,0 +1,418 @@
+import * as THREE from "three";
+import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
+import type { HullKind } from "../game/state";
+import { glassMaterial, paintMaterial } from "./opaque";
+
+/**
+ * Original low-poly fleet. Shared merged geometry per type (clones reuse it).
+ * The passenger sedan stays the credited GLB. These bodies are not a third-party mesh.
+ */
+
+export const BAY_KINDS = ["hatch", "sedan", "suv", "pickup", "van"] as const;
+export type BayKind = (typeof BAY_KINDS)[number];
+
+/** Passenger stalls and street slots. Trucks stay on the MCS lane. */
+export const BAY_WEIGHTS: { kind: BayKind; weight: number }[] = [
+  { kind: "hatch", weight: 3 },
+  { kind: "sedan", weight: 4 },
+  { kind: "suv", weight: 3 },
+  { kind: "pickup", weight: 2 },
+  { kind: "van", weight: 2 },
+];
+
+/** Full mix, including the rigs that only fit a pull-through stall. */
+export const FLEET_WEIGHTS: { kind: HullKind; weight: number }[] = [
+  ...BAY_WEIGHTS,
+  { kind: "box", weight: 2 },
+  { kind: "semi", weight: 1 },
+];
+
+export function pickWeighted(seed: number, table: { kind: HullKind; weight: number }[] = BAY_WEIGHTS): HullKind {
+  const total = table.reduce((sum, row) => sum + row.weight, 0);
+  let n = Math.abs(Math.floor(seed * 13 + 5)) % total;
+  for (const row of table) {
+    if (n < row.weight) return row.kind;
+    n -= row.weight;
+  }
+  return table[0]!.kind;
+}
+
+type Box = { w: number; h: number; d: number; x: number; y: number; z: number; rx?: number };
+
+const glass = glassMaterial();
+const rubberMat = new THREE.MeshStandardMaterial({
+  name: "Rubber",
+  color: 0x141416,
+  roughness: 0.94,
+  metalness: 0.02,
+  transparent: false,
+  opacity: 1,
+  depthWrite: true,
+});
+const chromeMat = new THREE.MeshStandardMaterial({
+  name: "Chrome",
+  color: 0xc5c9ce,
+  metalness: 0.86,
+  roughness: 0.22,
+  envMapIntensity: 1.15,
+  transparent: false,
+  opacity: 1,
+  depthWrite: true,
+});
+const trimMat = new THREE.MeshStandardMaterial({
+  name: "Trim",
+  color: 0x16181c,
+  roughness: 0.58,
+  metalness: 0.22,
+  transparent: false,
+  opacity: 1,
+  depthWrite: true,
+});
+const lampMat = new THREE.MeshStandardMaterial({
+  name: "Lamp",
+  color: 0xfff1d4,
+  emissive: 0xffe2a8,
+  emissiveIntensity: 1.15,
+  roughness: 0.22,
+  metalness: 0.12,
+  transparent: false,
+  opacity: 1,
+  depthWrite: true,
+  toneMapped: false,
+});
+const tailMat = new THREE.MeshStandardMaterial({
+  name: "Tail",
+  color: 0xff3a32,
+  emissive: 0xe63225,
+  emissiveIntensity: 3.1,
+  roughness: 0.28,
+  metalness: 0.04,
+  transparent: false,
+  opacity: 1,
+  depthWrite: true,
+  toneMapped: false,
+});
+
+function shadowTexture(): THREE.DataTexture {
+  const w = 64;
+  const h = 128;
+  const data = new Uint8Array(w * h * 4);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const dx = (x + 0.5) / w - 0.5;
+      const dy = (y + 0.5) / h - 0.5;
+      const d = Math.sqrt((dx / 0.46) ** 2 + (dy / 0.48) ** 2);
+      const a = Math.max(0, 1 - d);
+      const i = (y * w + x) * 4;
+      data[i] = 8;
+      data[i + 1] = 8;
+      data[i + 2] = 12;
+      data[i + 3] = Math.floor(a * a * 150);
+    }
+  }
+  const tex = new THREE.DataTexture(data, w, h);
+  tex.needsUpdate = true;
+  tex.colorSpace = THREE.NoColorSpace;
+  return tex;
+}
+
+const shadowMat = new THREE.MeshBasicMaterial({
+  name: "Decal",
+  map: shadowTexture(),
+  transparent: true,
+  depthWrite: false,
+  polygonOffset: true,
+  polygonOffsetFactor: -2,
+  polygonOffsetUnits: -2,
+});
+
+function bake(parts: Box[]): THREE.BufferGeometry | null {
+  if (!parts.length) return null;
+  const geos = parts.map((p) => {
+    const g = new THREE.BoxGeometry(p.w, p.h, p.d);
+    if (p.rx) g.rotateX(p.rx);
+    g.translate(p.x, p.y, p.z);
+    return g;
+  });
+  const merged = mergeGeometries(geos, false);
+  for (const g of geos) g.dispose();
+  return merged;
+}
+
+function mesh(geo: THREE.BufferGeometry | null, mat: THREE.Material, name: string, paint = false): THREE.Mesh | null {
+  if (!geo) return null;
+  const m = new THREE.Mesh(geo, mat);
+  m.name = name;
+  m.castShadow = name === "Paint" || name === "Rubber";
+  m.receiveShadow = name === "Paint";
+  if (paint) m.userData.paint = true;
+  return m;
+}
+
+type Wheel = { x: number; z: number; r: number; hw: number; dual?: boolean };
+
+function wheelGeos(wheels: Wheel[]): { rubber: THREE.BufferGeometry; chrome: THREE.BufferGeometry } {
+  const rubber: THREE.BufferGeometry[] = [];
+  const chrome: THREE.BufferGeometry[] = [];
+  for (const w of wheels) {
+    const xs = w.dual ? [w.x - 0.08, w.x + 0.08] : [w.x];
+    for (const x of xs) {
+      const tire = new THREE.CylinderGeometry(w.r, w.r, w.hw * 2, 10);
+      tire.rotateZ(Math.PI / 2);
+      tire.translate(x, w.r, w.z);
+      rubber.push(tire);
+      const hub = new THREE.CylinderGeometry(w.r * 0.42, w.r * 0.42, w.hw * 2 + 0.02, 8);
+      hub.rotateZ(Math.PI / 2);
+      hub.translate(x, w.r, w.z);
+      chrome.push(hub);
+    }
+  }
+  const rubberGeo = mergeGeometries(rubber, false)!;
+  const chromeGeo = mergeGeometries(chrome, false)!;
+  for (const g of rubber) g.dispose();
+  for (const g of chrome) g.dispose();
+  return { rubber: rubberGeo, chrome: chromeGeo };
+}
+
+export type FleetBuild = {
+  kind: Exclude<HullKind, "sedan">;
+  inlet: { x: number; y: number; z: number };
+  roof: number;
+  paint: Box[];
+  glass: Box[];
+  trim: Box[];
+  lamps: Box[];
+  tails: Box[];
+  wheels: Wheel[];
+};
+
+function lampsAt(z: number, y: number, span: number, w = 0.34, h = 0.09): Box[] {
+  return [-1, 1].map((s) => ({ w, h, d: 0.05, x: s * span, y, z }));
+}
+
+/** Nose is -Z. Each type has its own length, ride height, wheelbase, and cabin. */
+export function fleetSpec(kind: Exclude<HullKind, "sedan">): FleetBuild {
+  if (kind === "hatch") {
+    return {
+      kind,
+      inlet: { x: 0.84, y: 0.68, z: -1.15 },
+      roof: 1.48,
+      paint: [
+        { w: 1.62, h: 0.5, d: 3.35, x: 0, y: 0.58, z: 0.05 },
+        { w: 1.4, h: 0.46, d: 1.7, x: 0, y: 1.02, z: 0.28 },
+        { w: 1.48, h: 0.12, d: 0.85, x: 0, y: 0.78, z: -1.32 },
+        { w: 1.5, h: 0.1, d: 0.16, x: 0, y: 0.42, z: -1.72 },
+      ],
+      glass: [
+        { w: 1.22, h: 0.36, d: 1.15, x: 0, y: 1.12, z: 0.15 },
+        { w: 1.16, h: 0.32, d: 0.06, x: 0, y: 1.02, z: 1.05, rx: -0.45 },
+      ],
+      trim: [{ w: 1.2, h: 0.22, d: 0.7, x: 0, y: 0.78, z: 0.2 }],
+      lamps: lampsAt(-1.74, 0.62, 0.55),
+      tails: lampsAt(1.76, 0.7, 0.58, 0.32, 0.1),
+      wheels: [
+        { x: -0.84, z: -1.15, r: 0.3, hw: 0.11 },
+        { x: 0.84, z: -1.15, r: 0.3, hw: 0.11 },
+        { x: -0.84, z: 1.2, r: 0.3, hw: 0.11 },
+        { x: 0.84, z: 1.2, r: 0.3, hw: 0.11 },
+      ],
+    };
+  }
+  if (kind === "suv") {
+    return {
+      kind,
+      inlet: { x: 0.98, y: 0.9, z: -1.25 },
+      roof: 1.78,
+      paint: [
+        { w: 1.86, h: 0.64, d: 4.25, x: 0, y: 0.74, z: 0 },
+        { w: 1.64, h: 0.58, d: 2.25, x: 0, y: 1.32, z: -0.05 },
+        { w: 1.72, h: 0.14, d: 1.05, x: 0, y: 1.0, z: -1.65 },
+        { w: 1.7, h: 0.12, d: 0.18, x: 0, y: 0.52, z: -2.18 },
+      ],
+      glass: [{ w: 1.46, h: 0.42, d: 1.85, x: 0, y: 1.4, z: -0.08 }],
+      trim: [{ w: 1.4, h: 0.24, d: 0.8, x: 0, y: 0.95, z: -0.2 }],
+      lamps: lampsAt(-2.16, 0.78, 0.62, 0.38, 0.1),
+      tails: lampsAt(2.16, 0.86, 0.66, 0.4, 0.11),
+      wheels: [
+        { x: -0.98, z: -1.45, r: 0.38, hw: 0.13 },
+        { x: 0.98, z: -1.45, r: 0.38, hw: 0.13 },
+        { x: -0.98, z: 1.48, r: 0.38, hw: 0.13 },
+        { x: 0.98, z: 1.48, r: 0.38, hw: 0.13 },
+      ],
+    };
+  }
+  if (kind === "pickup") {
+    return {
+      kind,
+      inlet: { x: 1.02, y: 0.92, z: -1.85 },
+      roof: 1.86,
+      paint: [
+        { w: 1.9, h: 0.48, d: 2.15, x: 0, y: 0.78, z: -1.35 },
+        { w: 1.86, h: 0.72, d: 1.55, x: 0, y: 1.22, z: -0.35 },
+        { w: 1.78, h: 0.22, d: 2.05, x: 0, y: 0.78, z: 1.45 },
+        { w: 0.08, h: 0.46, d: 1.95, x: -0.88, y: 1.05, z: 1.45 },
+        { w: 0.08, h: 0.46, d: 1.95, x: 0.88, y: 1.05, z: 1.45 },
+        { w: 1.7, h: 0.42, d: 0.08, x: 0, y: 1.0, z: 2.48 },
+        { w: 1.84, h: 0.12, d: 0.16, x: 0, y: 0.55, z: -2.45 },
+      ],
+      glass: [{ w: 1.58, h: 0.4, d: 1.15, x: 0, y: 1.52, z: -0.28 }],
+      trim: [{ w: 1.5, h: 0.2, d: 0.55, x: 0, y: 0.95, z: -0.45 }],
+      lamps: lampsAt(-2.42, 0.78, 0.64, 0.36, 0.1),
+      tails: lampsAt(2.54, 1.02, 0.62, 0.28, 0.1),
+      wheels: [
+        { x: -1.02, z: -1.75, r: 0.42, hw: 0.14 },
+        { x: 1.02, z: -1.75, r: 0.42, hw: 0.14 },
+        { x: -1.02, z: 1.55, r: 0.42, hw: 0.16 },
+        { x: 1.02, z: 1.55, r: 0.42, hw: 0.16 },
+      ],
+    };
+  }
+  if (kind === "van") {
+    return {
+      kind,
+      inlet: { x: 1.06, y: 0.95, z: -2.05 },
+      roof: 2.48,
+      paint: [
+        { w: 2.02, h: 1.62, d: 5.15, x: 0, y: 1.28, z: 0.15 },
+        { w: 2.06, h: 0.16, d: 4.6, x: 0, y: 2.16, z: 0.25 },
+        { w: 1.9, h: 0.14, d: 0.2, x: 0, y: 0.55, z: -2.48 },
+      ],
+      glass: [
+        { w: 1.82, h: 0.62, d: 0.06, x: 0, y: 1.82, z: -2.42, rx: 0.25 },
+        { w: 0.04, h: 0.32, d: 2.2, x: -1.02, y: 1.85, z: -0.15 },
+        { w: 0.04, h: 0.32, d: 2.2, x: 1.02, y: 1.85, z: -0.15 },
+      ],
+      trim: [
+        { w: 1.7, h: 0.28, d: 0.7, x: 0, y: 1.15, z: -1.7 },
+        { w: 0.04, h: 1.2, d: 0.04, x: 0, y: 1.35, z: 2.7 },
+      ],
+      lamps: lampsAt(-2.5, 0.85, 0.7, 0.32, 0.1),
+      tails: lampsAt(2.76, 0.95, 0.72, 0.36, 0.12),
+      wheels: [
+        { x: -1.08, z: -1.7, r: 0.36, hw: 0.12 },
+        { x: 1.08, z: -1.7, r: 0.36, hw: 0.12 },
+        { x: -1.08, z: 1.65, r: 0.36, hw: 0.12 },
+        { x: 1.08, z: 1.65, r: 0.36, hw: 0.12 },
+      ],
+    };
+  }
+  if (kind === "box") {
+    return {
+      kind,
+      inlet: { x: 1.2, y: 1.25, z: -2.15 },
+      roof: 3.2,
+      paint: [
+        { w: 1.35, h: 0.32, d: 6.8, x: 0, y: 0.72, z: 0.3 },
+        { w: 2.15, h: 1.45, d: 1.9, x: 0, y: 1.42, z: -2.45 },
+        { w: 2.42, h: 2.15, d: 4.55, x: 0, y: 1.95, z: 1.4 },
+        { w: 2.1, h: 0.12, d: 0.16, x: 0, y: 0.58, z: -3.45 },
+      ],
+      glass: [{ w: 1.9, h: 0.62, d: 0.06, x: 0, y: 1.9, z: -3.38, rx: 0.15 }],
+      trim: [{ w: 1.6, h: 0.22, d: 0.5, x: 0, y: 1.15, z: -2.5 }],
+      lamps: lampsAt(-3.42, 0.85, 0.72, 0.3, 0.1),
+      tails: lampsAt(3.7, 1.15, 0.9, 0.34, 0.14),
+      wheels: [
+        { x: -1.12, z: -2.35, r: 0.46, hw: 0.14 },
+        { x: 1.12, z: -2.35, r: 0.46, hw: 0.14 },
+        { x: -1.05, z: 0.55, r: 0.46, hw: 0.12, dual: true },
+        { x: 1.05, z: 0.55, r: 0.46, hw: 0.12, dual: true },
+        { x: -1.05, z: 1.55, r: 0.46, hw: 0.12, dual: true },
+        { x: 1.05, z: 1.55, r: 0.46, hw: 0.12, dual: true },
+      ],
+    };
+  }
+  return {
+    kind: "semi",
+    inlet: { x: 1.38, y: 1.45, z: -6.15 },
+    roof: 3.85,
+    paint: [
+      { w: 1.25, h: 0.38, d: 5.4, x: 0, y: 0.86, z: -5.1 },
+      { w: 2.15, h: 0.85, d: 1.35, x: 0, y: 1.25, z: -7.55 },
+      { w: 2.48, h: 2.15, d: 2.35, x: 0, y: 2.15, z: -6.15 },
+      { w: 2.42, h: 0.9, d: 0.7, x: 0, y: 2.85, z: -4.85 },
+      { w: 2.52, h: 2.45, d: 10.4, x: 0, y: 2.22, z: 2.15 },
+      { w: 2.2, h: 0.16, d: 0.2, x: 0, y: 0.7, z: -8.2 },
+    ],
+    glass: [{ w: 2.2, h: 0.85, d: 0.06, x: 0, y: 2.45, z: -7.28, rx: 0.2 }],
+    trim: [{ w: 2.1, h: 0.28, d: 0.55, x: 0, y: 1.35, z: -6.3 }],
+    lamps: lampsAt(-8.15, 1.05, 0.78, 0.32, 0.12),
+    tails: lampsAt(7.38, 1.25, 0.95, 0.36, 0.16),
+    wheels: [
+      { x: -1.22, z: -6.7, r: 0.52, hw: 0.16 },
+      { x: 1.22, z: -6.7, r: 0.52, hw: 0.16 },
+      { x: -1.15, z: -3.7, r: 0.52, hw: 0.14, dual: true },
+      { x: 1.15, z: -3.7, r: 0.52, hw: 0.14, dual: true },
+      { x: -1.15, z: -2.55, r: 0.52, hw: 0.14, dual: true },
+      { x: 1.15, z: -2.55, r: 0.52, hw: 0.14, dual: true },
+      { x: -1.18, z: 5.85, r: 0.52, hw: 0.14, dual: true },
+      { x: 1.18, z: 5.85, r: 0.52, hw: 0.14, dual: true },
+      { x: -1.18, z: 7.0, r: 0.52, hw: 0.14, dual: true },
+      { x: 1.18, z: 7.0, r: 0.52, hw: 0.14, dual: true },
+    ],
+  };
+}
+
+export function buildFleetVehicle(kind: Exclude<HullKind, "sedan">): THREE.Group {
+  const spec = fleetSpec(kind);
+  const root = new THREE.Group();
+  root.name = `fleet-${kind}`;
+  const paint = mesh(bake(spec.paint), paintMaterial(0xf4f1ea), "Paint", true);
+  const win = mesh(bake(spec.glass), glass, "Glass");
+  const trim = mesh(bake(spec.trim), trimMat, "Trim");
+  const lamps = mesh(bake(spec.lamps), lampMat, "Lamp");
+  const tails = mesh(bake(spec.tails), tailMat, "Tail");
+  const wheels = wheelGeos(spec.wheels);
+  const rubber = mesh(wheels.rubber, rubberMat, "Rubber");
+  const chrome = mesh(wheels.chrome, chromeMat, "Chrome");
+  for (const part of [paint, win, trim, lamps, tails, rubber, chrome]) {
+    if (part) root.add(part);
+  }
+  const port = new THREE.Mesh(
+    new THREE.CircleGeometry(kind === "semi" || kind === "box" ? 0.09 : 0.055, 14),
+    new THREE.MeshStandardMaterial({
+      name: "ChargePort",
+      color: 0x1e1e24,
+      emissive: 0x1e1e24,
+      emissiveIntensity: 0.2,
+      transparent: false,
+      opacity: 1,
+      depthWrite: true,
+      toneMapped: false,
+    }),
+  );
+  port.position.set(spec.inlet.x, spec.inlet.y, spec.inlet.z);
+  port.rotation.y = Math.PI / 2;
+  port.name = "ChargePort";
+  root.add(port);
+
+  root.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(root);
+  const size = box.getSize(new THREE.Vector3());
+  const shadow = new THREE.Mesh(new THREE.PlaneGeometry(Math.max(1.4, size.x * 1.15), Math.max(2.2, size.z * 0.92)), shadowMat);
+  shadow.rotation.x = -Math.PI / 2;
+  shadow.position.set(0, 0.02, (box.min.z + box.max.z) * 0.5);
+  shadow.renderOrder = 1;
+  shadow.name = "Decal";
+  root.add(shadow);
+
+  root.userData.kind = kind;
+  root.userData.source = `fleet:${kind}`;
+  root.userData.inlet = spec.inlet;
+  root.userData.roof = spec.roof;
+  root.userData.halfL = size.z * 0.5;
+  root.userData.halfW = size.x * 0.5;
+  root.userData.length = size.z;
+  root.userData.ride = spec.wheels[0]?.r ?? 0.3;
+  return root;
+}
+
+/** Debug row on the north sand, side profiles facing -Z. */
+export const LINEUP_Z = 24;
+export const LINEUP_ORDER: HullKind[] = ["hatch", "sedan", "suv", "pickup", "van", "box", "semi"];
+
+export function lineupPose(index: number): { x: number; z: number } {
+  const step = [0, 4.4, 4.6, 5.1, 5.5, 6.4, 8.4];
+  let x = -8;
+  for (let i = 0; i < index; i++) x += step[i + 1] ?? 5;
+  return { x, z: LINEUP_Z };
+}

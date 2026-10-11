@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { C } from "../brand";
+import { addMcsLane } from "./mcs";
 import {
   BAY_SIZE,
   CANOPIES,
@@ -906,6 +907,7 @@ export function buildStation(): Station {
   addStreetlights(root);
   addYard(root);
   addRev6LotDressing(root);
+  addMcsLane(root);
 
   const bayAnchors: THREE.Object3D[] = [];
   for (const stall of STALLS) {

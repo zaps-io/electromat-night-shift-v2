@@ -4,7 +4,9 @@
  */
 import { mkdirSync } from "node:fs";
 import { createServer } from "vite";
-import { AB_AISLE_X, BAYS, CANOPIES, PAVILION, START_SHOT, WAVE_POINT } from "../src/world/layout.ts";
+import { LINEUP_ORDER, LINEUP_Z, lineupPose } from "../src/cars/fleet.ts";
+import { AB_AISLE_X, BAYS, CANOPIES, PAVILION, START_SHOT, WAIT_SLOTS, WAVE_POINT } from "../src/world/layout.ts";
+import { MCS_NOSE_Z, MCS_RIGS } from "../src/world/mcs.ts";
 
 const OUT = new URL("../docs/shots/", import.meta.url).pathname;
 
@@ -107,6 +109,54 @@ const layers: Shot = {
   lookAt: { x: AB_AISLE_X, y: 1.55, z: -54 },
 };
 
+const lineupFocusX = (lineupPose(0).x + lineupPose(LINEUP_ORDER.length - 1).x) * 0.5;
+const fleetLineup: Shot = {
+  file: "ns-fleet-lineup.png",
+  x: lineupFocusX,
+  z: LINEUP_Z - 36,
+  yaw: 0,
+  pitch: 0,
+  eyeY: 11,
+  fov: 58,
+  lookAt: { x: lineupFocusX, y: 2.4, z: LINEUP_Z },
+};
+
+const semiRig = MCS_RIGS[0]!;
+const mcsSemi: Shot = {
+  file: "ns-mcs-semi.png",
+  x: semiRig.x - 8.5,
+  z: MCS_NOSE_Z + 8,
+  yaw: 0,
+  pitch: 0,
+  eyeY: 3.6,
+  fov: 46,
+  lookAt: { x: semiRig.x + 0.6, y: 2.2, z: MCS_NOSE_Z + 3.2 },
+};
+
+const voraBay = BAYS.find((b) => b.playable === 3)!;
+const pickupPlug: Shot = {
+  file: "ns-pickup-plug.png",
+  x: voraBay.x - 0.6,
+  z: voraBay.z + 4.6,
+  yaw: 0,
+  pitch: 0,
+  eyeY: 3.45,
+  fov: 40,
+  lookAt: { x: voraBay.x + 0.3, y: 0.95, z: voraBay.z + 0.2 },
+};
+
+const kimSlot = WAIT_SLOTS[2]!;
+const vanShot: Shot = {
+  file: "ns-van.png",
+  x: kimSlot.x + 5.4,
+  z: kimSlot.z - 0.4,
+  yaw: 0,
+  pitch: 0,
+  eyeY: 3.45,
+  fov: 38,
+  lookAt: { x: kimSlot.x, y: 1.35, z: kimSlot.z },
+};
+
 /** North face of the aisle WAVE stand. */
 const waveFront: Shot = {
   file: "ns-wave-front.png",
@@ -168,16 +218,20 @@ async function main(): Promise<void> {
     });
     await new Promise((r) => setTimeout(r, 500));
 
-    for (const shot of [start, layers, carDusk, fascia, lounge, charger, leftEdge, canopyEnd, waveFront]) {
+    for (const shot of [start, layers, carDusk, fascia, lounge, charger, leftEdge, canopyEnd, waveFront, fleetLineup, mcsSemi, pickupPlug, vanShot]) {
       await page.evaluate((s: Shot) => {
         const api = (
           window as unknown as {
             __electromat: {
               place: (x: number, z: number, yaw?: number, pitch?: number, eyeY?: number, fov?: number) => void;
               lookAt: (x: number, y: number, z: number) => void;
+              showLineup: () => void;
+              hideLineup: () => void;
             };
           }
         ).__electromat;
+        if (s.file === "ns-fleet-lineup.png") api.showLineup();
+        else api.hideLineup();
         api.place(s.x, s.z, s.yaw, s.pitch, s.eyeY, s.fov);
         api.lookAt(s.lookAt.x, s.lookAt.y, s.lookAt.z);
       }, shot);
@@ -310,6 +364,10 @@ async function main(): Promise<void> {
       charger.file,
       canopyEnd.file,
       waveFront.file,
+      fleetLineup.file,
+      mcsSemi.file,
+      pickupPlug.file,
+      vanShot.file,
       hudPay.file,
       fascia.file,
       lounge.file,
