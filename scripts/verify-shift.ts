@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import {
   COMBO_GAP,
   DISRUPT_MIN,
@@ -1695,6 +1695,17 @@ if (new Set(fleetLengths.map((n) => n.toFixed(2))).size !== fleetLengths.length)
 }
 if (BAY_WEIGHTS.some((row) => row.kind === "box" || row.kind === "semi" || row.kind === "bus")) {
   throw new Error("box, semi, and bus must not spawn in a passenger bay");
+}
+const sedanW = BAY_WEIGHTS.find((row) => row.kind === "sedan")?.weight ?? 0;
+const suvW = BAY_WEIGHTS.find((row) => row.kind === "suv")?.weight ?? 0;
+const otherW = BAY_WEIGHTS.filter((row) => row.kind !== "sedan" && row.kind !== "suv").reduce((sum, row) => sum + row.weight, 0);
+if (sedanW + suvW <= otherW) throw new Error("passenger stalls should be mostly sedans and crossovers");
+if (!carsSrc.includes("loadKenneyVehicle") || carsSrc.includes("buildFleetVehicle")) {
+  throw new Error("passenger fleet must load the CC0 glTFs, not the box hulls");
+}
+for (const file of ["hatch.glb", "suv.glb", "pickup.glb", "van.glb", "box.glb"]) {
+  const path = new URL(`../public/cars/cc0/${file}`, import.meta.url);
+  if (!existsSync(path)) throw new Error(`missing CC0 model ${file}`);
 }
 if (FLEET_WEIGHTS.length < 8) throw new Error("weighted mix should cover every fleet type");
 for (let i = 0; i < 30; i++) {

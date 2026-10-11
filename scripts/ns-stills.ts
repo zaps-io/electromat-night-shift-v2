@@ -113,36 +113,36 @@ const lineupFocusX = (lineupPose(0).x + lineupPose(LINEUP_ORDER.length - 1).x) *
 const fleetLineup: Shot = {
   file: "ns-fleet-lineup.png",
   x: lineupFocusX,
-  z: LINEUP_Z - 44,
+  z: LINEUP_Z - 15,
   yaw: 0,
   pitch: 0,
-  eyeY: 12,
-  fov: 60,
-  lookAt: { x: lineupFocusX, y: 2.6, z: LINEUP_Z },
+  eyeY: 1.7,
+  fov: 80,
+  lookAt: { x: lineupFocusX, y: 1.35, z: LINEUP_Z },
 };
 
 const semiRig = MCS_RIGS[0]!;
 const mcsSemi: Shot = {
   file: "ns-mcs-semi.png",
-  x: semiRig.x - 11,
-  z: MCS_NOSE_Z + 14,
+  x: semiRig.x - 8,
+  z: MCS_NOSE_Z - 8,
   yaw: 0,
   pitch: 0,
-  eyeY: 4.4,
-  fov: 52,
-  lookAt: { x: semiRig.x + 0.4, y: 2.1, z: MCS_NOSE_Z + 7 },
+  eyeY: 2.4,
+  fov: 42,
+  lookAt: { x: semiRig.x + 1.4, y: 1.8, z: MCS_NOSE_Z + 7 },
 };
 
 const voraBay = BAYS.find((b) => b.playable === 3)!;
 const pickupPlug: Shot = {
   file: "ns-pickup-plug.png",
-  x: voraBay.x - 0.6,
-  z: voraBay.z + 4.6,
+  x: voraBay.x - 1.1,
+  z: voraBay.z + 8.4,
   yaw: 0,
   pitch: 0,
-  eyeY: 3.45,
-  fov: 40,
-  lookAt: { x: voraBay.x + 0.3, y: 0.95, z: voraBay.z + 0.2 },
+  eyeY: 1.7,
+  fov: 38,
+  lookAt: { x: voraBay.x - 0.35, y: 1.0, z: voraBay.z },
 };
 
 const kimSlot = WAIT_SLOTS[2]!;

@@ -306,22 +306,41 @@ function addCanopyAt(root: THREE.Group, canopy: Canopy): void {
   const aisleX = cx + face * (w * 0.5 + 0.05);
   const flatSide = Math.max(1.4, d - endR * 2 - 0.5);
   const aisleD = Math.min(d - 2.4, 6.2, flatSide);
-  const aisleFascia = new THREE.Mesh(new THREE.BoxGeometry(0.1, FASCIA_H, aisleD), canopyFascia);
-  aisleFascia.position.set(aisleX, fasciaY, cz);
-  aisleFascia.castShadow = true;
-  aisleFascia.userData.canopyFascia = true;
-  aisleFascia.userData.fasciaSign = {
-    x: aisleX + face * 0.1,
-    y: fasciaY,
-    z: cz,
-    yaw: face > 0 ? Math.PI / 2 : -Math.PI / 2,
-    maxW: aisleD * 0.86,
-    maxH: FASCIA_H * 0.8,
-  };
-  root.add(aisleFascia);
-  const aisleTrim = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.016, Math.max(1.2, aisleD - 0.2)), canopyTrim);
-  aisleTrim.position.set(aisleX + face * 0.06, fasciaY - FASCIA_H * 0.5 - 0.01, cz);
-  root.add(aisleTrim);
+  const startRow = face < 0 && cx < 0 && cx > -16;
+  if (startRow) {
+    const bladeW = 3.4;
+    const bladeZ = cz - d * 0.5 + 0.7;
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(bladeW, FASCIA_H, 0.08), canopyFascia);
+    blade.position.set(cx, fasciaY, bladeZ);
+    blade.castShadow = true;
+    blade.userData.canopyFascia = true;
+    blade.userData.fasciaSign = {
+      x: cx,
+      y: fasciaY,
+      z: bladeZ - 0.08,
+      yaw: Math.PI,
+      maxW: bladeW * 0.86,
+      maxH: FASCIA_H * 0.8,
+    };
+    root.add(blade);
+  } else {
+    const aisleFascia = new THREE.Mesh(new THREE.BoxGeometry(0.1, FASCIA_H, aisleD), canopyFascia);
+    aisleFascia.position.set(aisleX, fasciaY, cz);
+    aisleFascia.castShadow = true;
+    aisleFascia.userData.canopyFascia = true;
+    aisleFascia.userData.fasciaSign = {
+      x: aisleX + face * 0.1,
+      y: fasciaY,
+      z: cz,
+      yaw: face > 0 ? Math.PI / 2 : -Math.PI / 2,
+      maxW: aisleD * 0.86,
+      maxH: FASCIA_H * 0.8,
+    };
+    root.add(aisleFascia);
+    const aisleTrim = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.016, Math.max(1.2, aisleD - 0.2)), canopyTrim);
+    aisleTrim.position.set(aisleX + face * 0.06, fasciaY - FASCIA_H * 0.5 - 0.01, cz);
+    root.add(aisleTrim);
+  }
   for (const [ox, oz] of [
     [-0.22, -0.16],
     [0.2, 0.18],

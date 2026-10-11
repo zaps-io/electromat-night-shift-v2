@@ -12,4 +12,4 @@ Source GLBs live in `vendor/models/` and are not copied into the Pages build.
 Dusk IBL: Poly Haven “Qwantani Dusk 2 (Pure Sky)” by Greg Zaal, CC0.  
 `public/env/dusk.hdr`
 
-Hatch, crossover, pickup, delivery van, box truck, semi (with trailer), and transit bus are original procedural geometry in `src/cars/fleet.ts`. No third-party mesh and no badges. The passenger sedan remains the CC BY Model 3 derive above.
+Hatch, crossover, pickup, van, and box truck are Kenney Car Kit models, CC0, in `public/cars/cc0/`. See `CREDITS.md`. The semi and transit bus are original shaped geometry in `src/cars/shaped.ts`. No badges. The passenger sedan remains the CC BY Model 3 derive above.

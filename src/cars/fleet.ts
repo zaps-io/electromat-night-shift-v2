@@ -12,12 +12,13 @@ export const BAY_KINDS = ["hatch", "sedan", "suv", "pickup", "van"] as const;
 export type BayKind = (typeof BAY_KINDS)[number];
 
 /** Passenger stalls and street slots. Trucks stay on the MCS lane. */
+/** Mostly sedans and crossovers. A hatch, pickup, or van is the exception. */
 export const BAY_WEIGHTS: { kind: BayKind; weight: number }[] = [
-  { kind: "hatch", weight: 3 },
-  { kind: "sedan", weight: 4 },
-  { kind: "suv", weight: 3 },
-  { kind: "pickup", weight: 2 },
-  { kind: "van", weight: 2 },
+  { kind: "sedan", weight: 8 },
+  { kind: "suv", weight: 5 },
+  { kind: "hatch", weight: 1 },
+  { kind: "pickup", weight: 1 },
+  { kind: "van", weight: 1 },
 ];
 
 /** Full mix. Box, semi, and bus only fit a pull-through stall. */
@@ -458,8 +459,8 @@ export const LINEUP_Z = 24;
 export const LINEUP_ORDER: HullKind[] = ["hatch", "sedan", "suv", "pickup", "van", "box", "semi", "bus"];
 
 export function lineupPose(index: number): { x: number; z: number } {
-  const step = [0, 4.6, 4.8, 5.2, 5.6, 6.4, 7.2, 6.8];
-  let x = -8;
+  const step = [0, 3.6, 4.2, 4.6, 4.8, 5.2, 5.0, 4.6];
+  let x = -16;
   for (let i = 0; i < index; i++) x += step[i + 1] ?? 5;
   return { x, z: LINEUP_Z };
 }

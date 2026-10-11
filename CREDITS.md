@@ -11,6 +11,17 @@ Guest cars and backdrop traffic use a meshopt-compressed exterior derived from:
 
 The shipped file is `public/cars/zaps-ev-sedan.glb` (interior and the duplicate wheel set removed, simplified, EXT_meshopt_compression). The unmodified source GLB is kept in `vendor/models/` and is not deployed.
 
+## Other fleet bodies
+
+Hatch, crossover, pickup, van, and box truck are Kenney Car Kit models (CC0), repainted in the sheet colors:
+
+- Author: [Kenney](https://kenney.nl)
+- Source: https://kenney.nl/assets/car-kit
+- License: [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/)
+- Files: `public/cars/cc0/hatch.glb`, `suv.glb`, `pickup.glb`, `van.glb`, `box.glb` (from `hatchback-sports`, `suv`, `truck`, `van`, `delivery`)
+
+The Class 8 semi and the transit bus are original shaped geometry in `src/cars/shaped.ts` (beveled profiles, glass, 24-segment wheels). No third-party mesh.
+
 ## Dusk environment
 
 - Title: Qwantani Dusk 2 (Pure Sky)
