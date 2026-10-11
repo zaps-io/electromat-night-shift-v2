@@ -145,6 +145,8 @@ const canopyPanels = creamPanels();
 const canopyCream = new THREE.MeshPhysicalMaterial({
   name: "CanopyCream",
   color: C.cream,
+  emissive: C.cream,
+  emissiveIntensity: 0.22,
   map: canopyPanels,
   metalness: 0.08,
   roughness: 0.48,
@@ -154,6 +156,8 @@ const canopyCream = new THREE.MeshPhysicalMaterial({
 });
 const canopyFascia = new THREE.MeshStandardMaterial({
   color: C.cream,
+  emissive: C.cream,
+  emissiveIntensity: 0.34,
   map: canopyPanels,
   roughness: 0.46,
   metalness: 0.06,
@@ -184,7 +188,7 @@ const bayStripGeo = new THREE.BoxGeometry(1, 0.04, 0.1);
 const bayStripMat = new THREE.MeshStandardMaterial({
   color: 0xfff4e4,
   emissive: 0xffc898,
-  emissiveIntensity: 1.15,
+  emissiveIntensity: 0.72,
   roughness: 0.38,
   metalness: 0.02,
 });
@@ -234,7 +238,13 @@ function addCanopyAt(root: THREE.Group, canopy: Canopy): void {
   top.receiveShadow = true;
   root.add(top);
 
-  const soffitWell = mat(0xe7e0d2, { roughness: 0.58, metalness: 0.04, envMapIntensity: 0.16 });
+  const soffitWell = mat(0xe7e0d2, {
+    roughness: 0.58,
+    metalness: 0.04,
+    envMapIntensity: 0.16,
+    emissive: 0xe7e0d2,
+    emissiveIntensity: 0.08,
+  });
   const underGeo = new THREE.ExtrudeGeometry(roundedRectShape(w - 0.55, d - 0.55, 1.1), {
     depth: 0.05,
     bevelEnabled: false,
@@ -287,7 +297,7 @@ function addCanopyAt(root: THREE.Group, canopy: Canopy): void {
     [-0.22, -0.16],
     [0.2, 0.18],
   ] as const) {
-    const pool = new THREE.PointLight(0xffc898, 2.4, 10.5, 2);
+    const pool = new THREE.PointLight(0xffc898, 1.7, 10.5, 2);
     pool.position.set(cx + ox * w, y - 0.7, cz + oz * d);
     pool.castShadow = false;
     root.add(pool);

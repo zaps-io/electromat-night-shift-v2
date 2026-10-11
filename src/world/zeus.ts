@@ -124,7 +124,8 @@ const geo = {
   foot: new THREE.CylinderGeometry(0.014, 0.016, 0.02, 8),
   body: new RoundedBoxGeometry(0.38, 2.5, 0.18, 4, 0.02),
   cap: new RoundedBoxGeometry(0.4, 0.04, 0.2, 3, 0.01),
-  hair: new THREE.BoxGeometry(0.34, 0.016, 0.01),
+  hair: new THREE.BoxGeometry(0.34, 0.024, 0.012),
+  stem: new THREE.CylinderGeometry(0.03, 0.038, 0.24, 10),
   recess: new THREE.BoxGeometry(0.3, 1.35, 0.014),
   bezelH: new THREE.BoxGeometry(0.32, 0.012, 0.012),
   bezelV: new THREE.BoxGeometry(0.012, 0.42, 0.012),
@@ -251,13 +252,13 @@ export function addZeusCharger(
   cap.position.y = 2.64;
 
   const hair = new THREE.Mesh(geo.hair, cyanHair);
-  hair.position.set(0, 0.22, -0.1);
+  hair.position.set(0, 0.24, -0.108);
   hair.userData.noBake = true;
 
   const recess = new THREE.Mesh(geo.recess, charcoal);
-  recess.position.set(0, 1.72, -0.092);
+  recess.position.set(0, 1.78, -0.092);
 
-  const screenY = 2.02;
+  const screenY = 2.16;
   const bezelZ = -0.104;
   const bezelTop = new THREE.Mesh(geo.bezelH, black);
   bezelTop.position.set(0, screenY + 0.21, bezelZ);
@@ -286,18 +287,23 @@ export function addZeusCharger(
 
   if (stallId != null) {
     const label = bayNumber ?? stallId;
-    const lift = bayNumber != null ? 1 : 0.82;
+    // Playable bays read from the aisle: the disc sits above the cap and a sedan roof (~1.5 m).
+    const lift = bayNumber != null ? 1.22 : 0.78;
+    const badgeY = 2.9;
+    const badgeZ = -0.14;
+    const stem = new THREE.Mesh(geo.stem, alum);
+    stem.position.set(0, 2.74, badgeZ + 0.02);
     const disc = new THREE.Mesh(geo.badgeDisc, black);
     disc.rotation.x = Math.PI / 2;
     disc.scale.setScalar(lift);
-    disc.position.set(0, 2.46, -0.1);
+    disc.position.set(0, badgeY, badgeZ);
     const face = new THREE.Mesh(geo.badge, stallBadgeMat(stallId, label));
     face.scale.setScalar(lift);
-    face.position.set(0, 2.46, -0.112);
+    face.position.set(0, badgeY, badgeZ - 0.014);
     face.rotation.y = Math.PI;
     face.userData.kind = "stall-badge";
     face.userData.stallId = stallId;
-    g.add(disc, face);
+    g.add(stem, disc, face);
   }
 
   g.add(base, body, cap, hair, recess, bezelTop, bezelBot, bezelL, bezelR, display, logo);
