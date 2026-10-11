@@ -1707,14 +1707,18 @@ for (const file of ["hatch.glb", "suv.glb", "pickup.glb", "van.glb", "box.glb"])
   const path = new URL(`../public/cars/cc0/${file}`, import.meta.url);
   if (!existsSync(path)) throw new Error(`missing CC0 model ${file}`);
 }
-if (FLEET_WEIGHTS.length < 8) throw new Error("weighted mix should cover every fleet type");
+if (FLEET_WEIGHTS.length < 6) throw new Error("weighted mix should cover the shipped fleet");
+if (FLEET_WEIGHTS.some((row) => row.kind === "semi" || row.kind === "bus")) {
+  throw new Error("semi and bus are left out of the spawn mix");
+}
 for (let i = 0; i < 30; i++) {
   const kind = pickWeighted(i);
   if (kind === "box" || kind === "semi" || kind === "bus") throw new Error("passenger mix spawned a long vehicle");
 }
 const mcsSrc = readFileSync(new URL("../src/world/mcs.ts", import.meta.url), "utf8");
-if (!mcsSrc.includes('kind: "semi"') || !mcsSrc.includes('kind: "box"')) {
-  throw new Error("MCS lane needs a semi and a box truck");
+if (!mcsSrc.includes('{ kind: "box"')) throw new Error("MCS lane needs the box truck");
+if (mcsSrc.includes('{ kind: "semi"') || mcsSrc.includes("MCS_BUS")) {
+  throw new Error("slab semi and bus must stay off the MCS lane");
 }
 if ((mcsSrc.match(/mcs-dispenser/g) ?? []).length < 1) throw new Error("MCS dispensers missing");
 

@@ -21,12 +21,10 @@ export const BAY_WEIGHTS: { kind: BayKind; weight: number }[] = [
   { kind: "van", weight: 1 },
 ];
 
-/** Full mix. Box, semi, and bus only fit a pull-through stall. */
+/** Passenger mix plus the box truck. Semi and bus are not spawned. */
 export const FLEET_WEIGHTS: { kind: HullKind; weight: number }[] = [
   ...BAY_WEIGHTS,
   { kind: "box", weight: 2 },
-  { kind: "semi", weight: 1 },
-  { kind: "bus", weight: 1 },
 ];
 
 export function pickWeighted(seed: number, table: { kind: HullKind; weight: number }[] = BAY_WEIGHTS): HullKind {
@@ -456,11 +454,11 @@ export function buildFleetVehicle(kind: Exclude<HullKind, "sedan">): THREE.Group
 
 /** Debug row on the north sand, side profiles facing -Z. */
 export const LINEUP_Z = 24;
-export const LINEUP_ORDER: HullKind[] = ["hatch", "sedan", "suv", "pickup", "van", "box", "semi", "bus"];
+export const LINEUP_ORDER: HullKind[] = ["hatch", "sedan", "suv", "pickup", "van", "box"];
 
 export function lineupPose(index: number): { x: number; z: number } {
-  const step = [0, 3.6, 4.2, 4.6, 4.8, 5.2, 5.0, 4.6];
-  let x = -16;
+  const step = [0, 3.8, 4.2, 4.4, 4.6, 5.0];
+  let x = -12;
   for (let i = 0; i < index; i++) x += step[i + 1] ?? 5;
   return { x, z: LINEUP_Z };
 }

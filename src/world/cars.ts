@@ -3,7 +3,6 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
 import { chargePortRing, lineupPose, LINEUP_ORDER, pickWeighted } from "../cars/fleet";
 import { loadKenneyVehicle } from "../cars/kenney";
-import { loadShapedVehicle } from "../cars/shaped";
 import {
   assertOpaqueCarMaterials,
   forceOpaque,
@@ -324,11 +323,6 @@ export async function loadCarPrototypes(): Promise<void> {
   prototypes.sedan = await loadSedan();
   for (const kind of ["hatch", "suv", "pickup", "van", "box"] as const) {
     const body = await loadKenneyVehicle(kind);
-    prototypes[kind] = body;
-    inletByKind[kind] = body.userData.inlet as { x: number; y: number; z: number };
-  }
-  for (const kind of ["semi", "bus"] as const) {
-    const body = loadShapedVehicle(kind);
     prototypes[kind] = body;
     inletByKind[kind] = body.userData.inlet as { x: number; y: number; z: number };
   }

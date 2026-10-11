@@ -4,12 +4,10 @@ import type { HullKind } from "../game/state";
 /** Southeast pull-through. Noses point south so a rig can enter from the street and leave north. */
 export const MCS_NOSE_Z = -38;
 export const MCS_LANE = { xmin: 4.2, xmax: 27.5, zmin: -40.6, zmax: -17.5 };
-export const MCS_RIGS: { kind: "semi" | "box"; x: number; paint: number }[] = [
-  { kind: "semi", x: 9, paint: 0x1a2744 },
+/** Box truck only. The slab semi and bus are not parked. */
+export const MCS_RIGS: { kind: "box"; x: number; paint: number }[] = [
   { kind: "box", x: 21.6, paint: 0x8a9098 },
 ];
-/** Transit bus parked east of the lane. No third dispenser. */
-export const MCS_BUS = { kind: "bus" as const, x: 36.2, paint: 0xd5d8de };
 
 const charcoal = new THREE.MeshStandardMaterial({
   color: 0x1e1e24,
@@ -118,8 +116,8 @@ export function addMcsLane(root: THREE.Group): void {
 }
 
 /**
- * One semi and one box, noses on the south line, MCS pedestal just outboard of the cab port.
- * Returns walk colliders for the rigs and the dispensers.
+ * Box truck only. The semi slot stays empty. Noses on the south line.
+ * Returns walk colliders for the rig and the dispenser.
  */
 export function parkMcsRigs(
   scene: THREE.Object3D,
@@ -149,18 +147,5 @@ export function parkMcsRigs(
     const from = new THREE.Vector3(dispX - 0.2, 1.7, port.z);
     scene.add(lead(from, port));
   }
-  const bus = makeHull(MCS_BUS.paint, MCS_BUS.kind);
-  const busHalfL = bus.userData.halfL as number;
-  const busHalfW = bus.userData.halfW as number;
-  const busZ = MCS_NOSE_Z + busHalfL;
-  bus.position.set(MCS_BUS.x, 0, busZ);
-  bus.userData.kind = "mcs-rig";
-  scene.add(bus);
-  boxes.push(
-    new THREE.Box3(
-      new THREE.Vector3(MCS_BUS.x - busHalfW, 0, busZ - busHalfL),
-      new THREE.Vector3(MCS_BUS.x + busHalfW, (bus.userData.roof as number) + 0.2, busZ + busHalfL),
-    ),
-  );
   return boxes;
 }
