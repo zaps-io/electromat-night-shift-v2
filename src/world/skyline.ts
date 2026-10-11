@@ -1,4 +1,6 @@
 import * as THREE from "three";
+import { addStreetFrontage } from "./frontage";
+import { AB_AISLE_X } from "./layout";
 import { facade, sandColor, street } from "./tex";
 
 const night = new THREE.MeshStandardMaterial({
@@ -28,7 +30,7 @@ function addDesert(root: THREE.Group): void {
   const sand = new THREE.Mesh(
     new THREE.CircleGeometry(150, 48),
     new THREE.MeshStandardMaterial({
-      color: 0xd2b48a,
+      color: 0xc4a184,
       map: sandColor(),
       roughness: 0.94,
       metalness: 0.02,
@@ -45,9 +47,9 @@ function addPowerLines(root: THREE.Group): void {
   const wire = new THREE.MeshStandardMaterial({ color: 0x1a1c20, roughness: 0.6, metalness: 0.4 });
   const poles: Array<[number, number]> = [
     [-20, -52.4],
-    [-6, -52.6],
-    [8, -52.4],
-    [20, -52.6],
+    [2.4, -52.6],
+    [14, -52.4],
+    [26, -52.6],
   ];
   for (let i = 0; i < poles.length - 1; i++) {
     const a = poles[i]!;
@@ -73,58 +75,6 @@ function addPowerLines(root: THREE.Group): void {
   }
 }
 
-function addRoadsidePalms(root: THREE.Group): void {
-  const trunk = new THREE.MeshStandardMaterial({ color: 0x4a3828, roughness: 0.86 });
-  const frond = new THREE.MeshStandardMaterial({ color: 0x2c4a28, roughness: 0.8 });
-  for (const [x, z] of [
-    [-28, -50.2],
-    [-16, -50.4],
-    [18, -50.2],
-    [30, -50.6],
-    [-46, 20.4],
-    [46, 20.2],
-  ] as const) {
-    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, 4.2, 6), trunk);
-    pole.position.set(x, 2.1, z);
-    root.add(pole);
-    for (let i = 0; i < 6; i++) {
-      const leaf = new THREE.Mesh(new THREE.ConeGeometry(0.14, 1.3, 4), frond);
-      leaf.position.set(x, 4.15, z);
-      leaf.rotation.z = 0.9;
-      leaf.rotation.y = (i / 6) * Math.PI * 2;
-      root.add(leaf);
-    }
-  }
-}
-
-function addTree(root: THREE.Group, x: number, z: number, h = 4.4): void {
-  const trunk = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.07, 0.11, h * 0.55, 6),
-    new THREE.MeshStandardMaterial({ color: 0x2a2018, roughness: 0.9 }),
-  );
-  trunk.position.set(x, h * 0.22, z);
-  const crown = new THREE.Mesh(
-    new THREE.SphereGeometry(h * 0.22, 7, 5),
-    new THREE.MeshStandardMaterial({ color: 0x1a2814, roughness: 0.86 }),
-  );
-  crown.position.set(x, h * 0.58, z);
-  root.add(trunk, crown);
-}
-
-
-function addDesertEdge(root: THREE.Group): void {
-  for (const [x, z, h] of [
-    [-40, 38, 5.2],
-    [-22, 34, 4.4],
-    [-6, 40, 5.6],
-    [14, 36, 4.8],
-    [32, 39, 5.1],
-    [50, 34, 4.2],
-  ] as const) {
-    addTree(root, x, z, h);
-  }
-}
-
 function addAlley(root: THREE.Group): void {
   const alley = new THREE.Mesh(
     new THREE.PlaneGeometry(140, 6.4),
@@ -140,32 +90,6 @@ function addAlley(root: THREE.Group): void {
   root.add(alley, curb);
   addStreetSlot(root, -16.4, 28.2, Math.PI / 2, 0x1e1e24);
   addStreetSlot(root, 8.2, 28.6, Math.PI / 2, 0xc5c9ce);
-}
-
-function addStreetLamps(root: THREE.Group): void {
-  const pole = new THREE.MeshStandardMaterial({ color: 0x1c1e22, roughness: 0.48, metalness: 0.4 });
-  const lamp = new THREE.MeshStandardMaterial({
-    color: 0xffd090,
-    emissive: 0xffb050,
-    emissiveIntensity: 1.4,
-    toneMapped: false,
-  });
-  for (const [x, z] of [
-    [-20, -52.4],
-    [-6, -52.6],
-    [8, -52.4],
-    [20, -52.6],
-    [-22, 29.2],
-    [-6, 29.4],
-    [10, 29.2],
-    [24, 29.4],
-  ] as const) {
-    const p = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.055, 4.8, 8), pole);
-    p.position.set(x, 2.4, z);
-    const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.05, 12), lamp);
-    disc.position.set(x, 4.84, z);
-    root.add(p, disc);
-  }
 }
 
 /** West-edge gear house. Louvers and a channel wordmark — not a plain tan mass. */
@@ -241,8 +165,8 @@ function addGearHouse(root: THREE.Group): void {
 export function buildSkyline(): THREE.Group {
   const root = new THREE.Group();
   addDesert(root);
-  addDesertEdge(root);
   addAlley(root);
+  addStreetFrontage(root);
 
   addGearHouse(root);
 
@@ -284,19 +208,21 @@ export function buildSkyline(): THREE.Group {
   road.position.set(0, 0.02, -54);
   root.add(road);
 
-  const curb = new THREE.Mesh(
-    new THREE.BoxGeometry(130, 0.2, 0.46),
-    new THREE.MeshStandardMaterial({ color: 0xc8c0b2, roughness: 0.84 }),
-  );
-  curb.position.set(0, 0.09, -47.6);
-  root.add(curb);
-
-  const walk = new THREE.Mesh(
-    new THREE.BoxGeometry(136, 0.06, 2.4),
-    new THREE.MeshStandardMaterial({ color: 0xb8b2a4, roughness: 0.88 }),
-  );
-  walk.position.set(0, 0.03, -50.2);
-  root.add(walk);
+  const lipMat = new THREE.MeshStandardMaterial({ color: 0xc8c0b2, roughness: 0.84 });
+  const walkMat = new THREE.MeshStandardMaterial({ color: 0xb8b2a4, roughness: 0.88 });
+  const gap0 = AB_AISLE_X - 4.2;
+  const gap1 = AB_AISLE_X + 4.2;
+  const curbSpan = (x0: number, x1: number) => {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, 0.2, 0.46), lipMat);
+    mesh.position.set((x0 + x1) * 0.5, 0.09, -47.6);
+    return mesh;
+  };
+  const walkSpan = (x0: number, x1: number) => {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, 0.06, 2.4), walkMat);
+    mesh.position.set((x0 + x1) * 0.5, 0.03, -50.2);
+    return mesh;
+  };
+  root.add(curbSpan(-65, gap0), curbSpan(gap1, 65), walkSpan(-68, gap0), walkSpan(gap1, 68));
 
   const hatch = new THREE.MeshStandardMaterial({ color: 0xd8d4c8, roughness: 0.7, metalness: 0.02 });
   for (let i = 0; i < 8; i++) {
@@ -306,13 +232,11 @@ export function buildSkyline(): THREE.Group {
     root.add(bar);
   }
 
-  addStreetSlot(root, -11.2, -53.2, Math.PI / 2, 0x1e1e24);
-  addStreetSlot(root, -2.6, -53.6, -Math.PI / 2, 0x8d2e28);
-  addStreetSlot(root, 7.2, -53.2, Math.PI / 2, 0xf5f0e8);
-  addStreetSlot(root, 16.8, -53.8, -Math.PI / 2, 0x243044);
-  addStreetLamps(root);
+  addStreetSlot(root, 22.4, -53.2, Math.PI / 2, 0x1e1e24);
+  addStreetSlot(root, 30.2, -53.6, -Math.PI / 2, 0x8d2e28);
+  addStreetSlot(root, 38.0, -53.2, Math.PI / 2, 0xf5f0e8);
+  addStreetSlot(root, 45.6, -53.8, -Math.PI / 2, 0x243044);
   addPowerLines(root);
-  addRoadsidePalms(root);
 
   return root;
 }

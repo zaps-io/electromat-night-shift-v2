@@ -216,6 +216,7 @@ const paint = paintMaterial(0x1c2434);
 if (paint.transparent || paint.opacity < 1) throw new Error("paint must be fully opaque");
 if (paint.depthWrite !== true) throw new Error("paint must depthWrite");
 if ((paint.transmission ?? 0) > 0) throw new Error("paint must not use transmission");
+if ((paint.clearcoat ?? 0) < 0.5) throw new Error("paint must keep a clearcoat");
 
 const window = glassMaterial();
 if (window.transparent || window.opacity < 1) throw new Error("window panels must be opaque dark, not glass");
@@ -1208,6 +1209,18 @@ const pavilionSrc = readFileSync(new URL("../src/world/pavilion.ts", import.meta
 const texSrc = readFileSync(new URL("../src/world/tex.ts", import.meta.url), "utf8");
 if (stationSrc.includes("Reflector") || pavilionSrc.includes("Reflector")) {
   throw new Error("no extra Reflectors — WebGL stay stable");
+}
+const frontageSrc = readFileSync(new URL("../src/world/frontage.ts", import.meta.url), "utf8");
+const skylineSrc = readFileSync(new URL("../src/world/skyline.ts", import.meta.url), "utf8");
+if (frontageSrc.includes("Reflector") || skylineSrc.includes("Reflector")) {
+  throw new Error("street frontage must not add a Reflector");
+}
+if (!frontageSrc.includes("InstancedMesh")) throw new Error("frontage lamps and trees must be instanced");
+if (!frontageSrc.includes("ns-dusk-skyline.png")) throw new Error("skyline ring must use the dusk strip");
+if (frontageSrc.includes("PointLight")) throw new Error("street glow stays a decal, not a light");
+const carsSrc = readFileSync(new URL("../src/world/cars.ts", import.meta.url), "utf8");
+if (/function addDuskDress[\s\S]*PointLight/.test(carsSrc)) {
+  throw new Error("dusk dress must not add a light per car");
 }
 if (!stationSrc.includes("bayStrip") || !stationSrc.includes("linear")) {
   throw new Error("canopy must light each bay with linear strips");

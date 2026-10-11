@@ -11,9 +11,9 @@ export function paintMaterial(color: THREE.Color | number): THREE.MeshPhysicalMa
     color: c,
     metalness: 0.16,
     roughness: 0.22,
-    clearcoat: 0.86,
-    clearcoatRoughness: 0.08,
-    envMapIntensity: 1.05,
+    clearcoat: 0.92,
+    clearcoatRoughness: 0.1,
+    envMapIntensity: 1.35,
     transparent: false,
     opacity: 1,
     depthWrite: true,
@@ -25,14 +25,19 @@ export function paintMaterial(color: THREE.Color | number): THREE.MeshPhysicalMa
   });
 }
 
-/** Dark greenhouse — never see-through. Slight sheen so it still reads as glass. */
-export function glassMaterial(): THREE.MeshStandardMaterial {
-  return new THREE.MeshStandardMaterial({
+/**
+ * Dark tinted greenhouse. Opaque — the dusk env reflects in the clearcoat,
+ * and a solid cabin sits behind the pane. Never a see-through body.
+ */
+export function glassMaterial(): THREE.MeshPhysicalMaterial {
+  return new THREE.MeshPhysicalMaterial({
     name: "Glass",
-    color: 0x0b0e12,
-    metalness: 0.42,
-    roughness: 0.14,
-    envMapIntensity: 0.85,
+    color: 0x24303c,
+    metalness: 0.62,
+    roughness: 0.06,
+    clearcoat: 0.55,
+    clearcoatRoughness: 0.08,
+    envMapIntensity: 1.45,
     transparent: false,
     opacity: 1,
     depthWrite: true,
@@ -41,6 +46,9 @@ export function glassMaterial(): THREE.MeshStandardMaterial {
     polygonOffset: true,
     polygonOffsetFactor: -1,
     polygonOffsetUnits: -2,
+    transmission: 0,
+    thickness: 0,
+    ior: 1.5,
   });
 }
 
@@ -65,7 +73,7 @@ export function assertOpaqueCarMaterials(root: THREE.Object3D): void {
     for (const raw of list) {
       const mat = raw as THREE.MeshPhysicalMaterial;
       const n = (mat.name ?? "").toLowerCase();
-      if (n.includes("inlet") || n.includes("ghost") || n.includes("icon")) continue;
+      if (n.includes("inlet") || n.includes("ghost") || n.includes("icon") || n.includes("decal")) continue;
       if (mat.transparent && (mat.opacity ?? 1) < 0.98) {
         throw new Error(`car mat ${mat.name} is transparent`);
       }

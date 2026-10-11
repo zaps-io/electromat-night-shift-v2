@@ -4,7 +4,7 @@
  */
 import { mkdirSync } from "node:fs";
 import { createServer } from "vite";
-import { BAYS, CANOPIES, PAVILION, START_SHOT, WAVE_POINT } from "../src/world/layout.ts";
+import { AB_AISLE_X, BAYS, CANOPIES, PAVILION, START_SHOT, WAVE_POINT } from "../src/world/layout.ts";
 
 const OUT = new URL("../docs/shots/", import.meta.url).pathname;
 
@@ -95,6 +95,30 @@ const canopyEnd: Shot = {
 const hud: Shot = { ...start, file: "ns-hud-wave.png" };
 const hudPay: Shot = { ...start, file: "ns-hud-pay.png" };
 
+/** South exit framed by the canopy ends: lot, street, skyline. */
+const layers: Shot = {
+  file: "ns-fascia-layers.png",
+  x: AB_AISLE_X,
+  z: -4.2,
+  yaw: 0,
+  pitch: 0,
+  eyeY: 1.62,
+  fov: 58,
+  lookAt: { x: AB_AISLE_X, y: 1.55, z: -54 },
+};
+
+/** Peck's rear quarter: dark paint, glass, tail strips, contact shadow. */
+const carDusk: Shot = {
+  file: "ns-car-dusk.png",
+  x: peck.x - 4.6,
+  z: peck.z + 2.15,
+  yaw: 0,
+  pitch: 0,
+  eyeY: 1.42,
+  fov: 46,
+  lookAt: { x: peck.x - 0.15, y: 0.82, z: peck.z + 0.05 },
+};
+
 async function main(): Promise<void> {
   mkdirSync(OUT, { recursive: true });
   const server = await createServer({
@@ -124,14 +148,15 @@ async function main(): Promise<void> {
     await page.waitForFunction(() => Boolean((window as unknown as { __electromat?: { ready?: boolean } }).__electromat?.ready), {
       timeout: 40000,
     });
-    await new Promise((r) => setTimeout(r, 600));
+    await page.waitForFunction(() => (globalThis as { __nsSkyline?: boolean }).__nsSkyline === true, { timeout: 8000 });
+    await new Promise((r) => setTimeout(r, 400));
 
     await page.evaluate(() => {
       (window as unknown as { __electromat: { startNight: () => void } }).__electromat.startNight();
     });
     await new Promise((r) => setTimeout(r, 500));
 
-    for (const shot of [start, fascia, lounge, charger, leftEdge, canopyEnd]) {
+    for (const shot of [start, layers, carDusk, fascia, lounge, charger, leftEdge, canopyEnd]) {
       await page.evaluate((s: Shot) => {
         const api = (
           window as unknown as {
@@ -265,7 +290,18 @@ async function main(): Promise<void> {
       if (problems.length) throw new Error(`${width}x${height} queue: ${problems.join("; ")}`);
       console.log("queue columns", `${width}x${height}`, "ok");
     }
-    console.log("ns stills", [start.file, leftEdge.file, charger.file, canopyEnd.file, hudPay.file, fascia.file, lounge.file, hud.file]);
+    console.log("ns stills", [
+      start.file,
+      layers.file,
+      carDusk.file,
+      leftEdge.file,
+      charger.file,
+      canopyEnd.file,
+      hudPay.file,
+      fascia.file,
+      lounge.file,
+      hud.file,
+    ]);
   } finally {
     await browser.close();
     await server.close();

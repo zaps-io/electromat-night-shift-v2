@@ -94,6 +94,7 @@ import {
 import { addBrandSignage } from "./world/branding";
 import { makeAttendantHand, tickHand } from "./world/hand";
 import { makeTargetMark, makeWalkPuck, makeWaveIcon } from "./world/icons";
+import { HORIZON, mountSkylineRing } from "./world/frontage";
 import { buildSkyline } from "./world/skyline";
 import { setTextureAnisotropy } from "./world/tex";
 import { whenRev6Ready } from "./world/rev6art";
@@ -136,8 +137,8 @@ const renderer = createRenderer(canvas);
 setTextureAnisotropy(renderer.capabilities.getMaxAnisotropy());
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x6a5344);
-scene.fog = new THREE.Fog(0xc4a888, 96, 220);
+scene.background = new THREE.Color(HORIZON);
+scene.fog = new THREE.Fog(HORIZON, 34, 128);
 scene.add(new THREE.HemisphereLight(0xe7d2bc, 0x4a4036, 0.5));
 const sun = new THREE.DirectionalLight(0xffd2a4, 2.45);
 const fill = new THREE.DirectionalLight(0x9aafc4, 0.22);
@@ -151,6 +152,7 @@ const station = buildStation();
 addLotMirror(station.root, renderer);
 scene.add(station.root);
 const skyline = buildSkyline();
+mountSkylineRing(skyline);
 scene.add(skyline);
 
 const walker = new Walker();
@@ -1113,7 +1115,7 @@ window.__electromat = {
     const data = capture(w, h);
     for (const o of hidden) o.visible = true;
     scene.background = prev;
-    scene.fog = new THREE.Fog(0xc4a888, 96, 220);
+    scene.fog = new THREE.Fog(HORIZON, 34, 128);
     return data;
   },
 };
