@@ -4,7 +4,7 @@
  */
 import { mkdirSync } from "node:fs";
 import { createServer } from "vite";
-import { LINEUP_Z, SEDAN_PAINTS, lineupPose } from "../src/cars/fleet.ts";
+import { LINEUP_COUNT, LINEUP_Z, lineupPose } from "../src/cars/fleet.ts";
 import { AB_AISLE_X, BAYS, CANOPIES, PAVILION, START_SHOT, WAIT_SLOTS, WAVE_POINT } from "../src/world/layout.ts";
 import { MCS_NOSE_Z } from "../src/world/mcs.ts";
 
@@ -109,7 +109,7 @@ const layers: Shot = {
   lookAt: { x: AB_AISLE_X, y: 1.55, z: -54 },
 };
 
-const lineupFocusX = (lineupPose(0).x + lineupPose(SEDAN_PAINTS.length - 1).x) * 0.5;
+const lineupFocusX = (lineupPose(0).x + lineupPose(LINEUP_COUNT - 1).x) * 0.5;
 const fleetLineup: Shot = {
   file: "ns-fleet-lineup.png",
   x: lineupFocusX,
@@ -132,7 +132,19 @@ const mcsSemi: Shot = {
   lookAt: { x: 22, y: 1.2, z: MCS_NOSE_Z + 10 },
 };
 
+const ruizBay = BAYS.find((b) => b.playable === 2)!;
 const voraBay = BAYS.find((b) => b.playable === 3)!;
+const pairZ = (ruizBay.z + voraBay.z) * 0.5;
+const compare: Shot = {
+  file: "ns-compare.png",
+  x: voraBay.x + 8.6,
+  z: pairZ + 2.4,
+  yaw: 0,
+  pitch: 0,
+  eyeY: 1.7,
+  fov: 46,
+  lookAt: { x: voraBay.x + 0.6, y: 0.9, z: pairZ },
+};
 const pickupPlug: Shot = {
   file: "ns-plug.png",
   x: voraBay.x - 1.1,
@@ -217,7 +229,11 @@ async function main(): Promise<void> {
     });
     await new Promise((r) => setTimeout(r, 500));
 
-    for (const shot of [start, layers, carDusk, fascia, lounge, charger, leftEdge, canopyEnd, waveFront, fleetLineup, mcsSemi, pickupPlug, vanShot]) {
+    const gateShots = [start, fleetLineup, mcsSemi, compare, pickupPlug];
+    const shots = process.env.SHOP_PREVIEW
+      ? gateShots
+      : [start, layers, carDusk, fascia, lounge, charger, leftEdge, canopyEnd, waveFront, fleetLineup, mcsSemi, compare, pickupPlug, vanShot];
+    for (const shot of shots) {
       await page.evaluate((s: Shot) => {
         const api = (
           window as unknown as {
@@ -238,6 +254,10 @@ async function main(): Promise<void> {
       await page.screenshot({ path: `${OUT}/${shot.file}` });
     }
 
+    if (process.env.SHOP_PREVIEW) {
+      console.log("shop preview", gateShots.map((s) => s.file));
+      return;
+    }
     const paid = await page.evaluate((s: Shot) => {
       const api = (
         window as unknown as {

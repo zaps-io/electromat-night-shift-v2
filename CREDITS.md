@@ -13,7 +13,7 @@ The shipped file is `public/cars/zaps-ev-sedan.glb` (interior and the duplicate 
 
 ## Other fleet bodies
 
-No other body is spawned. Kenney Car Kit meshes, the shaped semi, and the shaped bus are not in the lot. Variety on the stalls is the Model 3 in white, black, midnight silver, deep blue, red, and pearl.
+The crossover is this same Model 3 with the greenhouse lifted to about 1.62 m. Wheel arches, tires, and the charge port stay on the sedan. Length stays 4.72 m. An original faceted pickup and an aero semi were modeled and left out: beside the Model 3 they still read as low-poly slabs. Kenney meshes are not in the lot. The MCS lane stays empty.
 
 ## Dusk environment
 

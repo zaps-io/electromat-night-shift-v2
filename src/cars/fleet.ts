@@ -461,6 +461,8 @@ export function buildFleetVehicle(kind: Exclude<HullKind, "sedan">): THREE.Group
 export const LINEUP_Z = 24;
 export const LINEUP_ORDER: HullKind[] = SEDAN_PAINTS.map(() => "sedan");
 
+export const LINEUP_COUNT = SEDAN_PAINTS.length;
+
 export function lineupPose(index: number): { x: number; z: number } {
   return { x: -14 + index * 5.6, z: LINEUP_Z };
 }

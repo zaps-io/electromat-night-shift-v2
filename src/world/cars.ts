@@ -354,8 +354,94 @@ async function loadSedan(): Promise<THREE.Group> {
   return fitted;
 }
 
+/** Model Y height. The belt stays put so wheel arches and tires stay round. */
+const CROSSOVER_ROOF = 1.62;
+const CROSSOVER_BELT = 0.82;
+const CROSSOVER_RAMP0 = 0.8;
+const CROSSOVER_RAMP1 = 1.02;
+
+function smooth01(t: number): number {
+  const x = Math.min(1, Math.max(0, t));
+  return x * x * (3 - 2 * x);
+}
+
+function worldMaxY(root: THREE.Object3D, match: (name: string) => boolean): number {
+  let y = 0;
+  const box = new THREE.Box3();
+  root.updateMatrixWorld(true);
+  root.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh || !match(labelOf(mesh))) return;
+    box.setFromObject(mesh);
+    if (box.max.y > y) y = box.max.y;
+  });
+  return y;
+}
+
+/** Lift the greenhouse of a fitted Model 3. Wheels, lamps below the belt, and the charge port stay. */
+function liftGreenhouse(root: THREE.Object3D, roof0: number, roof1: number): void {
+  const gain = (roof1 - CROSSOVER_BELT) / Math.max(0.2, roof0 - CROSSOVER_BELT) - 1;
+  const v = new THREE.Vector3();
+  const inv = new THREE.Matrix4();
+  root.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh || !mesh.geometry?.getAttribute("position")) return;
+    const n = labelOf(mesh);
+    if (
+      n.includes("cabin") ||
+      n.includes("decal") ||
+      n.includes("chargeport") ||
+      n.includes("ghost") ||
+      n.includes("rubber")
+    ) {
+      return;
+    }
+    const geo = mesh.geometry.clone();
+    mesh.geometry = geo;
+    const pos = geo.getAttribute("position");
+    mesh.updateWorldMatrix(true, false);
+    inv.copy(mesh.matrixWorld).invert();
+    let moved = false;
+    for (let i = 0; i < pos.count; i++) {
+      v.fromBufferAttribute(pos, i).applyMatrix4(mesh.matrixWorld);
+      if (v.y <= CROSSOVER_RAMP0) continue;
+      const extra = gain * Math.max(0, v.y - CROSSOVER_BELT);
+      const fade = smooth01((v.y - CROSSOVER_RAMP0) / (CROSSOVER_RAMP1 - CROSSOVER_RAMP0));
+      const next = v.y + extra * fade;
+      if (next - v.y < 1e-5) continue;
+      v.y = next;
+      v.applyMatrix4(inv);
+      pos.setXYZ(i, v.x, v.y, v.z);
+      moved = true;
+    }
+    if (!moved) return;
+    pos.needsUpdate = true;
+    geo.computeVertexNormals();
+    geo.computeBoundingBox();
+    geo.computeBoundingSphere();
+  });
+}
+
+function loadCrossover(sedan: THREE.Group): THREE.Group {
+  const body = sedan.clone(true);
+  const roof0 = worldMaxY(body, (n) => n.includes("paint") || n.includes("glass"));
+  liftGreenhouse(body, roof0, CROSSOVER_ROOF);
+  const roof1 = worldMaxY(body, (n) => n.includes("paint") || n.includes("glass"));
+  const rubberTop = worldMaxY(body, (n) => n.includes("rubber"));
+  if (roof1 < roof0 + 0.12) throw new Error(`crossover roof did not lift (${roof0.toFixed(2)} -> ${roof1.toFixed(2)})`);
+  if (rubberTop > 0.75) throw new Error(`crossover stretched a tire (${rubberTop.toFixed(2)})`);
+  body.userData.source = "zaps-ev-sedan.glb";
+  body.userData.roof = Number(roof1.toFixed(3));
+  body.userData.halfL = 2.36;
+  body.userData.halfW = 0.94;
+  body.userData.inlet = { ...OPAQUE_SEDAN_INLET };
+  assertOpaqueCarMaterials(body);
+  return body;
+}
+
 export async function loadCarPrototypes(): Promise<void> {
   prototypes.sedan = await loadSedan();
+  prototypes.suv = loadCrossover(prototypes.sedan);
 }
 
 export function parkBackdropCars(root: THREE.Object3D): void {
@@ -412,9 +498,14 @@ function lineupLabel(kind: string): THREE.Sprite {
 export function addFleetLineup(parent: THREE.Object3D): THREE.Group {
   const row = new THREE.Group();
   row.name = "fleet-lineup";
-  SEDAN_PAINTS.forEach((swatch, i) => {
+  const lineup: { label: string; kind: HullKind; color: number }[] = SEDAN_PAINTS.map((swatch) => ({
+    label: swatch.label,
+    kind: "sedan" as const,
+    color: swatch.color,
+  }));
+  lineup.forEach((swatch, i) => {
     const pose = lineupPose(i);
-    const hull = paintedHull(swatch.color, "sedan");
+    const hull = paintedHull(swatch.color, swatch.kind);
     hull.position.set(pose.x, 0, pose.z);
     const label = lineupLabel(swatch.label);
     label.position.set(pose.x, ((hull.userData.roof as number) ?? 1.6) + 0.85, pose.z);
@@ -594,7 +685,8 @@ export function spawnCar(guest: Guest): CarView {
   root.userData.halfL = hull.userData.halfL ?? 2.36;
   root.userData.halfW = hull.userData.halfW ?? 0.94;
   root.userData.roof = hull.userData.roof ?? 1.48;
-  return finishCar(root, guest, inletByKind[kind]);
+  const stored = hull.userData.inlet as { x: number; y: number; z: number } | undefined;
+  return finishCar(root, guest, stored ?? inletByKind[kind]);
 }
 
 const readPrev = new Map<string, LotRead>();
