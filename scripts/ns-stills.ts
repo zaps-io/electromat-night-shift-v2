@@ -113,24 +113,24 @@ const lineupFocusX = (lineupPose(0).x + lineupPose(LINEUP_ORDER.length - 1).x) *
 const fleetLineup: Shot = {
   file: "ns-fleet-lineup.png",
   x: lineupFocusX,
-  z: LINEUP_Z - 36,
+  z: LINEUP_Z - 44,
   yaw: 0,
   pitch: 0,
-  eyeY: 11,
-  fov: 58,
-  lookAt: { x: lineupFocusX, y: 2.4, z: LINEUP_Z },
+  eyeY: 12,
+  fov: 60,
+  lookAt: { x: lineupFocusX, y: 2.6, z: LINEUP_Z },
 };
 
 const semiRig = MCS_RIGS[0]!;
 const mcsSemi: Shot = {
   file: "ns-mcs-semi.png",
-  x: semiRig.x - 8.5,
-  z: MCS_NOSE_Z + 8,
+  x: semiRig.x - 11,
+  z: MCS_NOSE_Z + 14,
   yaw: 0,
   pitch: 0,
-  eyeY: 3.6,
-  fov: 46,
-  lookAt: { x: semiRig.x + 0.6, y: 2.2, z: MCS_NOSE_Z + 3.2 },
+  eyeY: 4.4,
+  fov: 52,
+  lookAt: { x: semiRig.x + 0.4, y: 2.1, z: MCS_NOSE_Z + 7 },
 };
 
 const voraBay = BAYS.find((b) => b.playable === 3)!;

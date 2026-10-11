@@ -1633,7 +1633,7 @@ const brandSrc = readFileSync(new URL("../src/world/branding.ts", import.meta.ur
 if (brandSrc.includes("loungeFront")) throw new Error("south zaps mark must not duplicate over the LOUNGE sign");
 
 const { BAY_WEIGHTS, FLEET_WEIGHTS, buildFleetVehicle, pickWeighted } = await import("../src/cars/fleet.ts");
-const fleetKinds = ["hatch", "suv", "pickup", "van", "box", "semi"] as const;
+const fleetKinds = ["hatch", "suv", "pickup", "van", "box", "bus", "semi"] as const;
 const fleetLengths: number[] = [];
 for (const kind of fleetKinds) {
   const body = buildFleetVehicle(kind);
@@ -1660,22 +1660,46 @@ for (const kind of fleetKinds) {
   const inlet = body.userData.inlet as { x: number; y: number; z: number };
   if (inlet.x < 0.7) throw new Error(`${kind} charge port is not on the right side`);
   if (inlet.z > -0.4) throw new Error(`${kind} charge port is not toward the nose`);
+  let cyan = 0;
+  let cargo = 0;
+  let tinted = 0;
+  body.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    if (mesh.name === "ChargePort") {
+      const color = (mesh.material as THREE.MeshStandardMaterial).color;
+      if (color?.getHex() !== 0x00d4f5) throw new Error(`${kind} charge port is not the cyan ring`);
+      cyan += 1;
+    }
+    if (mesh.name === "Cargo") {
+      if (mesh.userData.paint) throw new Error(`${kind} cargo color must stay locked`);
+      cargo += 1;
+    }
+    if (mesh.userData.paint) tinted += 1;
+  });
+  if (!cyan) throw new Error(`${kind} is missing a charge-port ring`);
+  if (!tinted) throw new Error(`${kind} has no tinted paint`);
+  if ((kind === "box" || kind === "semi") && !cargo) throw new Error(`${kind} needs a locked white body`);
+  if (kind !== "box" && kind !== "semi" && cargo) throw new Error(`${kind} should be a single paint`);
 }
 if (fleetLengths[0]! >= fleetLengths[1]!) throw new Error("hatch should be shorter than the crossover");
 if (fleetLengths[2]! <= fleetLengths[1]!) throw new Error("pickup should be longer than the crossover");
 if (fleetLengths[3]! <= fleetLengths[2]!) throw new Error("van should be longer than the pickup");
 if (fleetLengths[4]! <= fleetLengths[3]!) throw new Error("box truck should be longer than the van");
-if (fleetLengths[5]! < 14) throw new Error("semi tractor and trailer should read as a long rig");
+if (fleetLengths[5]! <= fleetLengths[4]!) throw new Error("bus should be longer than the box truck");
+if (fleetLengths[5]! > 14) throw new Error("bus should stay a transit length");
+if (fleetLengths[6]! < 18) throw new Error("semi tractor and trailer should read as a long rig");
+if (fleetLengths[6]! > 20.6) throw new Error("semi must fit the MCS pull-through");
 if (new Set(fleetLengths.map((n) => n.toFixed(2))).size !== fleetLengths.length) {
   throw new Error("fleet silhouettes collapsed to one length");
 }
-if (BAY_WEIGHTS.some((row) => row.kind === "box" || row.kind === "semi")) {
-  throw new Error("box and semi must not spawn in a passenger bay");
+if (BAY_WEIGHTS.some((row) => row.kind === "box" || row.kind === "semi" || row.kind === "bus")) {
+  throw new Error("box, semi, and bus must not spawn in a passenger bay");
 }
-if (FLEET_WEIGHTS.length < 7) throw new Error("weighted mix should cover every fleet type");
+if (FLEET_WEIGHTS.length < 8) throw new Error("weighted mix should cover every fleet type");
 for (let i = 0; i < 30; i++) {
   const kind = pickWeighted(i);
-  if (kind === "box" || kind === "semi") throw new Error("passenger mix spawned a truck");
+  if (kind === "box" || kind === "semi" || kind === "bus") throw new Error("passenger mix spawned a long vehicle");
 }
 const mcsSrc = readFileSync(new URL("../src/world/mcs.ts", import.meta.url), "utf8");
 if (!mcsSrc.includes('kind: "semi"') || !mcsSrc.includes('kind: "box"')) {

@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
-import { buildFleetVehicle, lineupPose, LINEUP_ORDER, pickWeighted } from "../cars/fleet";
+import { buildFleetVehicle, chargePortRing, lineupPose, LINEUP_ORDER, pickWeighted } from "../cars/fleet";
 import {
   assertOpaqueCarMaterials,
   forceOpaque,
@@ -37,8 +37,9 @@ const inletByKind: Record<HullKind, { x: number; y: number; z: number }> = {
   suv: { x: 0.98, y: 0.9, z: -1.25 },
   pickup: { x: 1.02, y: 0.92, z: -1.85 },
   van: { x: 1.06, y: 0.95, z: -2.05 },
-  box: { x: 1.2, y: 1.25, z: -2.15 },
-  semi: { x: 1.38, y: 1.45, z: -6.15 },
+  box: { x: 1.2, y: 1.22, z: -2.45 },
+  semi: { x: 1.34, y: 1.42, z: -7.15 },
+  bus: { x: 1.32, y: 1.18, z: -3.2 },
 };
 
 const paintCache = new Map<number, THREE.MeshPhysicalMaterial>();
@@ -281,22 +282,7 @@ function fitFacingNegZ(scene: THREE.Group, length = 4.72): THREE.Group {
 
 
 function addChargePort(root: THREE.Group, inlet: { x: number; y: number; z: number }): void {
-  const port = new THREE.Mesh(
-    new THREE.CircleGeometry(0.055, 16),
-    new THREE.MeshStandardMaterial({
-      name: "ChargePort",
-      color: 0x1e1e24,
-      emissive: 0x1e1e24,
-      emissiveIntensity: 0.15,
-      transparent: false,
-      opacity: 1,
-      depthWrite: true,
-      toneMapped: false,
-    }),
-  );
-  port.position.set(inlet.x, inlet.y, inlet.z);
-  port.rotation.y = Math.PI / 2;
-  root.add(port);
+  root.add(chargePortRing(inlet, 0.055));
 }
 
 async function loadSedan(): Promise<THREE.Group> {
@@ -334,7 +320,7 @@ async function loadSedan(): Promise<THREE.Group> {
 
 export async function loadCarPrototypes(): Promise<void> {
   prototypes.sedan = await loadSedan();
-  for (const kind of ["hatch", "suv", "pickup", "van", "box", "semi"] as const) {
+  for (const kind of ["hatch", "suv", "pickup", "van", "box", "semi", "bus"] as const) {
     const body = buildFleetVehicle(kind);
     assertOpaqueCarMaterials(body);
     prototypes[kind] = body;
@@ -358,7 +344,7 @@ function tintPaint(root: THREE.Object3D, color: number): void {
   root.traverse((o) => {
     const mesh = o as THREE.Mesh;
     if (!mesh.isMesh) return;
-    if (mesh.userData.paint || mesh.name === "Paint") mesh.material = paint;
+    if (mesh.userData.paint) mesh.material = paint;
   });
 }
 
@@ -369,7 +355,7 @@ export function paintedHull(color: number, hull: HullKind): THREE.Group {
   return body;
 }
 
-const LINEUP_PAINT = [0xe8e2d4, 0xf4f1ea, 0x1c2434, 0x6b5344, 0xf5f0e8, 0xc8ccd0, 0x243044] as const;
+const LINEUP_PAINT = [0xd0d4da, 0x2a4e86, 0xc4a06a, 0x2f6b3a, 0xf3efe4, 0x8a9098, 0x1a2744, 0xd5d8de] as const;
 
 function lineupLabel(kind: string): THREE.Sprite {
   const c = document.createElement("canvas");
@@ -414,7 +400,7 @@ const lodFillerRoots: THREE.Group[] = [];
 export let lodFillerBudget = 4;
 
 const FILLER_IDS = [2, 10, 13, 18, 22] as const;
-const FILLER_PAINT = [0xe8e2d4, 0xc8ccd0, 0x1c2434, 0x6b5344, 0x2a3848] as const;
+const FILLER_PAINT = [0xd0d4da, 0x2a4e86, 0xc4a06a, 0x2f6b3a, 0xf3efe4] as const;
 export const LOD_FILLERS = FILLER_IDS.map((id, i) => {
   const stall = STALLS.find((s) => s.id === id)!;
   return {

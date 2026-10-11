@@ -20,11 +20,12 @@ export const BAY_WEIGHTS: { kind: BayKind; weight: number }[] = [
   { kind: "van", weight: 2 },
 ];
 
-/** Full mix, including the rigs that only fit a pull-through stall. */
+/** Full mix. Box, semi, and bus only fit a pull-through stall. */
 export const FLEET_WEIGHTS: { kind: HullKind; weight: number }[] = [
   ...BAY_WEIGHTS,
   { kind: "box", weight: 2 },
   { kind: "semi", weight: 1 },
+  { kind: "bus", weight: 1 },
 ];
 
 export function pickWeighted(seed: number, table: { kind: HullKind; weight: number }[] = BAY_WEIGHTS): HullKind {
@@ -92,6 +93,18 @@ const tailMat = new THREE.MeshStandardMaterial({
   depthWrite: true,
   toneMapped: false,
 });
+const portMat = new THREE.MeshStandardMaterial({
+  name: "ChargePort",
+  color: 0x00d4f5,
+  emissive: 0x00d4f5,
+  emissiveIntensity: 0.9,
+  roughness: 0.32,
+  metalness: 0.12,
+  transparent: false,
+  opacity: 1,
+  depthWrite: true,
+  toneMapped: false,
+});
 
 function shadowTexture(): THREE.DataTexture {
   const w = 64;
@@ -143,8 +156,8 @@ function mesh(geo: THREE.BufferGeometry | null, mat: THREE.Material, name: strin
   if (!geo) return null;
   const m = new THREE.Mesh(geo, mat);
   m.name = name;
-  m.castShadow = name === "Paint" || name === "Rubber";
-  m.receiveShadow = name === "Paint";
+  m.castShadow = name === "Paint" || name === "Cargo" || name === "Rubber";
+  m.receiveShadow = name === "Paint" || name === "Cargo";
   if (paint) m.userData.paint = true;
   return m;
 }
@@ -179,6 +192,8 @@ export type FleetBuild = {
   inlet: { x: number; y: number; z: number };
   roof: number;
   paint: Box[];
+  /** Locked body color. Not retinted — white box and white trailer. */
+  paintB?: Box[];
   glass: Box[];
   trim: Box[];
   lamps: Box[];
@@ -186,108 +201,122 @@ export type FleetBuild = {
   wheels: Wheel[];
 };
 
+/** Small cyan ring on the body side. No badge, no logo. */
+export function chargePortRing(inlet: { x: number; y: number; z: number }, radius = 0.06): THREE.Mesh {
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(radius, Math.max(0.012, radius * 0.22), 8, 16), portMat);
+  ring.position.set(inlet.x + 0.04, inlet.y, inlet.z);
+  ring.rotation.y = Math.PI / 2;
+  ring.name = "ChargePort";
+  return ring;
+}
+
 function lampsAt(z: number, y: number, span: number, w = 0.34, h = 0.09): Box[] {
   return [-1, 1].map((s) => ({ w, h, d: 0.05, x: s * span, y, z }));
 }
 
-/** Nose is -Z. Each type has its own length, ride height, wheelbase, and cabin. */
+/** Nose is -Z. Proportions follow the reference sheet; forms stay low-poly. */
 export function fleetSpec(kind: Exclude<HullKind, "sedan">): FleetBuild {
   if (kind === "hatch") {
     return {
       kind,
-      inlet: { x: 0.84, y: 0.68, z: -1.15 },
-      roof: 1.48,
+      inlet: { x: 0.88, y: 0.72, z: -1.05 },
+      roof: 1.58,
       paint: [
-        { w: 1.62, h: 0.5, d: 3.35, x: 0, y: 0.58, z: 0.05 },
-        { w: 1.4, h: 0.46, d: 1.7, x: 0, y: 1.02, z: 0.28 },
-        { w: 1.48, h: 0.12, d: 0.85, x: 0, y: 0.78, z: -1.32 },
-        { w: 1.5, h: 0.1, d: 0.16, x: 0, y: 0.42, z: -1.72 },
+        { w: 1.64, h: 0.46, d: 3.45, x: 0, y: 0.56, z: 0.12 },
+        { w: 1.46, h: 0.56, d: 1.9, x: 0, y: 1.04, z: 0.48 },
+        { w: 1.5, h: 0.1, d: 0.48, x: 0, y: 0.74, z: -1.38 },
+        { w: 1.52, h: 0.1, d: 0.14, x: 0, y: 0.4, z: -1.72 },
       ],
       glass: [
-        { w: 1.22, h: 0.36, d: 1.15, x: 0, y: 1.12, z: 0.15 },
-        { w: 1.16, h: 0.32, d: 0.06, x: 0, y: 1.02, z: 1.05, rx: -0.45 },
+        { w: 1.26, h: 0.44, d: 1.45, x: 0, y: 1.18, z: 0.4 },
+        { w: 1.18, h: 0.3, d: 0.05, x: 0, y: 1.08, z: 1.32, rx: -0.4 },
       ],
-      trim: [{ w: 1.2, h: 0.22, d: 0.7, x: 0, y: 0.78, z: 0.2 }],
-      lamps: lampsAt(-1.74, 0.62, 0.55),
-      tails: lampsAt(1.76, 0.7, 0.58, 0.32, 0.1),
+      trim: [{ w: 1.2, h: 0.16, d: 0.55, x: 0, y: 0.78, z: 0.35 }],
+      lamps: lampsAt(-1.78, 0.64, 0.52),
+      tails: lampsAt(1.88, 0.72, 0.56, 0.3, 0.1),
       wheels: [
-        { x: -0.84, z: -1.15, r: 0.3, hw: 0.11 },
-        { x: 0.84, z: -1.15, r: 0.3, hw: 0.11 },
-        { x: -0.84, z: 1.2, r: 0.3, hw: 0.11 },
-        { x: 0.84, z: 1.2, r: 0.3, hw: 0.11 },
+        { x: -0.86, z: -1.05, r: 0.3, hw: 0.11 },
+        { x: 0.86, z: -1.05, r: 0.3, hw: 0.11 },
+        { x: -0.86, z: 1.22, r: 0.3, hw: 0.11 },
+        { x: 0.86, z: 1.22, r: 0.3, hw: 0.11 },
       ],
     };
   }
   if (kind === "suv") {
     return {
       kind,
-      inlet: { x: 0.98, y: 0.9, z: -1.25 },
-      roof: 1.78,
+      inlet: { x: 1.02, y: 0.94, z: -1.55 },
+      roof: 1.88,
       paint: [
-        { w: 1.86, h: 0.64, d: 4.25, x: 0, y: 0.74, z: 0 },
-        { w: 1.64, h: 0.58, d: 2.25, x: 0, y: 1.32, z: -0.05 },
-        { w: 1.72, h: 0.14, d: 1.05, x: 0, y: 1.0, z: -1.65 },
-        { w: 1.7, h: 0.12, d: 0.18, x: 0, y: 0.52, z: -2.18 },
+        { w: 1.9, h: 0.64, d: 4.45, x: 0, y: 0.78, z: 0.08 },
+        { w: 1.72, h: 0.56, d: 2.75, x: 0, y: 1.34, z: 0.28 },
+        { w: 1.76, h: 0.12, d: 0.62, x: 0, y: 1.02, z: -1.82 },
+        { w: 1.74, h: 0.12, d: 0.16, x: 0, y: 0.52, z: -2.24 },
       ],
-      glass: [{ w: 1.46, h: 0.42, d: 1.85, x: 0, y: 1.4, z: -0.08 }],
-      trim: [{ w: 1.4, h: 0.24, d: 0.8, x: 0, y: 0.95, z: -0.2 }],
-      lamps: lampsAt(-2.16, 0.78, 0.62, 0.38, 0.1),
-      tails: lampsAt(2.16, 0.86, 0.66, 0.4, 0.11),
+      glass: [{ w: 1.5, h: 0.42, d: 2.35, x: 0, y: 1.44, z: 0.22 }],
+      trim: [
+        { w: 1.35, h: 0.18, d: 0.6, x: 0, y: 0.98, z: -0.1 },
+        { w: 0.05, h: 0.05, d: 2.4, x: -0.58, y: 1.7, z: 0.22 },
+        { w: 0.05, h: 0.05, d: 2.4, x: 0.58, y: 1.7, z: 0.22 },
+      ],
+      lamps: lampsAt(-2.28, 0.8, 0.62, 0.36, 0.1),
+      tails: lampsAt(2.34, 0.9, 0.66, 0.38, 0.11),
       wheels: [
-        { x: -0.98, z: -1.45, r: 0.38, hw: 0.13 },
-        { x: 0.98, z: -1.45, r: 0.38, hw: 0.13 },
-        { x: -0.98, z: 1.48, r: 0.38, hw: 0.13 },
-        { x: 0.98, z: 1.48, r: 0.38, hw: 0.13 },
+        { x: -1.0, z: -1.5, r: 0.4, hw: 0.13 },
+        { x: 1.0, z: -1.5, r: 0.4, hw: 0.13 },
+        { x: -1.0, z: 1.62, r: 0.4, hw: 0.13 },
+        { x: 1.0, z: 1.62, r: 0.4, hw: 0.13 },
       ],
     };
   }
   if (kind === "pickup") {
     return {
       kind,
-      inlet: { x: 1.02, y: 0.92, z: -1.85 },
-      roof: 1.86,
+      inlet: { x: 1.06, y: 0.96, z: -1.75 },
+      roof: 1.9,
       paint: [
-        { w: 1.9, h: 0.48, d: 2.15, x: 0, y: 0.78, z: -1.35 },
-        { w: 1.86, h: 0.72, d: 1.55, x: 0, y: 1.22, z: -0.35 },
-        { w: 1.78, h: 0.22, d: 2.05, x: 0, y: 0.78, z: 1.45 },
-        { w: 0.08, h: 0.46, d: 1.95, x: -0.88, y: 1.05, z: 1.45 },
-        { w: 0.08, h: 0.46, d: 1.95, x: 0.88, y: 1.05, z: 1.45 },
-        { w: 1.7, h: 0.42, d: 0.08, x: 0, y: 1.0, z: 2.48 },
-        { w: 1.84, h: 0.12, d: 0.16, x: 0, y: 0.55, z: -2.45 },
+        { w: 1.92, h: 0.48, d: 1.25, x: 0, y: 0.8, z: -1.85 },
+        { w: 1.88, h: 0.78, d: 2.4, x: 0, y: 1.22, z: -0.42 },
+        { w: 1.78, h: 0.2, d: 1.4, x: 0, y: 0.82, z: 1.55 },
+        { w: 0.07, h: 0.42, d: 1.35, x: -0.86, y: 1.08, z: 1.55 },
+        { w: 0.07, h: 0.42, d: 1.35, x: 0.86, y: 1.08, z: 1.55 },
+        { w: 1.7, h: 0.4, d: 0.07, x: 0, y: 1.05, z: 2.28 },
+        { w: 1.86, h: 0.12, d: 0.16, x: 0, y: 0.55, z: -2.55 },
       ],
-      glass: [{ w: 1.58, h: 0.4, d: 1.15, x: 0, y: 1.52, z: -0.28 }],
-      trim: [{ w: 1.5, h: 0.2, d: 0.55, x: 0, y: 0.95, z: -0.45 }],
-      lamps: lampsAt(-2.42, 0.78, 0.64, 0.36, 0.1),
-      tails: lampsAt(2.54, 1.02, 0.62, 0.28, 0.1),
+      glass: [{ w: 1.58, h: 0.42, d: 1.85, x: 0, y: 1.55, z: -0.38 }],
+      trim: [{ w: 1.45, h: 0.16, d: 0.5, x: 0, y: 0.98, z: -0.5 }],
+      lamps: lampsAt(-2.58, 0.78, 0.64, 0.34, 0.1),
+      tails: lampsAt(2.34, 1.05, 0.62, 0.26, 0.1),
       wheels: [
-        { x: -1.02, z: -1.75, r: 0.42, hw: 0.14 },
-        { x: 1.02, z: -1.75, r: 0.42, hw: 0.14 },
-        { x: -1.02, z: 1.55, r: 0.42, hw: 0.16 },
-        { x: 1.02, z: 1.55, r: 0.42, hw: 0.16 },
+        { x: -1.04, z: -1.85, r: 0.42, hw: 0.14 },
+        { x: 1.04, z: -1.85, r: 0.42, hw: 0.14 },
+        { x: -1.04, z: 1.35, r: 0.42, hw: 0.16 },
+        { x: 1.04, z: 1.35, r: 0.42, hw: 0.16 },
       ],
     };
   }
   if (kind === "van") {
     return {
       kind,
-      inlet: { x: 1.06, y: 0.95, z: -2.05 },
-      roof: 2.48,
+      inlet: { x: 1.1, y: 1.05, z: -1.85 },
+      roof: 2.52,
       paint: [
-        { w: 2.02, h: 1.62, d: 5.15, x: 0, y: 1.28, z: 0.15 },
-        { w: 2.06, h: 0.16, d: 4.6, x: 0, y: 2.16, z: 0.25 },
-        { w: 1.9, h: 0.14, d: 0.2, x: 0, y: 0.55, z: -2.48 },
+        { w: 2.05, h: 1.68, d: 5.2, x: 0, y: 1.3, z: 0.12 },
+        { w: 2.08, h: 0.14, d: 4.7, x: 0, y: 2.2, z: 0.18 },
+        { w: 1.92, h: 0.12, d: 0.16, x: 0, y: 0.52, z: -2.55 },
       ],
       glass: [
-        { w: 1.82, h: 0.62, d: 0.06, x: 0, y: 1.82, z: -2.42, rx: 0.25 },
-        { w: 0.04, h: 0.32, d: 2.2, x: -1.02, y: 1.85, z: -0.15 },
-        { w: 0.04, h: 0.32, d: 2.2, x: 1.02, y: 1.85, z: -0.15 },
+        { w: 1.82, h: 0.72, d: 0.06, x: 0, y: 1.82, z: -2.48, rx: 0.06 },
+        { w: 0.04, h: 0.34, d: 2.4, x: -1.04, y: 1.85, z: 0.15 },
+        { w: 0.04, h: 0.34, d: 2.4, x: 1.04, y: 1.85, z: 0.15 },
       ],
       trim: [
-        { w: 1.7, h: 0.28, d: 0.7, x: 0, y: 1.15, z: -1.7 },
-        { w: 0.04, h: 1.2, d: 0.04, x: 0, y: 1.35, z: 2.7 },
+        { w: 0.18, h: 0.08, d: 0.72, x: 1.12, y: 0.42, z: -0.85 },
+        { w: 0.18, h: 0.08, d: 0.72, x: -1.12, y: 0.42, z: -0.85 },
+        { w: 0.04, h: 1.15, d: 0.04, x: 0, y: 1.35, z: 2.72 },
       ],
-      lamps: lampsAt(-2.5, 0.85, 0.7, 0.32, 0.1),
-      tails: lampsAt(2.76, 0.95, 0.72, 0.36, 0.12),
+      lamps: lampsAt(-2.58, 0.82, 0.7, 0.3, 0.1),
+      tails: lampsAt(2.76, 0.95, 0.72, 0.34, 0.12),
       wheels: [
         { x: -1.08, z: -1.7, r: 0.36, hw: 0.12 },
         { x: 1.08, z: -1.7, r: 0.36, hw: 0.12 },
@@ -299,55 +328,87 @@ export function fleetSpec(kind: Exclude<HullKind, "sedan">): FleetBuild {
   if (kind === "box") {
     return {
       kind,
-      inlet: { x: 1.2, y: 1.25, z: -2.15 },
-      roof: 3.2,
+      inlet: { x: 1.2, y: 1.22, z: -2.45 },
+      roof: 3.22,
       paint: [
-        { w: 1.35, h: 0.32, d: 6.8, x: 0, y: 0.72, z: 0.3 },
-        { w: 2.15, h: 1.45, d: 1.9, x: 0, y: 1.42, z: -2.45 },
-        { w: 2.42, h: 2.15, d: 4.55, x: 0, y: 1.95, z: 1.4 },
-        { w: 2.1, h: 0.12, d: 0.16, x: 0, y: 0.58, z: -3.45 },
+        { w: 2.2, h: 1.9, d: 1.7, x: 0, y: 1.55, z: -2.5 },
+        { w: 2.05, h: 0.28, d: 1.9, x: 0, y: 0.68, z: -2.4 },
+        { w: 2.08, h: 0.12, d: 0.14, x: 0, y: 0.55, z: -3.42 },
       ],
-      glass: [{ w: 1.9, h: 0.62, d: 0.06, x: 0, y: 1.9, z: -3.38, rx: 0.15 }],
-      trim: [{ w: 1.6, h: 0.22, d: 0.5, x: 0, y: 1.15, z: -2.5 }],
-      lamps: lampsAt(-3.42, 0.85, 0.72, 0.3, 0.1),
-      tails: lampsAt(3.7, 1.15, 0.9, 0.34, 0.14),
+      paintB: [{ w: 2.48, h: 2.28, d: 4.85, x: 0, y: 1.95, z: 1.05 }],
+      glass: [{ w: 1.9, h: 0.7, d: 0.05, x: 0, y: 1.95, z: -3.34, rx: 0.04 }],
+      trim: [
+        { w: 1.15, h: 0.22, d: 4.6, x: 0, y: 0.68, z: 1.05 },
+        { w: 0.16, h: 0.08, d: 0.55, x: 1.18, y: 0.48, z: -2.15 },
+      ],
+      lamps: lampsAt(-3.46, 0.82, 0.7, 0.28, 0.1),
+      tails: lampsAt(3.5, 1.15, 0.95, 0.32, 0.14),
       wheels: [
-        { x: -1.12, z: -2.35, r: 0.46, hw: 0.14 },
-        { x: 1.12, z: -2.35, r: 0.46, hw: 0.14 },
-        { x: -1.05, z: 0.55, r: 0.46, hw: 0.12, dual: true },
-        { x: 1.05, z: 0.55, r: 0.46, hw: 0.12, dual: true },
-        { x: -1.05, z: 1.55, r: 0.46, hw: 0.12, dual: true },
-        { x: 1.05, z: 1.55, r: 0.46, hw: 0.12, dual: true },
+        { x: -1.12, z: -2.45, r: 0.46, hw: 0.14 },
+        { x: 1.12, z: -2.45, r: 0.46, hw: 0.14 },
+        { x: -1.08, z: 0.45, r: 0.46, hw: 0.12, dual: true },
+        { x: 1.08, z: 0.45, r: 0.46, hw: 0.12, dual: true },
+        { x: -1.08, z: 1.5, r: 0.46, hw: 0.12, dual: true },
+        { x: 1.08, z: 1.5, r: 0.46, hw: 0.12, dual: true },
+      ],
+    };
+  }
+  if (kind === "bus") {
+    return {
+      kind,
+      inlet: { x: 1.32, y: 1.18, z: -3.2 },
+      roof: 3.22,
+      paint: [
+        { w: 2.5, h: 2.15, d: 11.6, x: 0, y: 1.72, z: 0.05 },
+        { w: 2.42, h: 0.12, d: 0.16, x: 0, y: 0.55, z: -5.85 },
+      ],
+      glass: [
+        { w: 2.15, h: 0.82, d: 0.05, x: 0, y: 2.15, z: -5.75 },
+        { w: 0.04, h: 0.55, d: 8.4, x: -1.27, y: 2.05, z: 0.35 },
+        { w: 0.04, h: 0.55, d: 8.4, x: 1.27, y: 2.05, z: 0.35 },
+      ],
+      trim: [
+        { w: 1.2, h: 0.28, d: 1.55, x: 0, y: 3.0, z: -2.15 },
+        { w: 1.2, h: 0.28, d: 1.55, x: 0, y: 3.0, z: 0.25 },
+        { w: 1.2, h: 0.28, d: 1.55, x: 0, y: 3.0, z: 2.65 },
+      ],
+      lamps: lampsAt(-5.88, 0.85, 0.85, 0.32, 0.12),
+      tails: lampsAt(5.88, 1.05, 0.9, 0.34, 0.14),
+      wheels: [
+        { x: -1.22, z: -3.7, r: 0.48, hw: 0.14 },
+        { x: 1.22, z: -3.7, r: 0.48, hw: 0.14 },
+        { x: -1.22, z: 3.55, r: 0.48, hw: 0.14 },
+        { x: 1.22, z: 3.55, r: 0.48, hw: 0.14 },
       ],
     };
   }
   return {
     kind: "semi",
-    inlet: { x: 1.38, y: 1.45, z: -6.15 },
-    roof: 3.85,
+    inlet: { x: 1.34, y: 1.42, z: -7.15 },
+    roof: 3.9,
     paint: [
-      { w: 1.25, h: 0.38, d: 5.4, x: 0, y: 0.86, z: -5.1 },
-      { w: 2.15, h: 0.85, d: 1.35, x: 0, y: 1.25, z: -7.55 },
-      { w: 2.48, h: 2.15, d: 2.35, x: 0, y: 2.15, z: -6.15 },
-      { w: 2.42, h: 0.9, d: 0.7, x: 0, y: 2.85, z: -4.85 },
-      { w: 2.52, h: 2.45, d: 10.4, x: 0, y: 2.22, z: 2.15 },
-      { w: 2.2, h: 0.16, d: 0.2, x: 0, y: 0.7, z: -8.2 },
+      { w: 1.35, h: 0.34, d: 4.0, x: 0, y: 0.84, z: -6.55 },
+      { w: 2.15, h: 0.62, d: 1.45, x: 0, y: 1.12, z: -8.05 },
+      { w: 2.42, h: 2.0, d: 2.1, x: 0, y: 2.05, z: -6.75 },
+      { w: 2.28, h: 0.48, d: 1.15, x: 0, y: 2.9, z: -5.5 },
+      { w: 2.1, h: 0.14, d: 0.16, x: 0, y: 0.62, z: -8.95 },
     ],
-    glass: [{ w: 2.2, h: 0.85, d: 0.06, x: 0, y: 2.45, z: -7.28, rx: 0.2 }],
-    trim: [{ w: 2.1, h: 0.28, d: 0.55, x: 0, y: 1.35, z: -6.3 }],
-    lamps: lampsAt(-8.15, 1.05, 0.78, 0.32, 0.12),
-    tails: lampsAt(7.38, 1.25, 0.95, 0.36, 0.16),
+    paintB: [{ w: 2.55, h: 2.62, d: 14.8, x: 0, y: 2.28, z: 3.55 }],
+    glass: [{ w: 2.15, h: 0.82, d: 0.05, x: 0, y: 2.35, z: -7.78, rx: 0.32 }],
+    trim: [{ w: 2.0, h: 0.22, d: 0.45, x: 0, y: 1.28, z: -6.5 }],
+    lamps: lampsAt(-9.0, 1.02, 0.78, 0.3, 0.12),
+    tails: lampsAt(11.02, 1.22, 0.98, 0.34, 0.16),
     wheels: [
-      { x: -1.22, z: -6.7, r: 0.52, hw: 0.16 },
-      { x: 1.22, z: -6.7, r: 0.52, hw: 0.16 },
-      { x: -1.15, z: -3.7, r: 0.52, hw: 0.14, dual: true },
-      { x: 1.15, z: -3.7, r: 0.52, hw: 0.14, dual: true },
-      { x: -1.15, z: -2.55, r: 0.52, hw: 0.14, dual: true },
-      { x: 1.15, z: -2.55, r: 0.52, hw: 0.14, dual: true },
-      { x: -1.18, z: 5.85, r: 0.52, hw: 0.14, dual: true },
-      { x: 1.18, z: 5.85, r: 0.52, hw: 0.14, dual: true },
-      { x: -1.18, z: 7.0, r: 0.52, hw: 0.14, dual: true },
-      { x: 1.18, z: 7.0, r: 0.52, hw: 0.14, dual: true },
+      { x: -1.22, z: -7.15, r: 0.52, hw: 0.16 },
+      { x: 1.22, z: -7.15, r: 0.52, hw: 0.16 },
+      { x: -1.16, z: -4.7, r: 0.52, hw: 0.14, dual: true },
+      { x: 1.16, z: -4.7, r: 0.52, hw: 0.14, dual: true },
+      { x: -1.16, z: -3.55, r: 0.52, hw: 0.14, dual: true },
+      { x: 1.16, z: -3.55, r: 0.52, hw: 0.14, dual: true },
+      { x: -1.18, z: 7.9, r: 0.52, hw: 0.14, dual: true },
+      { x: 1.18, z: 7.9, r: 0.52, hw: 0.14, dual: true },
+      { x: -1.18, z: 9.15, r: 0.52, hw: 0.14, dual: true },
+      { x: 1.18, z: 9.15, r: 0.52, hw: 0.14, dual: true },
     ],
   };
 }
@@ -357,6 +418,7 @@ export function buildFleetVehicle(kind: Exclude<HullKind, "sedan">): THREE.Group
   const root = new THREE.Group();
   root.name = `fleet-${kind}`;
   const paint = mesh(bake(spec.paint), paintMaterial(0xf4f1ea), "Paint", true);
+  const cargo = mesh(bake(spec.paintB ?? []), paintMaterial(0xf7f6f2), "Cargo", false);
   const win = mesh(bake(spec.glass), glass, "Glass");
   const trim = mesh(bake(spec.trim), trimMat, "Trim");
   const lamps = mesh(bake(spec.lamps), lampMat, "Lamp");
@@ -364,26 +426,11 @@ export function buildFleetVehicle(kind: Exclude<HullKind, "sedan">): THREE.Group
   const wheels = wheelGeos(spec.wheels);
   const rubber = mesh(wheels.rubber, rubberMat, "Rubber");
   const chrome = mesh(wheels.chrome, chromeMat, "Chrome");
-  for (const part of [paint, win, trim, lamps, tails, rubber, chrome]) {
+  for (const part of [paint, cargo, win, trim, lamps, tails, rubber, chrome]) {
     if (part) root.add(part);
   }
-  const port = new THREE.Mesh(
-    new THREE.CircleGeometry(kind === "semi" || kind === "box" ? 0.09 : 0.055, 14),
-    new THREE.MeshStandardMaterial({
-      name: "ChargePort",
-      color: 0x1e1e24,
-      emissive: 0x1e1e24,
-      emissiveIntensity: 0.2,
-      transparent: false,
-      opacity: 1,
-      depthWrite: true,
-      toneMapped: false,
-    }),
-  );
-  port.position.set(spec.inlet.x, spec.inlet.y, spec.inlet.z);
-  port.rotation.y = Math.PI / 2;
-  port.name = "ChargePort";
-  root.add(port);
+  const portR = kind === "semi" || kind === "box" || kind === "bus" ? 0.09 : 0.06;
+  root.add(chargePortRing(spec.inlet, portR));
 
   root.updateMatrixWorld(true);
   const box = new THREE.Box3().setFromObject(root);
@@ -408,10 +455,10 @@ export function buildFleetVehicle(kind: Exclude<HullKind, "sedan">): THREE.Group
 
 /** Debug row on the north sand, side profiles facing -Z. */
 export const LINEUP_Z = 24;
-export const LINEUP_ORDER: HullKind[] = ["hatch", "sedan", "suv", "pickup", "van", "box", "semi"];
+export const LINEUP_ORDER: HullKind[] = ["hatch", "sedan", "suv", "pickup", "van", "box", "semi", "bus"];
 
 export function lineupPose(index: number): { x: number; z: number } {
-  const step = [0, 4.4, 4.6, 5.1, 5.5, 6.4, 8.4];
+  const step = [0, 4.6, 4.8, 5.2, 5.6, 6.4, 7.2, 6.8];
   let x = -8;
   for (let i = 0; i < index; i++) x += step[i + 1] ?? 5;
   return { x, z: LINEUP_Z };
