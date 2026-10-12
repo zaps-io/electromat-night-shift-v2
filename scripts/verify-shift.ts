@@ -1718,11 +1718,11 @@ for (let i = 0; i < 30; i++) {
   if (kind !== "sedan") throw new Error("passenger mix spawned a non-sedan");
 }
 const mcsSrc = readFileSync(new URL("../src/world/mcs.ts", import.meta.url), "utf8");
-if (mcsSrc.includes('kind: "box"') || mcsSrc.includes("MCS_BUS") || mcsSrc.includes('kind: "bus"')) {
-  throw new Error("no box or bus on the MCS lane");
+if (mcsSrc.includes('kind: "box"') || mcsSrc.includes('kind: "semi"') || mcsSrc.includes("MCS_BUS")) {
+  throw new Error("no truck or toy body on the MCS lane");
 }
-if (!mcsSrc.includes('makeHull(rig.paint, "semi")')) {
-  throw new Error("MCS lane should park the authored semi");
+if (!mcsSrc.includes("MCS_RIGS") || !mcsSrc.includes("= []")) {
+  throw new Error("MCS lane must stay empty");
 }
 if ((mcsSrc.match(/mcs-dispenser/g) ?? []).length < 1) throw new Error("MCS dispensers missing");
 

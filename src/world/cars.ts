@@ -445,77 +445,9 @@ function loadCrossover(sedan: THREE.Group): THREE.Group {
   return body;
 }
 
-function dressAuthored(root: THREE.Object3D): void {
-  root.traverse((o) => {
-    const mesh = o as THREE.Mesh;
-    if (!mesh.isMesh) return;
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    const n = labelOf(mesh);
-    if (n.includes("glass")) {
-      mesh.material = sharedGlass;
-      return;
-    }
-    if (n.includes("hub") || n.includes("cap") || n.includes("chrome")) {
-      mesh.material = chromeMat;
-      return;
-    }
-    if (n.includes("rubber") || n.includes("tire")) {
-      mesh.material = rubberMat;
-      return;
-    }
-    if (n.includes("tail")) {
-      mesh.material = tailMat;
-      return;
-    }
-    if (n.includes("lamp") || n.includes("head")) {
-      mesh.material = lampMat;
-      return;
-    }
-    if (n.includes("trim") || n.includes("bed")) {
-      mesh.material = trimMat;
-      return;
-    }
-    if (n.includes("paint")) {
-      mesh.material = paintFor(0xf4f1ea);
-      mesh.userData.paint = true;
-      return;
-    }
-    eachOpaque(mesh);
-  });
-}
-
-/** Original GLB. Nose -Z after fit. Paint meshes take the guest color. */
-async function loadAuthored(
-  file: string,
-  length: number,
-  inlet: { x: number; y: number; z: number },
-): Promise<THREE.Group> {
-  const gltf = await loader.loadAsync(`${import.meta.env.BASE_URL}cars/${file}`);
-  const fitted = fitFacingNegZ(gltf.scene, length);
-  dressAuthored(fitted);
-  fitted.updateMatrixWorld(true);
-  const size = new THREE.Box3().setFromObject(fitted).getSize(new THREE.Vector3());
-  fitted.userData.source = file;
-  fitted.userData.halfL = size.z * 0.5;
-  fitted.userData.halfW = Math.min(1.35, size.x * 0.5);
-  fitted.userData.roof = size.y;
-  fitted.userData.inlet = { ...inlet };
-  const shadow = new THREE.Mesh(new THREE.PlaneGeometry(Math.min(2.6, size.x * 0.9), size.z * 0.78), shadowMat);
-  shadow.rotation.x = -Math.PI / 2;
-  shadow.position.y = 0.02;
-  shadow.renderOrder = 1;
-  fitted.add(shadow);
-  addChargePort(fitted, inlet);
-  assertOpaqueCarMaterials(fitted);
-  return fitted;
-}
-
 export async function loadCarPrototypes(): Promise<void> {
   prototypes.sedan = await loadSedan();
   prototypes.suv = loadCrossover(prototypes.sedan);
-  prototypes.pickup = await loadAuthored("zaps-ev-pickup.glb", 5.7, { x: 1.02, y: 0.9, z: -1.7 });
-  prototypes.semi = await loadAuthored("zaps-ev-semi.glb", 7.4, { x: 1.28, y: 1.35, z: 0.35 });
 }
 
 export function parkBackdropCars(root: THREE.Object3D): void {
@@ -906,8 +838,7 @@ export function carColliders(map: Map<string, CarView>): THREE.Box3[] {
     const hz = halfL * c + halfW * s;
     const x = view.root.position.x;
     const z = view.root.position.z;
-    const top = Math.max(1.55, (view.root.userData.roof as number) ?? 1.55);
-    boxes.push(new THREE.Box3(new THREE.Vector3(x - hx, 0, z - hz), new THREE.Vector3(x + hx, top, z + hz)));
+    boxes.push(new THREE.Box3(new THREE.Vector3(x - hx, 0, z - hz), new THREE.Vector3(x + hx, 1.55, z + hz)));
   }
   return boxes;
 }

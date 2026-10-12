@@ -4,8 +4,8 @@ import type { HullKind } from "../game/state";
 /** Southeast pull-through. Noses point south so a rig can enter from the street and leave north. */
 export const MCS_NOSE_Z = -38;
 export const MCS_LANE = { xmin: 4.2, xmax: 27.5, zmin: -40.6, zmax: -17.5 };
-/** Authored tractor only. No trailer. Paint is a dark clearcoat, inlet behind the cab. */
-export const MCS_RIGS: { x: number; paint: number }[] = [{ x: 15.2, paint: 0x243038 }];
+/** Empty. The authored tractor still read as a toy cab beside the Model 3. */
+export const MCS_RIGS: { x: number; paint: number }[] = [];
 
 /** East edge of the pad. The hardware stays; the stalls do not. */
 const MCS_DISPENSERS = [
@@ -120,24 +120,6 @@ export function parkMcsRigs(
         new THREE.Vector3(spot.x + 0.45, 2.9, spot.z + 0.4),
       ),
     );
-  }
-  for (const rig of MCS_RIGS) {
-    const hull = _makeHull(rig.paint, "semi");
-    const halfL = (hull.userData.halfL as number) ?? 3.7;
-    const halfW = (hull.userData.halfW as number) ?? 1.3;
-    const roof = (hull.userData.roof as number) ?? 3.4;
-    hull.position.set(rig.x, 0, MCS_NOSE_Z + halfL);
-    scene.add(hull);
-    boxes.push(
-      new THREE.Box3(
-        new THREE.Vector3(rig.x - halfW, 0, MCS_NOSE_Z),
-        new THREE.Vector3(rig.x + halfW, roof, MCS_NOSE_Z + halfL * 2),
-      ),
-    );
-    const scaleCar = _makeHull(0xf7f6f2, "sedan");
-    scaleCar.position.set(rig.x - 7.2, 0, MCS_NOSE_Z + halfL);
-    scaleCar.name = "mcs-scale-sedan";
-    scene.add(scaleCar);
   }
   return boxes;
 }

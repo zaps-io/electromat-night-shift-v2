@@ -132,7 +132,6 @@ const mcsSemi: Shot = {
   lookAt: { x: 22, y: 1.2, z: MCS_NOSE_Z + 10 },
 };
 
-const haleBay = BAYS.find((b) => b.playable === 1)!;
 const ruizBay = BAYS.find((b) => b.playable === 2)!;
 const voraBay = BAYS.find((b) => b.playable === 3)!;
 const pairZ = (ruizBay.z + voraBay.z) * 0.5;
@@ -146,37 +145,15 @@ const compare: Shot = {
   fov: 46,
   lookAt: { x: voraBay.x + 0.6, y: 0.9, z: pairZ },
 };
-const pickupPairZ = (haleBay.z + ruizBay.z) * 0.5;
-const pickupCompare: Shot = {
-  file: "ns-compare-pickup.png",
-  x: haleBay.x + 8.6,
-  z: pickupPairZ + 2.2,
-  yaw: 0,
-  pitch: 0,
-  eyeY: 1.7,
-  fov: 50,
-  lookAt: { x: haleBay.x + 0.4, y: 0.95, z: pickupPairZ },
-};
-const semiCenterZ = MCS_NOSE_Z + 3.7;
-const semiCompare: Shot = {
-  file: "ns-compare-semi.png",
-  x: 11.6,
-  z: semiCenterZ - 14,
-  yaw: 0,
-  pitch: 0,
-  eyeY: 1.7,
-  fov: 55,
-  lookAt: { x: 11.6, y: 1.55, z: semiCenterZ },
-};
 const pickupPlug: Shot = {
   file: "ns-plug.png",
-  x: haleBay.x - 1.2,
-  z: haleBay.z + 8.6,
+  x: voraBay.x - 1.1,
+  z: voraBay.z + 8.4,
   yaw: 0,
   pitch: 0,
   eyeY: 1.7,
-  fov: 42,
-  lookAt: { x: haleBay.x - 0.2, y: 1.05, z: haleBay.z },
+  fov: 38,
+  lookAt: { x: voraBay.x - 0.35, y: 1.0, z: voraBay.z },
 };
 
 const kimSlot = WAIT_SLOTS[2]!;
@@ -252,10 +229,10 @@ async function main(): Promise<void> {
     });
     await new Promise((r) => setTimeout(r, 500));
 
-    const gateShots = [start, fleetLineup, mcsSemi, compare, pickupCompare, semiCompare, pickupPlug];
+    const gateShots = [start, fleetLineup, mcsSemi, compare, pickupPlug];
     const shots = process.env.SHOP_PREVIEW
       ? gateShots
-      : [start, layers, carDusk, fascia, lounge, charger, leftEdge, canopyEnd, waveFront, fleetLineup, mcsSemi, compare, pickupCompare, semiCompare, pickupPlug, vanShot];
+      : [start, layers, carDusk, fascia, lounge, charger, leftEdge, canopyEnd, waveFront, fleetLineup, mcsSemi, compare, pickupPlug, vanShot];
     for (const shot of shots) {
       await page.evaluate((s: Shot) => {
         const api = (

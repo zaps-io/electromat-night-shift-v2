@@ -12,4 +12,4 @@ Source GLBs live in `vendor/models/` and are not copied into the Pages build.
 Dusk IBL: Poly Haven “Qwantani Dusk 2 (Pure Sky)” by Greg Zaal, CC0.  
 `public/env/dusk.hdr`
 
-The lot spawns this Model 3 in several paints, plus a crossover made by lifting that mesh's greenhouse. The pickup and the Class 8 tractor are original Blender meshes in this folder (`zaps-ev-pickup.glb`, `zaps-ev-semi.glb`), not third-party downloads. No badges. See `CREDITS.md`.
+The lot spawns this Model 3 in several paints, plus a crossover made by lifting that mesh's greenhouse. No badges. See `CREDITS.md`.
