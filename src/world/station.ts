@@ -32,7 +32,7 @@ import {
   westVoidWalls,
 } from "./layout";
 import { addPavilion } from "./pavilion";
-import { brushMetal, creamPanels, curbColor, curbRough, gravel } from "./tex";
+import { brushMetal, curbColor, curbRough, gravel } from "./tex";
 import { addRev6LotDressing, rev6AsphaltMaterial } from "./rev6art";
 import { applyBakedLotLight } from "./lightmaps";
 import { makePayIcon, makeWaveGuide, makeWaveIcon } from "./icons";
@@ -203,27 +203,31 @@ function roundedRectShape(w: number, d: number, r: number): THREE.Shape {
 }
 
 const canopyBrush = brushMetal();
-const canopyPanels = creamPanels();
-const canopyCream = new THREE.MeshPhysicalMaterial({
-  name: "CanopyCream",
-  color: C.cream,
-  emissive: C.cream,
-  emissiveIntensity: 0.06,
-  map: canopyPanels,
-  metalness: 0.08,
-  roughness: 0.48,
-  clearcoat: 0.06,
-  clearcoatRoughness: 0.4,
-  envMapIntensity: 0.28,
+const canopySteel = new THREE.MeshPhysicalMaterial({
+  name: "CanopySteel",
+  color: 0xb4bdc6,
+  map: canopyBrush.map,
+  roughnessMap: canopyBrush.rough,
+  normalMap: canopyBrush.normal,
+  normalScale: new THREE.Vector2(0.35, 0.8),
+  metalness: 0.88,
+  roughness: 0.28,
+  clearcoat: 0.22,
+  clearcoatRoughness: 0.35,
+  envMapIntensity: 0.72,
 });
 const canopyFascia = new THREE.MeshStandardMaterial({
-  color: C.cream,
-  emissive: C.cream,
-  emissiveIntensity: 0.12,
-  map: canopyPanels,
-  roughness: 0.46,
-  metalness: 0.06,
-  envMapIntensity: 0.22,
+  color: 0x23282e,
+  roughness: 0.38,
+  metalness: 0.74,
+  envMapIntensity: 0.45,
+});
+const canopySoffit = new THREE.MeshStandardMaterial({
+  color: 0xfff6ea,
+  emissive: 0xfff1dc,
+  emissiveIntensity: 1.45,
+  roughness: 0.42,
+  metalness: 0.02,
 });
 const canopyColumn = new THREE.MeshPhysicalMaterial({
   color: 0xf2f4f6,
@@ -249,11 +253,11 @@ const FASCIA_H = 1.05;
 
 const bayStripGeo = new THREE.BoxGeometry(1, 0.04, 0.1);
 const bayStripMat = new THREE.MeshStandardMaterial({
-  color: 0xfff4e4,
-  emissive: 0xffc898,
-  emissiveIntensity: 0.72,
-  roughness: 0.38,
-  metalness: 0.02,
+  color: 0xfff8f0,
+  emissive: 0xfff3e2,
+  emissiveIntensity: 1.35,
+  roughness: 0.32,
+  metalness: 0.04,
 });
 
 function warmPoolTexture(): THREE.CanvasTexture {
@@ -296,13 +300,20 @@ function addCanopyAt(root: THREE.Group, canopy: Canopy): void {
     curveSegments: 16,
   });
   topGeo.rotateX(-Math.PI / 2);
-  const top = new THREE.Mesh(topGeo, canopyCream);
+  const top = new THREE.Mesh(topGeo, canopySteel);
   top.userData.canopyTop = true;
   top.position.set(cx, y, cz);
   shellBox(cx, cz, w, d, y);
   top.castShadow = true;
   top.receiveShadow = true;
   root.add(top);
+  const soffit = new THREE.Mesh(
+    new THREE.BoxGeometry(Math.max(0.6, w - 0.36), 0.025, Math.max(0.8, d - 0.55)),
+    canopySoffit,
+  );
+  soffit.position.set(cx, y - 0.02, cz);
+  soffit.userData.noBake = true;
+  root.add(soffit);
 
   const fasciaY = y - 0.03 - FASCIA_H * 0.5;
   // No end board. A square panel on the round nose reads as a blank sign from the drive.
@@ -335,7 +346,7 @@ function addCanopyAt(root: THREE.Group, canopy: Canopy): void {
     [-0.22, -0.16],
     [0.2, 0.18],
   ] as const) {
-    const pool = new THREE.PointLight(0xffc898, 1.7, 10.5, 2);
+    const pool = new THREE.PointLight(0xfff4e4, 2.4, 12, 2);
     pool.position.set(cx + ox * w, y - 0.7, cz + oz * d);
     pool.castShadow = false;
     root.add(pool);
@@ -772,19 +783,68 @@ function addNorthContext(root: THREE.Group): void {
   const southCurb = new THREE.Mesh(new THREE.BoxGeometry(96, 0.14, 0.28), curb);
   southCurb.position.set(-2, 0.08, 27.9);
   root.add(southCurb);
-  const roofs: { x: number; z: number; w: number; d: number; h: number; color: number }[] = [
-    { x: -30, z: 46, w: 24, d: 14, h: 4.4, color: 0x8c8478 },
-    { x: 4, z: 48, w: 30, d: 16, h: 6.2, color: 0x7a7268 },
-    { x: 38, z: 44, w: 16, d: 12, h: 3.8, color: 0x91887c },
-    { x: -52, z: 6, w: 12, d: 18, h: 5.1, color: 0x6e675e },
+  addEastNeighbors(root);
+}
+
+/** East masses from the aerial, image x 1276–1430. North of the MCS pad. */
+function addEastNeighbors(root: THREE.Group): void {
+  const shift = 1.24;
+  const boxOf = (x0: number, y0: number, x1: number, y1: number) => {
+    const [ax, az] = planXZ(x0, y0);
+    const [bx, bz] = planXZ(x1, y1);
+    return {
+      x: (ax + bx) * 0.5 + shift,
+      z: (az + bz) * 0.5,
+      w: Math.abs(bx - ax),
+      d: Math.abs(bz - az),
+    };
+  };
+  const roofs = [
+    { ...boxOf(1276, 258, 1430, 348), h: 5.6, color: 0x8e877c },
+    { ...boxOf(1276, 424, 1430, 588), h: 7.8, color: 0x6a655e },
   ];
   for (const b of roofs) {
-    const mat = new THREE.MeshStandardMaterial({ color: b.color, roughness: 0.84, metalness: 0.04 });
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(b.w, b.h, b.d), mat);
+    const wall = new THREE.MeshStandardMaterial({ color: b.color, roughness: 0.86, metalness: 0.05 });
+    const roof = new THREE.MeshStandardMaterial({ color: 0xb7b1a6, roughness: 0.72, metalness: 0.08 });
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(b.w, b.h, b.d), wall);
     mesh.position.set(b.x, b.h * 0.5, b.z);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
-    root.add(mesh);
+    const cap = new THREE.Mesh(new THREE.BoxGeometry(b.w + 0.2, 0.18, b.d + 0.2), roof);
+    cap.position.set(b.x, b.h + 0.06, b.z);
+    cap.castShadow = true;
+    root.add(mesh, cap);
+  }
+  const lotMat = new THREE.MeshStandardMaterial({ color: 0x2a2826, roughness: 0.94, metalness: 0.03 });
+  const lots = [boxOf(1284, 352, 1422, 418), boxOf(1284, 598, 1422, 678)];
+  for (const lot of lots) {
+    const pad = new THREE.Mesh(new THREE.PlaneGeometry(lot.w, lot.d), lotMat);
+    pad.rotation.x = -Math.PI / 2;
+    pad.position.set(lot.x, 0.01, lot.z);
+    pad.receiveShadow = true;
+    root.add(pad);
+  }
+  const paints = [0xf7f6f2, 0x1a1c20, 0x4a4e55, 0x152a4a, 0x8c1c22, 0xe4dcd0];
+  const paintMat = paints.map((color) => new THREE.MeshStandardMaterial({ color, roughness: 0.32, metalness: 0.48 }));
+  const glass = new THREE.MeshStandardMaterial({ color: 0x14181e, roughness: 0.18, metalness: 0.62 });
+  let n = 0;
+  for (const lot of lots) {
+    const count = 4;
+    for (let i = 0; i < count; i++) {
+      const z = lot.z - lot.d * 0.5 + (i + 0.5) * (lot.d / count);
+      const car = new THREE.Group();
+      car.position.set(lot.x, 0, z);
+      car.rotation.y = Math.PI / 2;
+      const body = new THREE.Mesh(new THREE.BoxGeometry(1.78, 0.52, 4.35), paintMat[n % paintMat.length]!);
+      body.position.y = 0.62;
+      body.castShadow = true;
+      const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.52, 0.4, 2.05), glass);
+      cabin.position.set(0, 0.42, -0.12);
+      body.add(cabin);
+      car.add(body);
+      root.add(car);
+      n += 1;
+    }
   }
 }
 

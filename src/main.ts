@@ -141,10 +141,10 @@ setTextureAnisotropy(renderer.capabilities.getMaxAnisotropy());
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(HORIZON);
-scene.fog = new THREE.Fog(HORIZON, 34, 128);
-scene.add(new THREE.HemisphereLight(0xe7d2bc, 0x4a4036, 0.5));
-const sun = new THREE.DirectionalLight(0xffd2a4, 2.45);
-const fill = new THREE.DirectionalLight(0x9aafc4, 0.22);
+scene.fog = new THREE.Fog(0x241c18, 34, 112);
+scene.add(new THREE.HemisphereLight(0x6e645c, 0x1c1814, 0.26));
+const sun = new THREE.DirectionalLight(0xffb48a, 1.05);
+const fill = new THREE.DirectionalLight(0x4c5c72, 0.1);
 fill.position.set(28, 12, 18);
 scene.add(fill);
 sun.position.set(34, 18, -42);
@@ -719,7 +719,7 @@ function loop(now: number): void {
     fog.far = 520;
   } else {
     fog.near = 34;
-    fog.far = 128;
+    fog.far = 112;
   }
   paintHud();
   pipeline.render();
@@ -1147,7 +1147,7 @@ window.__electromat = {
     const data = capture(w, h);
     for (const o of hidden) o.visible = true;
     scene.background = prev;
-    scene.fog = new THREE.Fog(HORIZON, 34, 128);
+    scene.fog = new THREE.Fog(0x241c18, 34, 112);
     return data;
   },
 };
