@@ -41,16 +41,19 @@ function arcImg(
   return out;
 }
 
-/** Closed centripetal-ish Catmull-Rom. Drops the repeated join. */
-function smoothClosed(points: readonly (readonly [number, number])[], per = 7): [number, number][] {
-  const n = points.length;
+/** Open Catmull-Rom through the endpoints. Does not wrap into a lozenge. */
+function smoothOpen(points: readonly (readonly [number, number])[], per = 6): [number, number][] {
+  if (points.length < 2) return points.map((p) => [p[0], p[1]]);
+  const p = [points[0]!, ...points, points[points.length - 1]!];
   const out: [number, number][] = [];
-  for (let i = 0; i < n; i++) {
-    const p0 = points[(i - 1 + n) % n]!;
-    const p1 = points[i]!;
-    const p2 = points[(i + 1) % n]!;
-    const p3 = points[(i + 2) % n]!;
-    for (let s = 0; s < per; s++) {
+  for (let i = 0; i < p.length - 3; i++) {
+    const p0 = p[i]!;
+    const p1 = p[i + 1]!;
+    const p2 = p[i + 2]!;
+    const p3 = p[i + 3]!;
+    const last = i === p.length - 4;
+    const steps = last ? per + 1 : per;
+    for (let s = 0; s < steps; s++) {
       const t = s / per;
       const t2 = t * t;
       const t3 = t2 * t;
@@ -99,14 +102,30 @@ export const SITE_BOUNDARY = planPoly([
   [142, 520],
 ]);
 
+/**
+ * North edge of the asphalt. Ends sit at the canopy/building turns; the
+ * middle bows south so the curve is convex toward the island.
+ */
+const NORTH_DRIVE_CURVE = smoothOpen(
+  [
+    [450, 340],
+    [600, 372],
+    [780, 400],
+    [980, 402],
+    [1120, 376],
+    [1180, 350],
+  ],
+  6,
+);
+const NW_DRIVE_ARC = arcImg(450, 420, 80, Math.PI, Math.PI * 1.5, 10);
+const NE_DRIVE_ARC = arcImg(1180, 420, 70, Math.PI * 1.5, Math.PI * 2, 10);
+
 /** Asphalt drive. NW and NE corners are quarter arcs; the island is the hole. */
 const DRIVE_PX: [number, number][] = dedupe([
   ...arcImg(448, 752, 78, Math.PI * 0.5, Math.PI, 10),
-  ...arcImg(448, 336, 78, Math.PI, Math.PI * 1.5, 12),
-  [640, 250],
-  [860, 244],
-  [1060, 252],
-  ...arcImg(1172, 336, 78, Math.PI * 1.5, Math.PI * 2, 12),
+  ...NW_DRIVE_ARC,
+  ...NORTH_DRIVE_CURVE,
+  ...NE_DRIVE_ARC,
   ...arcImg(1172, 752, 78, 0, Math.PI * 0.5, 10),
   [980, 842],
   [720, 856],
@@ -115,8 +134,8 @@ const DRIVE_PX: [number, number][] = dedupe([
 export const DRIVE_OUTER = planSmooth(DRIVE_PX, true);
 
 /**
- * Island body is ~366 px wide and ~422 px long (ratio 1.16), matching the
- * aerial silhouette. North end is an ellipse cap. South end is an angled tip.
+ * Island body is ~366 px wide. The north end is a shallow concrete tip
+ * (crown near image y 424), not a tall semicircle. South end is an angled tip.
  */
 function arcImgEllipse(
   cx: number,
@@ -134,7 +153,7 @@ function arcImgEllipse(
   }
   return out;
 }
-const ISLAND_CAP_ELLIPSE = arcImgEllipse(818, 428, 182, 78, Math.PI, Math.PI * 2, 18);
+const ISLAND_CAP_ELLIPSE = arcImgEllipse(818, 448, 184, 24, Math.PI, Math.PI * 2, 14);
 const ISLAND_PX: [number, number][] = dedupe([
   ...ISLAND_CAP_ELLIPSE,
   [1004, 500],
@@ -149,38 +168,39 @@ const ISLAND_PX: [number, number][] = dedupe([
 ]);
 export const ISLAND = planSmooth(ISLAND_PX, false);
 
-/** North curved planter. Outer edge bows north; ends round into the drive. */
+/**
+ * Wide gravel band between the north property line and the drive.
+ * West end is the west canopy's north turn. East end is the east building.
+ * South edge is the drive's outer curve. Not a closed lozenge.
+ */
 export const NORTH_PLANTER = planSmooth(
-  smoothClosed([
-    [390, 300],
-    [470, 228],
-    [640, 178],
-    [860, 158],
-    [1060, 168],
-    [1200, 206],
-    [1268, 268],
-    [1210, 318],
-    [1040, 300],
-    [820, 286],
-    [600, 292],
-    [460, 318],
+  dedupe([
+    ...NW_DRIVE_ARC,
+    ...NORTH_DRIVE_CURVE,
+    ...NE_DRIVE_ARC,
+    [1264, 162],
+    [1080, 156],
+    [820, 152],
+    [560, 158],
+    [370, 170],
   ]),
   true,
 );
 
-/** South planter band, smoothed so the ends are not faceted. */
+/**
+ * Straight gravel strip on the south property line, plus a bed west of the
+ * drive under the west canopy's south end. Not a closed ellipse.
+ */
 export const SOUTH_PLANTER = planSmooth(
-  smoothClosed([
-    [360, 860],
-    [520, 888],
-    [760, 910],
-    [1000, 904],
-    [1200, 868],
-    [1188, 948],
-    [900, 968],
-    [560, 960],
-    [340, 930],
-  ]),
+  [
+    [220, 748],
+    [360, 748],
+    [360, 872],
+    [1248, 864],
+    [1260, 946],
+    [180, 952],
+    [200, 872],
+  ],
   true,
 );
 
@@ -239,11 +259,7 @@ const eastMid = (eastRaw[0]! + eastRaw[eastRaw.length - 1]!) * 0.5;
 /** True 2.74 m pitch, centered on the aerial's east stripe band. */
 export const ROW_EAST_Z = eastRaw.map((_, i) => eastMid - (i - (eastRaw.length - 1) / 2) * 2.74);
 
-/** Curved planter cap and angled south tip, sitting on the island concrete. */
-export const ISLAND_CAP = planSmooth(
-  [...ISLAND_CAP_ELLIPSE, [1000, 436], [636, 436]],
-  false,
-);
+/** Angled south tip, sitting on the island concrete. The north tip is the island itself. */
 export const ISLAND_TIP = planSmooth(
   [
     [680, 678],

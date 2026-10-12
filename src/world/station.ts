@@ -6,7 +6,6 @@ import {
   DRIVE_OUTER,
   ISLAND,
   ROW_EAST_Z,
-  ISLAND_CAP,
   ISLAND_TIP,
   NORTH_PLANTER,
   SITE_BOUNDARY,
@@ -871,7 +870,6 @@ function addVisitorStalls(root: THREE.Group): void {
 function addPlanters(root: THREE.Group): void {
   addPlanterPoly(root, NORTH_PLANTER);
   addPlanterPoly(root, SOUTH_PLANTER);
-  addPlanterPoly(root, ISLAND_CAP);
   addPlanterPoly(root, ISLAND_TIP);
   addStallStripes(root);
   addTrashEnclosure(root);

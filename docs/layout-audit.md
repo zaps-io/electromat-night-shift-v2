@@ -10,13 +10,13 @@ East-drive stripes repeat about every 40 px. The east row is no longer drawn on 
 
 ## Curves
 
-The drive corners are quarter-circle arcs (image radius 78 px) at the northwest, northeast, southeast, and southwest. The north and south edges bow through three control points, then the whole ring is Catmull-Rom sampled. The island's north end is an ellipse arc (rx 182 px, ry 78 px). The south end is an angled tip, smoothed but not rounded off. The north planter is a closed spline (84 vertices), a curved band with rounded ends.
+The drive corners are quarter-circle arcs. The north edge of the asphalt is an open spline, convex toward the island, shared with the gravel band so the corner of the U stays asphalt. The island's north end is a shallow concrete tip (crown at image y 424). The south end is an angled tip. The north planter is the gravel between the property line and that drive edge, from the west canopy's north turn to the east building. The south planter is a straight strip on the property line, with a bed west of the drive under the west canopy's south end.
 
-Island bounding box is 24.66 × 27.66 m, length-to-width 1.12. The aerial body is about 366 px wide and 422 px long, ratio about 1.16.
+Island bounding box is 24.7 × 22.8 m. The aerial concrete body starts at image y 424 and runs to about y 774.
 
 ## What the trace places
 
-- Site boundary, curved asphalt drive (island is the hole), concrete island, north and south decomposed-granite bands, island cap and angled south tip.
+- Site boundary, curved asphalt drive (island is the hole), concrete island with a light north tip, north gravel band, south property-line strip, angled south tip.
 - Canopy rows from the bright bars, about 4.05 m wide on the outer drives. Straight spines (`endR` 0.38).
 - Stalls counted from the stripes: west canopy 7 facing east, island west 5 facing west, island east 5 facing east, east canopy 7 facing west. 24 stalls.
 - Southwest equipment building from the bottom-left block: about x −48.0, z −18.6, 9.6 × 8.7 m.
@@ -36,13 +36,13 @@ Traced drive and island outlines, sampled every 0.35 m and measured to the neare
 |  | meters |
 | --- | --- |
 | median | 0.20 |
-| mean | 0.59 |
-| 90th percentile | 1.36 |
-| worst sample | 5.49 |
+| mean | 0.53 |
+| 90th percentile | 1.46 |
+| worst sample | 3.86 |
 
-Island alone: median 0.13 m, worst 1.41 m. The east drive edge is the tightest (worst 0.13 m). The west drive edge stays inside 0.52 m. The +1.24 m east shift did not open that edge.
+The north gravel band's south edge, compared with the warm pixels in the aerial rather than the drive outline: through the middle of the band (image x 760–960) the miss is 0.04–0.76 m. The island's concrete crown is at image y 424, where the light concrete starts in the photo. The south strip is a straight edge near image y 868; the photo's warm ground there slopes, so the straight line sits about 1.5–2 m off the center of that slope.
 
-The worst samples are the northwest bow of the drive (about world x −16, z 19.8), which lands in a flat dark band of the aerial with no crisp asphalt edge, and the southeast bow (about world x 17, z −18.3, about 3.6 m), where the south edge fades. The overhead camera is a perspective nadir (eye 96 m, fov 46°), not a true orthographic plan. The still is flipped so east is on the right.
+The overhead camera is a perspective nadir (eye 96 m, fov 46°), not a true orthographic plan. The still is flipped so east is on the right.
 
 ## Deviations
 
@@ -53,8 +53,9 @@ The worst samples are the northwest bow of the drive (about world x −16, z 19.
 | Stall rows | Stripes read 7 and 7 on the outer drives. | 7 / 5 / 5 / 7. |
 | Canopy width | Bright bar about 4.05 m. | Kept. |
 | East pitch | About 40 px per stall. | Drawn at a true 2.74 m pitch, and the east canopy is shifted +1.24 m. |
-| Island proportions | Body about 1.16 long-to-wide. | Bounding box 1.12. The cap and the tip's east point widen the box past the body. |
-| North and south bows | Soft in the photo. | Spline follows the control points. Those are the samples past 3 m. |
+| Island north tip | Light concrete from about image y 424. | Shallow concrete tip, no dark gravel semicircle. |
+| North gravel | Band from the property line to the drive. | Same curve as the asphalt's north edge. No lozenge. |
+| South gravel | Straight strip on the property line, plus a west bed. | Straight strip. The west bed stays west of the asphalt. |
 | South door | Storefront glass. | Glass pair and frame. The collider opening stays 3.36 m, with sidelight glass in the extra width. |
 | North surround | Dark band, street, neighbor roofs. | Street, four roof boxes, and the dark brown fill. The old south frontage street is still at z −44, mostly outside this nadir frame. |
 | Queue | The drive ends near z −19. | Waiting cars still stack south of that edge. |
