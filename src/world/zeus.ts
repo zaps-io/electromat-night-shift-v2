@@ -8,18 +8,20 @@ const brush = brushMetal();
 
 const alum = new THREE.MeshPhysicalMaterial({
   name: "ZeusAlum",
-  color: 0xf3f5f7,
+  color: 0xdfe6ee,
   map: brush.map,
   roughnessMap: brush.rough,
   normalMap: brush.normal,
-  normalScale: new THREE.Vector2(0.55, 1.6),
-  metalness: 0.84,
-  roughness: 0.28,
-  clearcoat: 0.22,
-  clearcoatRoughness: 0.24,
+  normalScale: new THREE.Vector2(0.45, 1.2),
+  metalness: 0.78,
+  roughness: 0.26,
+  clearcoat: 0.34,
+  clearcoatRoughness: 0.2,
   anisotropy: 0.9,
   anisotropyRotation: Math.PI / 2,
-  envMapIntensity: 1.15,
+  envMapIntensity: 0.85,
+  emissive: 0x9aa6b4,
+  emissiveIntensity: 0.22,
 });
 
 const charcoal = new THREE.MeshStandardMaterial({
@@ -102,6 +104,7 @@ function screenForRead(read: string): THREE.CanvasTexture {
   return SCREEN_TEX.plugin;
 }
 
+const amberFace = new THREE.MeshBasicMaterial({ color: 0xe89a2e, toneMapped: false });
 const screenMats = new Map<number, THREE.MeshBasicMaterial>();
 
 function screenMaterial(stallId: number): THREE.MeshBasicMaterial {
@@ -124,10 +127,11 @@ const geo = {
   body: new RoundedBoxGeometry(0.46, 1.26, 0.24, 4, 0.02),
   cap: new RoundedBoxGeometry(0.48, 0.05, 0.26, 3, 0.01),
   hair: new THREE.BoxGeometry(0.4, 0.028, 0.016),
-  recess: new THREE.BoxGeometry(0.24, 0.2, 0.012),
-  bezelH: new THREE.BoxGeometry(0.26, 0.012, 0.01),
-  bezelV: new THREE.BoxGeometry(0.012, 0.16, 0.01),
-  display: new THREE.PlaneGeometry(0.22, 0.14),
+  recess: new THREE.BoxGeometry(0.32, 0.26, 0.012),
+  bezelH: new THREE.BoxGeometry(0.34, 0.016, 0.012),
+  bezelV: new THREE.BoxGeometry(0.016, 0.22, 0.012),
+  display: new THREE.PlaneGeometry(0.3, 0.2),
+  amber: new THREE.PlaneGeometry(0.34, 0.24),
   pocket: new RoundedBoxGeometry(0.06, 0.16, 0.045, 2, 0.01),
   lip: new THREE.BoxGeometry(0.064, 0.014, 0.036),
   barrel: new THREE.CylinderGeometry(0.014, 0.016, 0.1, 10),
@@ -135,8 +139,8 @@ const geo = {
   nose: new THREE.CylinderGeometry(0.01, 0.013, 0.026, 8),
 };
 
-const cableGeoL = tubeFromPoints(holsterRestPoints(-1), 0.028, 12);
-const cableGeoR = tubeFromPoints(holsterRestPoints(1), 0.028, 12);
+const cableGeoL = tubeFromPoints(holsterRestPoints(-1), 0.036, 10);
+const cableGeoR = tubeFromPoints(holsterRestPoints(1), 0.036, 10);
 
 const holstersByStall = new Map<number, { rest: THREE.Mesh; handle: THREE.Group; side: -1 | 1 }[]>();
 
@@ -181,6 +185,7 @@ export function addZeusCharger(
   g.position.set(x, 0, z);
   g.rotation.y = yaw;
   g.userData.kind = "zeus";
+  g.userData.noBake = true;
   if (stallId != null) g.userData.stallId = stallId;
 
   const base = new THREE.Mesh(geo.base, black);
@@ -213,15 +218,19 @@ export function addZeusCharger(
   const screenY = 1.12;
   const bezelZ = -0.132;
   const bezelTop = new THREE.Mesh(geo.bezelH, black);
-  bezelTop.position.set(0, screenY + 0.08, bezelZ);
+  bezelTop.position.set(0, screenY + 0.11, bezelZ);
   const bezelBot = new THREE.Mesh(geo.bezelH, black);
-  bezelBot.position.set(0, screenY - 0.08, bezelZ);
+  bezelBot.position.set(0, screenY - 0.11, bezelZ);
   const bezelL = new THREE.Mesh(geo.bezelV, black);
-  bezelL.position.set(-0.12, screenY, bezelZ);
+  bezelL.position.set(-0.16, screenY, bezelZ);
   const bezelR = new THREE.Mesh(geo.bezelV, black);
-  bezelR.position.set(0.12, screenY, bezelZ);
+  bezelR.position.set(0.16, screenY, bezelZ);
+  const amberGlow = new THREE.Mesh(geo.amber, amberFace);
+  amberGlow.position.set(0, screenY, -0.13);
+  amberGlow.rotation.y = Math.PI;
+  amberGlow.userData.noBake = true;
   const display = new THREE.Mesh(geo.display, stallId != null ? screenMaterial(stallId) : screenMaterial(-1));
-  display.position.set(0, screenY, -0.136);
+  display.position.set(0, screenY, -0.138);
   // PlaneGeometry's +Z face, turned to the pedestal front (-Z).
   // With that yaw, u = 0 sits on the viewer's left, so the bitmap is not mirrored.
   display.rotation.y = Math.PI;
@@ -237,7 +246,7 @@ export function addZeusCharger(
   const right = addFrontHolster(g, 1);
   if (stallId != null) holstersByStall.set(stallId, [left, right]);
 
-  g.add(base, body, cap, hair, recess, bezelTop, bezelBot, bezelL, bezelR, display, logo);
+  g.add(base, body, cap, hair, recess, bezelTop, bezelBot, bezelL, bezelR, amberGlow, display, logo);
   root.add(g);
 }
 

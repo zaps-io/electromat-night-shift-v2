@@ -14,7 +14,7 @@ export type Stall = {
   ada?: boolean;
 };
 
-import { ROW_EAST_Z, ROW_ISLAND_Z, ROW_WEST_Z, TRACED_CANOPIES, YARD_FOOTPRINT, ZEUS_X } from "../site/ryanPlan";
+import { DRIVE_OUTER, ROW_EAST_Z, ROW_ISLAND_Z, ROW_WEST_Z, TRACED_CANOPIES, YARD_FOOTPRINT, ZEUS_X } from "../site/ryanPlan";
 
 /**
  * Charger field traced from Ryan's aerial. Stripe pitch is 2.74 m.
@@ -153,25 +153,52 @@ export const AISLE_WALK = { xmin: AB_AISLE_X - 1.55, xmax: AB_AISLE_X + 1.55 } a
 
 const peckStall = BAYS.find((b) => b.playable === 4)!;
 const queueGap = CAR_LENGTH + QUEUE_GAP;
-const queueHeadZ = peckStall.z - 12.4;
 
-/** Nose-to-tail on the A–B aisle. Cars face +Z (into the lot). */
+/** North and south Z where the drive outer ring crosses x. */
+function driveZAt(x: number): { south: number; north: number } {
+  const hits: number[] = [];
+  for (let i = 0; i < DRIVE_OUTER.length; i++) {
+    const [x0, z0] = DRIVE_OUTER[i]!;
+    const [x1, z1] = DRIVE_OUTER[(i + 1) % DRIVE_OUTER.length]!;
+    if (x1 === x0) continue;
+    const minX = x0 < x1 ? x0 : x1;
+    const maxX = x0 < x1 ? x1 : x0;
+    if (x < minX || x >= maxX) continue;
+    const t = (x - x0) / (x1 - x0);
+    hits.push(z0 + (z1 - z0) * t);
+  }
+  hits.sort((a, b) => a - b);
+  return { south: hits[0] ?? -16, north: hits[hits.length - 1] ?? 12 };
+}
+
+const aisleSpan = driveZAt(AB_AISLE_X);
+const halfCar = CAR_LENGTH * 0.5;
+const fitRoom = aisleSpan.north - aisleSpan.south - CAR_LENGTH;
+const overhang = Math.max(0, (4 * queueGap - fitRoom) / 2);
+const southCenter = aisleSpan.south + halfCar - overhang;
+
+/**
+ * Nose-to-tail on the A–B aisle, inside the traced drive. Cars face +Z.
+ * Index 0 is the north head. The aisle is shorter than five sedans plus gaps,
+ * so each end may cross the curb by `overhang` meters rather than stacking on the desert.
+ */
 export const WAIT_SLOTS = [0, 1, 2, 3, 4].map((i) => ({
   x: AB_AISLE_X,
-  z: queueHeadZ - i * queueGap,
+  z: southCenter + (4 - i) * queueGap,
   yaw: Math.PI,
 })) as readonly { x: number; z: number; yaw: number }[];
 
-/** Lot PAY on the west drive (far from Peck) + lounge door stand. */
+/** Lot PAY on the west apron (far from Peck) + lounge door stand. Kept off the queue. */
+const legacyHeadZ = peckStall.z - 12.4;
 export const PAY_POINTS = [
-  { x: AB_AISLE_X - 16.4, z: queueHeadZ - 6.5 },
+  { x: AB_AISLE_X - 16.4, z: legacyHeadZ - 6.5 },
   { x: 3.55, z: -8.2 },
 ] as const;
 export const KIOSK = PAY_POINTS[0];
 export const KIOSK_REACH = 7.2;
 
-/** Aisle-mouth WAVE stand — east of the queue so Kim's Tesla does not bury it. */
-export const WAVE_POINT = { x: AB_AISLE_X + 3.35, z: queueHeadZ + 2.4 };
+/** Aisle-mouth WAVE stand — east of the queue, south of the stall rows, so a car does not bury it. */
+export const WAVE_POINT = { x: AB_AISLE_X + 3.35, z: legacyHeadZ + 2.4 };
 /**
  * Approach to the north CHARGE / RELAX / DEPART board.
  * Optional merch beat — only offered when PAY / UNPLUG / WAVE do not own E.
@@ -318,7 +345,8 @@ export function inWestSidewalk(x: number, z: number): boolean {
   return x < WEST_APRON_X && z < DOOR_YARD.zmin;
 }
 
-export const SAFE_LOT_SPAWN = { x: AB_AISLE_X, z: peckStall.z - 9.2 };
+/** West of the queue centerline, in the gap between the waiting cars and row A. */
+export const SAFE_LOT_SPAWN = { x: AB_AISLE_X - 1.65, z: peckStall.z - 9.2 };
 /** Deeper than a rail scrape — recover to spawn instead of sliding along a void. */
 export const VOID_TELEPORT_M = 3.2;
 

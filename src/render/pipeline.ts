@@ -209,8 +209,9 @@ export function createPipeline(
     tier = next;
     const dprCap = next === "high" ? 1.25 : next === "medium" ? 1 : 1;
     renderer.setPixelRatio(Math.min(devicePixelRatio || 1, dprCap));
-    normalPass.enabled = next !== "low";
-    ssaoPass.enabled = next !== "low";
+    // SSAO is the high-tier pass. Medium stays on shadows and a light bloom so the lot holds 60 fps.
+    normalPass.enabled = next === "high";
+    ssaoPass.enabled = next === "high";
     ssao.intensity = next === "high" ? 0.9 : 0.55;
     bloom.intensity = next === "low" ? 0.012 : next === "medium" ? 0.028 : 0.045;
     const shadow = next === "high" ? 2048 : next === "medium" ? 1024 : 512;

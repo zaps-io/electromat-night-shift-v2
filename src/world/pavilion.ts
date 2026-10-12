@@ -137,28 +137,32 @@ function addGondola(
   const unit = new THREE.Group();
   unit.position.set(x, 0, z);
   unit.rotation.y = yaw;
-  const carcass = new THREE.Mesh(new RoundedBoxGeometry(0.46, 1.42, len, 2, 0.03), charcoal);
-  carcass.position.y = 0.74;
-  const kick = box(0.5, 0.1, len + 0.04, charcoal, 0, 0.06, 0);
-  unit.add(carcass, kick);
+  const wood = mat(0x6a4630, { roughness: 0.58, metalness: 0.05 });
+  const carcass = new THREE.Mesh(new RoundedBoxGeometry(0.42, 1.55, len, 2, 0.03), charcoal);
+  carcass.position.y = 0.8;
+  const kick = box(0.48, 0.08, len + 0.02, charcoal, 0, 0.05, 0);
+  const header = box(0.5, 0.08, len, wood, 0, 1.58, 0);
+  unit.add(carcass, kick, header);
   for (const side of [-1, 1] as const) {
-    const face = new THREE.Mesh(new THREE.PlaneGeometry(len - 0.12, 1.12), merch);
-    face.position.set(side * 0.24, 0.82, 0);
+    const face = new THREE.Mesh(new THREE.PlaneGeometry(len - 0.16, 1.28), merch);
+    face.position.set(side * 0.22, 0.86, 0);
     face.rotation.y = side > 0 ? Math.PI / 2 : -Math.PI / 2;
     unit.add(face);
-    for (let shelf = 0; shelf < 3; shelf++) {
-      const board = box(0.16, 0.02, len - 0.1, charcoal, side * 0.28, 0.38 + shelf * 0.36, 0);
+    for (let shelf = 0; shelf < 4; shelf++) {
+      const board = box(0.2, 0.025, len - 0.08, wood, side * 0.26, 0.28 + shelf * 0.32, 0);
       board.castShadow = false;
       unit.add(board);
-      for (let i = 0; i < 5; i++) {
+      const count = 4;
+      for (let i = 0; i < count; i++) {
+        const tall = (i + shelf) % 3 === 0;
         const pack = box(
-          0.1,
-          0.16,
-          0.08,
-          packs[(i + shelf) % packs.length],
+          tall ? 0.08 : 0.12,
+          tall ? 0.22 : 0.14,
+          tall ? 0.08 : 0.1,
+          packs[(i + shelf) % packs.length]!,
           side * 0.32,
-          0.48 + shelf * 0.36,
-          -len * 0.32 + i * (len * 0.16),
+          0.36 + shelf * 0.32 + (tall ? 0.08 : 0.05),
+          -len * 0.34 + i * (len * 0.22),
         );
         pack.castShadow = false;
         unit.add(pack);
@@ -350,10 +354,24 @@ function addInterior(g: THREE.Group, W: number, D: number, H: number): THREE.Box
     }
   }
 
-  const counter = new THREE.Mesh(new RoundedBoxGeometry(2.85, 0.96, 0.78, 2, 0.05), cream);
-  counter.position.set(-3.55, 0.58, -4.85);
-  const top = new THREE.Mesh(new THREE.BoxGeometry(2.92, 0.05, 0.84), charcoal);
-  top.position.set(-3.55, 1.08, -4.85);
+  const counterWood = mat(0x6d4a34, { roughness: 0.52, metalness: 0.06 });
+  const stone = mat(0xe7e0d4, { roughness: 0.38, metalness: 0.1, envMapIntensity: 0.28 });
+  const counter = new THREE.Mesh(new RoundedBoxGeometry(2.85, 0.92, 0.7, 2, 0.03), counterWood);
+  counter.position.set(-3.55, 0.5, -4.85);
+  const top = new THREE.Mesh(new THREE.BoxGeometry(2.98, 0.06, 0.86), stone);
+  top.position.set(-3.55, 0.98, -4.85);
+  const kick = box(2.7, 0.1, 0.62, charcoal, -3.55, 0.06, -4.85);
+  const backBar = box(2.5, 0.04, 0.22, counterWood, -3.55, 1.42, -5.18);
+  g.add(kick, backBar);
+  for (const [dx, c] of [
+    [-0.9, C.cream],
+    [-0.55, C.red],
+    [-0.2, C.amber],
+    [0.15, C.cream],
+    [0.5, C.leather],
+  ] as const) {
+    g.add(box(0.1, 0.16, 0.1, mat(c, { roughness: 0.4 }), -3.55 + dx, 1.54, -5.16));
+  }
   const pos = box(0.28, 0.32, 0.08, charcoal, -2.35, 1.32, -5.15);
   const posGlow = new THREE.Mesh(new THREE.PlaneGeometry(0.22, 0.24), amber);
   posGlow.position.set(-2.35, 1.32, -5.2);
