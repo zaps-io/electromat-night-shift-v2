@@ -1017,15 +1017,15 @@ export const DOOR_IN_SHOT = {
   fov: 62,
 } as const;
 
-/** Southeast of the lounge — east glass and south fascia in one frame. */
+/** East charger aisle, looking west through the glass at the lounge. A Slim Zeus sits just left of the lens. */
 export const STOREFRONT_SHOT = {
-  x: 9.2,
-  z: DOOR_WORLD_Z - 2.6,
-  eyeY: 1.64,
-  yaw: -2.2,
-  pitch: 0.06,
-  lookAt: { x: PAVILION.x + PAVILION.w * 0.5 - 0.4, y: 1.55, z: PAVILION.z },
-  fov: 48,
+  x: 9.55,
+  z: -6.17,
+  eyeY: 1.62,
+  yaw: -1.6,
+  pitch: 0.04,
+  lookAt: { x: 2.4, y: 1.4, z: -5.4 },
+  fov: 52,
 } as const;
 
 /** Wide lounge interior: cafe, gondola, seating, east glass. */

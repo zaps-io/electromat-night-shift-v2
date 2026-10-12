@@ -27,5 +27,5 @@ Compared the playable lot with Ryan's aerial `docs/ref/ryan/2026-09-18-ryan-rick
 
 - `docs/shots/ns-overhead.png` — straight-down lot.
 - `docs/shots/ns-overhead-vs-ryan.png` — that still beside `2026-09-18-ryan-rickels-site-layout-aerial.jpeg`.
-- `docs/shots/ns-storefront.png` — southeast of the lounge, the charger-facing glass.
+- `docs/shots/ns-storefront.png` — east charger aisle, looking west at the glass. Camera x 9.55, z −6.17.
 - `docs/shots/ns-lot-mix.png` — eye-level mix without the van.
