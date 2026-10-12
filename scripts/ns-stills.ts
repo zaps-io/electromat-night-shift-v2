@@ -5,8 +5,8 @@
 import { mkdirSync } from "node:fs";
 import { createServer } from "vite";
 import { LINEUP_VAN_X, LINEUP_Z, lineupPose } from "../src/cars/fleet.ts";
-import { AB_AISLE_X, BAYS, CANOPIES, PAVILION, START_SHOT, STALLS, WAIT_SLOTS, WAVE_POINT } from "../src/world/layout.ts";
-import { MCS_NOSE_Z, MCS_RIGS } from "../src/world/mcs.ts";
+import { AB_AISLE_X, BAYS, CANOPIES, inPlayableVolume, PAVILION, START_SHOT, STALLS, WAIT_SLOTS, WAVE_POINT } from "../src/world/layout.ts";
+import { MCS_DISPENSERS } from "../src/world/mcs.ts";
 
 const OUT = new URL("../docs/shots/", import.meta.url).pathname;
 
@@ -122,16 +122,39 @@ const fleetLineup: Shot = {
   lookAt: { x: lineupFocusX, y: 1.25, z: LINEUP_Z },
 };
 
+/** Open drive west of the stall row. Eye level, 6–10 m, clear of the lounge. */
+function driveShot(file: string, subjectX: number, subjectZ: number, dist: number, fov: number, zOff = 0): Shot {
+  const x = subjectX - dist;
+  const z = subjectZ + zOff;
+  const range = Math.hypot(dist, zOff);
+  if (range < 6 || range > 10.2) throw new Error(`${file} camera is ${range.toFixed(1)} m from the subject`);
+  if (!inPlayableVolume(x, z)) throw new Error(`${file} camera is off the lot (${x.toFixed(1)}, ${z.toFixed(1)})`);
+  return {
+    file,
+    x,
+    z,
+    yaw: 0,
+    pitch: 0,
+    eyeY: 1.7,
+    fov,
+    lookAt: { x: subjectX, y: 1.15, z: subjectZ },
+  };
+}
+
+const mcsSpot = MCS_DISPENSERS[0]!;
 const mcsSemi: Shot = {
-  file: "ns-mcs-lane.png",
-  x: 10,
-  z: MCS_NOSE_Z - 8,
+  file: "ns-mcs-plugged.png",
+  x: mcsSpot.x + 4.6,
+  z: mcsSpot.z - 5.6,
   yaw: 0,
   pitch: 0,
-  eyeY: 2.2,
-  fov: 48,
-  lookAt: { x: 22, y: 1.2, z: MCS_NOSE_Z + 10 },
+  eyeY: 1.7,
+  fov: 46,
+  lookAt: { x: mcsSpot.x - 2.4, y: 1.5, z: mcsSpot.z - 0.2 },
 };
+if (!inPlayableVolume(mcsSemi.x, mcsSemi.z)) {
+  throw new Error(`mcs camera is off the lot (${mcsSemi.x}, ${mcsSemi.z})`);
+}
 
 const haleBay = BAYS.find((b) => b.playable === 1)!;
 const ruizBay = BAYS.find((b) => b.playable === 2)!;
@@ -148,43 +171,12 @@ const compare: Shot = {
   lookAt: { x: voraBay.x + 0.6, y: 0.9, z: pairZ },
 };
 const pickupPairZ = (haleBay.z + ruizBay.z) * 0.5;
-const pickupCompare: Shot = {
-  file: "ns-compare-pickup.png",
-  x: haleBay.x + 9.2,
-  z: pickupPairZ + 2.2,
-  yaw: 0,
-  pitch: 0,
-  eyeY: 1.7,
-  fov: 48,
-  lookAt: { x: haleBay.x + 0.2, y: 0.95, z: pickupPairZ },
-};
+const pickupCompare: Shot = driveShot("ns-compare-pickup.png", haleBay.x, pickupPairZ, 7.6, 48, -2.4);
 const peckStall = STALLS.find((s) => s.id === 8)!;
 const vanStall = STALLS.find((s) => s.id === 9)!;
 const vanPairZ = (peckStall.z + vanStall.z) * 0.5;
-const vanCompare: Shot = {
-  file: "ns-compare-van.png",
-  x: vanStall.x + 10.2,
-  z: vanPairZ + 1.6,
-  yaw: 0,
-  pitch: 0,
-  eyeY: 1.7,
-  fov: 48,
-  lookAt: { x: vanStall.x - 0.4, y: 1.15, z: vanPairZ },
-};
-const semiX = MCS_RIGS[0]!.x;
-const semiCompare: Shot = {
-  file: "ns-compare-semi.png",
-  x: semiX + 7.5,
-  z: MCS_NOSE_Z - 6.5,
-  yaw: 0,
-  pitch: 0,
-  eyeY: 1.7,
-  fov: 52,
-  lookAt: { x: semiX - 2.2, y: 1.45, z: MCS_NOSE_Z + 3.4 },
-  preview: [
-    { name: "gate-sedan", kind: "sedan", x: semiX - 4.8, z: MCS_NOSE_Z + 2.36, yaw: 0 },
-  ],
-};
+const vanCompare: Shot = driveShot("ns-compare-van.png", vanStall.x, vanPairZ, 7.8, 50, -2.2);
+const lotMix: Shot = driveShot("ns-lot-mix.png", haleBay.x, (haleBay.z + vanStall.z) * 0.5, 9.6, 76, 0);
 const pickupPlug: Shot = {
   file: "ns-plug.png",
   x: haleBay.x - 1.4,
@@ -269,12 +261,12 @@ async function main(): Promise<void> {
     });
     await new Promise((r) => setTimeout(r, 500));
 
-    const gateShots = [start, fleetLineup, mcsSemi, compare, pickupCompare, vanCompare, semiCompare, pickupPlug];
+    const gateShots = [pickupCompare, vanCompare, mcsSemi, lotMix];
     const shots = process.env.SHOP_PREVIEW
       ? gateShots
-      : [start, layers, carDusk, fascia, lounge, charger, leftEdge, canopyEnd, waveFront, fleetLineup, mcsSemi, compare, pickupPlug, vanShot];
+      : [start, layers, carDusk, fascia, lounge, charger, leftEdge, canopyEnd, waveFront, fleetLineup, mcsSemi, compare, pickupCompare, vanCompare, lotMix, pickupPlug, vanShot];
     for (const shot of shots) {
-      await page.evaluate((s: Shot) => {
+      const posed = await page.evaluate((s: Shot) => {
         const api = (
           window as unknown as {
             __electromat: {
@@ -291,7 +283,10 @@ async function main(): Promise<void> {
         for (const p of s.preview ?? []) api.parkPreview(p.name, p.kind, p.x, p.z, p.yaw);
         api.place(s.x, s.z, s.yaw, s.pitch, s.eyeY, s.fov);
         api.lookAt(s.lookAt.x, s.lookAt.y, s.lookAt.z);
+        const apiPos = (window as unknown as { __electromat: { position: { x: number; z: number }; pitch: number } }).__electromat;
+        return { x: apiPos.position.x, z: apiPos.position.z, pitch: apiPos.pitch };
       }, shot);
+      console.log(shot.file, "cam", posed);
       await new Promise((r) => setTimeout(r, 450));
       await page.screenshot({ path: `${OUT}/${shot.file}` });
     }

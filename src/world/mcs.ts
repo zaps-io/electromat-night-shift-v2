@@ -1,17 +1,21 @@
 import * as THREE from "three";
 import type { HullKind } from "../game/state";
+import { tubeFromPoints } from "./cables";
 
 /** Southeast pull-through. Noses point south so a rig can enter from the street and leave north. */
 export const MCS_NOSE_Z = -38;
 export const MCS_LANE = { xmin: 4.2, xmax: 27.5, zmin: -40.6, zmax: -17.5 };
-/** One tractor, no trailer. Nose on MCS_NOSE_Z. Port faces the dispensers. */
-export const MCS_RIGS: { x: number; paint: number }[] = [{ x: 13.5, paint: 0xf7f6f2 }];
+/** One tractor, no trailer. Parked in the south bay, inlet on the dispenser. */
+export const MCS_RIGS: { paint: number; dispenser: number }[] = [{ paint: 0xf7f6f2, dispenser: 0 }];
 
-/** East edge of the pad. The hardware stays; the stalls do not. */
-const MCS_DISPENSERS = [
+/** East edge of the pad. Each dispenser owns one pull-through bay to its west. */
+export const MCS_DISPENSERS = [
   { x: 25.6, z: -33.5 },
   { x: 25.6, z: -24.5 },
 ];
+
+/** Gap from the inlet face to the dispenser center, so the lead can hang clear. */
+const MCS_PLUG_GAP = 1.05;
 
 const charcoal = new THREE.MeshStandardMaterial({
   color: 0x1e1e24,
@@ -34,6 +38,14 @@ const cyan = new THREE.MeshStandardMaterial({
 });
 const laneMat = new THREE.MeshStandardMaterial({ color: 0x2a2826, roughness: 0.94, metalness: 0.02 });
 const stripeMat = new THREE.MeshBasicMaterial({ color: 0xf5f0e8, toneMapped: false });
+const cableMat = new THREE.MeshStandardMaterial({
+  color: 0x111214,
+  roughness: 0.82,
+  metalness: 0.04,
+  transparent: false,
+  opacity: 1,
+  depthWrite: true,
+});
 function mcsFace(): THREE.CanvasTexture {
   const c = document.createElement("canvas");
   c.width = 256;
@@ -117,13 +129,29 @@ export function parkMcsRigs(
     const halfL = (hull.userData.halfL as number) ?? 3.65;
     const halfW = (hull.userData.halfW as number) ?? 1.25;
     const roof = (hull.userData.roof as number) ?? 3.53;
-    hull.position.set(rig.x, 0, MCS_NOSE_Z + halfL);
+    const inlet = (hull.userData.inlet as { x: number; y: number; z: number }) ?? {
+      x: halfW - 0.06,
+      y: 1.35,
+      z: halfL * 0.1,
+    };
+    const spot = MCS_DISPENSERS[rig.dispenser] ?? MCS_DISPENSERS[0]!;
+    const hullX = spot.x - inlet.x - MCS_PLUG_GAP;
+    const hullZ = spot.z - inlet.z;
+    hull.position.set(hullX, 0, hullZ);
     hull.rotation.y = 0;
+    hull.name = "mcs-tractor";
     scene.add(hull);
+    const leadStart = new THREE.Vector3(spot.x - 0.46, 1.28, spot.z);
+    const leadEnd = new THREE.Vector3(hullX + inlet.x, inlet.y, hullZ + inlet.z);
+    const sag = leadStart.clone().lerp(leadEnd, 0.45);
+    sag.y = Math.min(leadStart.y, leadEnd.y) - 0.22;
+    const cable = new THREE.Mesh(tubeFromPoints([leadStart, sag, leadEnd], 0.032, 24), cableMat);
+    cable.name = "mcs-cable";
+    scene.add(cable);
     boxes.push(
       new THREE.Box3(
-        new THREE.Vector3(rig.x - halfW, 0, MCS_NOSE_Z),
-        new THREE.Vector3(rig.x + halfW, roof, MCS_NOSE_Z + halfL * 2),
+        new THREE.Vector3(hullX - halfW, 0, hullZ - halfL),
+        new THREE.Vector3(hullX + halfW, roof, hullZ + halfL),
       ),
     );
   }
