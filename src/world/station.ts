@@ -281,31 +281,10 @@ function addCanopyAt(root: THREE.Group, canopy: Canopy): void {
   root.add(soffit);
 
   const fasciaY = y - 0.03 - FASCIA_H * 0.5;
-  // The short ends are curves. A square fascia board there would square the shell back off.
-  const flatEnd = w - endR * 2;
-  if (flatEnd > 2.6) {
-    const fasciaZ = cz - d * 0.5 - 0.06;
-    const fasciaW = Math.min(flatEnd - 0.3, Math.max(2.2, w - 2.5));
-    const fascia = new THREE.Mesh(new THREE.BoxGeometry(fasciaW, FASCIA_H, 0.1), canopyFascia);
-    fascia.position.set(cx, fasciaY, fasciaZ);
-    fascia.castShadow = true;
-    fascia.userData.canopyFascia = true;
-    fascia.userData.fasciaSign = {
-      x: cx,
-      y: fasciaY,
-      z: fasciaZ - 0.1,
-      yaw: Math.PI,
-      maxW: fasciaW * 0.86,
-      maxH: FASCIA_H * 0.8,
-    };
-    root.add(fascia);
-    const trim = new THREE.Mesh(new THREE.BoxGeometry(fasciaW - 0.12, 0.016, 0.04), canopyTrim);
-    trim.position.set(cx, fasciaY - FASCIA_H * 0.5 - 0.01, fasciaZ - 0.04);
-    root.add(trim);
-  }
+  // No end board. A square panel on the round nose reads as a blank sign from the drive.
   const aisleX = cx + face * (w * 0.5 + 0.05);
   const flatSide = Math.max(1.4, d - endR * 2 - 0.5);
-  const aisleD = Math.min(d - 2.4, 6.2, flatSide);
+  const aisleD = Math.min(3.4, flatSide);
   const aisleFascia = new THREE.Mesh(new THREE.BoxGeometry(0.1, FASCIA_H, aisleD), canopyFascia);
   aisleFascia.position.set(aisleX, fasciaY, cz);
   aisleFascia.castShadow = true;

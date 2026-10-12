@@ -90,6 +90,31 @@ function dressPaint(mat: THREE.MeshPhysicalMaterial, id: SedanPaintId): void {
   }
 }
 
+/** Tire meshes have to sit in the lower half. An upside-down shell fails this. */
+export function assertWheelsLow(root: THREE.Object3D, label = "vehicle"): void {
+  root.updateMatrixWorld(true);
+  const all = new THREE.Box3().setFromObject(root);
+  const tires = new THREE.Box3();
+  let found = false;
+  root.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    const n = labelOf(mesh);
+    if (!n.includes("rubber") && !n.includes("tire")) return;
+    tires.union(new THREE.Box3().setFromObject(mesh));
+    found = true;
+  });
+  if (!found) throw new Error(`${label} has no tire mesh`);
+  const height = Math.max(0.2, all.max.y - all.min.y);
+  const mid = (tires.min.y + tires.max.y) * 0.5;
+  if (mid > all.min.y + height * 0.42) {
+    throw new Error(`${label} tires sit high (mid ${mid.toFixed(2)}, height ${height.toFixed(2)})`);
+  }
+  if (tires.min.y > all.min.y + 0.35) {
+    throw new Error(`${label} tires do not reach the ground`);
+  }
+}
+
 function labelOf(mesh: THREE.Mesh): string {
   const mat = mesh.material as THREE.Material;
   const names = Array.isArray(mesh.material)
@@ -351,6 +376,7 @@ async function loadSedan(): Promise<THREE.Group> {
   if (paint < 1500) throw new Error(`sedan paint hull too thin (${paint} verts)`);
   if (rubber < 200) throw new Error(`sedan tires missing (${rubber} verts)`);
   if (meshes > 16) throw new Error(`sedan split into ${meshes} meshes`);
+  assertWheelsLow(fitted, "sedan");
   return fitted;
 }
 
@@ -545,6 +571,7 @@ async function loadNamedVehicle(
   fitted.userData.inlet = inlet;
   addChargePort(fitted, inlet);
   assertOpaqueCarMaterials(fitted);
+  assertWheelsLow(fitted, file);
   return fitted;
 }
 

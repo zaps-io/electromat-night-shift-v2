@@ -261,7 +261,7 @@ async function main(): Promise<void> {
     });
     await new Promise((r) => setTimeout(r, 500));
 
-    const gateShots = [pickupCompare, vanCompare, mcsSemi, lotMix];
+    const gateShots = [vanCompare, lotMix];
     const shots = process.env.SHOP_PREVIEW
       ? gateShots
       : [start, layers, carDusk, fascia, lounge, charger, leftEdge, canopyEnd, waveFront, fleetLineup, mcsSemi, compare, pickupCompare, vanCompare, lotMix, pickupPlug, vanShot];

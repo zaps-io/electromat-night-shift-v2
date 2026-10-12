@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import {
   COMBO_GAP,
   DISRUPT_MIN,
@@ -1725,5 +1726,64 @@ if (!/MCS_RIGS[^\n]*=\s*\[\s*\{/.test(mcsSrc) || !mcsSrc.includes('"semi"')) {
   throw new Error("MCS lane should park the tractor only");
 }
 if ((mcsSrc.match(/mcs-dispenser/g) ?? []).length < 1) throw new Error("MCS dispensers missing");
+
+const { NodeIO } = await import("@gltf-transform/core");
+const { EXTMeshoptCompression, KHRMeshQuantization } = await import("@gltf-transform/extensions");
+const { MeshoptDecoder } = await import("meshoptimizer");
+await MeshoptDecoder.ready;
+const wheelIo = new NodeIO()
+  .registerExtensions([EXTMeshoptCompression, KHRMeshQuantization])
+  .registerDependencies({ "meshopt.decoder": MeshoptDecoder });
+for (const file of ["zaps-ev-sedan.glb", "zaps-ev-pickup.glb", "zaps-ev-van.glb", "zaps-ev-semi.glb"]) {
+  const doc = await wheelIo.read(fileURLToPath(new URL(`../public/cars/${file}`, import.meta.url)));
+  let minY = Infinity;
+  let maxY = -Infinity;
+  let tireMin = Infinity;
+  let tireMax = -Infinity;
+  let found = false;
+  for (const node of doc.getRoot().listNodes()) {
+    const mesh = node.getMesh();
+    if (!mesh) continue;
+    const matNames = mesh.listPrimitives().map((prim) => prim.getMaterial()?.getName() ?? "").join(" ");
+    const tire = `${node.getName()} ${mesh.getName()} ${matNames}`.toLowerCase();
+    const isTire = tire.includes("rubber") || tire.includes("tire");
+    const m = node.getWorldMatrix();
+    for (const prim of mesh.listPrimitives()) {
+      const acc = prim.getAttribute("POSITION");
+      const arr = acc?.getArray();
+      if (!arr) continue;
+      const quant = !acc.getNormalized()
+        ? 1
+        : acc.getComponentType() === 5120
+          ? 1 / 127
+          : acc.getComponentType() === 5121
+            ? 1 / 255
+            : acc.getComponentType() === 5122
+              ? 1 / 32767
+              : acc.getComponentType() === 5123
+                ? 1 / 65535
+                : 1;
+      for (let i = 0; i < arr.length; i += 3) {
+        const x = arr[i] * quant;
+        const y0 = arr[i + 1] * quant;
+        const z = arr[i + 2] * quant;
+        const y = m[1] * x + m[5] * y0 + m[9] * z + m[13];
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+        if (!isTire) continue;
+        found = true;
+        if (y < tireMin) tireMin = y;
+        if (y > tireMax) tireMax = y;
+      }
+    }
+  }
+  if (!found) throw new Error(`${file} has no tire mesh`);
+  const height = Math.max(0.2, maxY - minY);
+  const mid = (tireMin + tireMax) * 0.5;
+  if (mid > minY + height * 0.42) {
+    throw new Error(`${file} tires sit high (mid ${mid.toFixed(2)}, height ${height.toFixed(2)})`);
+  }
+  if (tireMin > minY + 0.35) throw new Error(`${file} tires do not reach the ground`);
+}
 
 console.log("verify-shift ok");
