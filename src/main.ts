@@ -59,7 +59,8 @@ import {
   initialQuality,
   type QualityTier,
 } from "./render/pipeline";
-import { addFleetLineup, addLodFillers, carColliders, hullDebug, loadCarPrototypes, paintedHull, parkBackdropCars, syncCars, trimLodFillers, type CarView } from "./world/cars";
+import type { HullKind } from "./game/state";
+import { addFleetLineup, addLodFillers, carColliders, hullDebug, loadCarPrototypes, paintedHull, parkBackdropCars, parkVanStall, syncCars, trimLodFillers, type CarView } from "./world/cars";
 import { parkMcsRigs } from "./world/mcs";
 import { addPedestrians } from "./world/people";
 import {
@@ -1006,6 +1007,16 @@ window.__electromat = {
     const prev = scene.getObjectByName("fleet-lineup");
     if (prev) scene.remove(prev);
   },
+  parkPreview(name: string, kind: string, x: number, z: number, yaw: number) {
+    const prev = scene.getObjectByName(name);
+    if (prev) scene.remove(prev);
+    const hull = paintedHull(0xf7f6f2, kind as HullKind);
+    hull.name = name;
+    hull.position.set(x, 0, z);
+    hull.rotation.y = yaw;
+    scene.add(hull);
+    return true;
+  },
   act,
   place(x: number, z: number, yaw = 0, pitch = 0, eyeY = 1.64, fov?: number) {
     walker.setFov(fov ?? (eyeY > 3.2 ? WIDE_SHOT.fov : START_SHOT.fov));
@@ -1137,6 +1148,8 @@ void Promise.all([loadCarPrototypes(), brandingReady, artReady]).then(() => {
   addLodFillers(scene);
   parkBackdropCars(skyline);
   station.colliders.push(...parkMcsRigs(scene, paintedHull));
+  const vanBox = parkVanStall(scene);
+  if (vanBox) station.colliders.push(vanBox);
   ready = true;
 });
 

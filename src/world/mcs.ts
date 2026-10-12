@@ -4,8 +4,8 @@ import type { HullKind } from "../game/state";
 /** Southeast pull-through. Noses point south so a rig can enter from the street and leave north. */
 export const MCS_NOSE_Z = -38;
 export const MCS_LANE = { xmin: 4.2, xmax: 27.5, zmin: -40.6, zmax: -17.5 };
-/** Empty. The authored tractor still read as a toy cab beside the Model 3. */
-export const MCS_RIGS: { x: number; paint: number }[] = [];
+/** One tractor, no trailer. Nose on MCS_NOSE_Z. Port faces the dispensers. */
+export const MCS_RIGS: { x: number; paint: number }[] = [{ x: 13.5, paint: 0xf7f6f2 }];
 
 /** East edge of the pad. The hardware stays; the stalls do not. */
 const MCS_DISPENSERS = [
@@ -104,14 +104,29 @@ export function addMcsLane(root: THREE.Group): void {
 }
 
 /**
- * Dispensers only. A rig is parked only when MCS_RIGS has one.
- * Returns walk colliders for any rig and for the dispensers.
+ * Dispensers plus the tractor in MCS_RIGS. No trailer.
+ * Returns walk colliders for the rig and the dispensers.
  */
 export function parkMcsRigs(
   scene: THREE.Object3D,
   _makeHull: (color: number, kind: HullKind) => THREE.Group,
 ): THREE.Box3[] {
   const boxes: THREE.Box3[] = [];
+  for (const rig of MCS_RIGS) {
+    const hull = _makeHull(rig.paint, "semi");
+    const halfL = (hull.userData.halfL as number) ?? 3.65;
+    const halfW = (hull.userData.halfW as number) ?? 1.25;
+    const roof = (hull.userData.roof as number) ?? 3.53;
+    hull.position.set(rig.x, 0, MCS_NOSE_Z + halfL);
+    hull.rotation.y = 0;
+    scene.add(hull);
+    boxes.push(
+      new THREE.Box3(
+        new THREE.Vector3(rig.x - halfW, 0, MCS_NOSE_Z),
+        new THREE.Vector3(rig.x + halfW, roof, MCS_NOSE_Z + halfL * 2),
+      ),
+    );
+  }
   for (const spot of MCS_DISPENSERS) {
     scene.add(dispenser(spot.x, spot.z));
     boxes.push(

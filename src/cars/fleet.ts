@@ -466,3 +466,6 @@ export const LINEUP_COUNT = SEDAN_PAINTS.length;
 export function lineupPose(index: number): { x: number; z: number } {
   return { x: -14 + index * 5.6, z: LINEUP_Z };
 }
+
+/** Delivery van past the last paint, with a gap so a 6.3 m body does not touch the pearl sedan. */
+export const LINEUP_VAN_X = lineupPose(LINEUP_COUNT - 1).x + 7.6;

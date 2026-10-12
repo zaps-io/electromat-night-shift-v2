@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
-import { chargePortRing, lineupPose, pickWeighted, SEDAN_PAINTS, type SedanPaintId } from "../cars/fleet";
+import { chargePortRing, LINEUP_VAN_X, LINEUP_Z, lineupPose, pickWeighted, SEDAN_PAINTS, type SedanPaintId } from "../cars/fleet";
 import {
   assertOpaqueCarMaterials,
   forceOpaque,
@@ -11,7 +11,7 @@ import {
 } from "../cars/opaque";
 import type { GameState, Guest, HullKind, LotRead } from "../game/state";
 import { arrivedGuests, lotRead } from "../game/shift";
-import { BAYS, STALLS, WAIT_ORDER, WAIT_SLOTS } from "./layout";
+import { BAYS, CAR_LENGTH, STALLS, WAIT_ORDER, WAIT_SLOTS } from "./layout";
 import { ccsLeadPoints, tubeFromPoints } from "./cables";
 import { makeAttentionIcon, makeBatteryIcon } from "./icons";
 import { setZeusHolsterPlugged, tintStallBadge } from "./zeus";
@@ -445,9 +445,127 @@ function loadCrossover(sedan: THREE.Group): THREE.Group {
   return body;
 }
 
+function addAuthoredShadow(root: THREE.Group): void {
+  root.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(root);
+  const size = box.getSize(new THREE.Vector3());
+  const shadow = new THREE.Mesh(
+    new THREE.PlaneGeometry(Math.max(1.2, size.x * 0.82), Math.max(2.2, size.z * 0.88)),
+    shadowMat,
+  );
+  shadow.rotation.x = -Math.PI / 2;
+  shadow.position.set(0, 0.02, (box.min.z + box.max.z) * 0.5);
+  shadow.renderOrder = 1;
+  shadow.name = "Decal";
+  root.add(shadow);
+}
+
+function firstMat(mesh: THREE.Mesh): THREE.MeshStandardMaterial | null {
+  const mat = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
+  return (mat as THREE.MeshStandardMaterial) ?? null;
+}
+
+/** Keep glass, lamps, and tires separate. Stainless stays stainless. Paint can take a guest color. */
+function dressImported(root: THREE.Object3D): void {
+  root.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    const n = labelOf(mesh);
+    const src = firstMat(mesh);
+    if (n.includes("glass")) {
+      mesh.material = sharedGlass;
+      return;
+    }
+    if (n.includes("rubber") || n.includes("tire")) {
+      const mat = rubberMat.clone();
+      if (src?.normalMap) mat.normalMap = src.normalMap;
+      mesh.material = mat;
+      return;
+    }
+    if (n.includes("tail")) {
+      mesh.material = tailMat;
+      return;
+    }
+    if (n.includes("lamp") || n.includes("light") || n.includes("head")) {
+      const mat = lampMat.clone();
+      if (src?.emissiveMap) {
+        src.emissiveMap.colorSpace = THREE.SRGBColorSpace;
+        mat.emissiveMap = src.emissiveMap;
+      }
+      mesh.material = mat;
+      return;
+    }
+    if (n.includes("chrome") || n.includes("disk") || n.includes("hub")) {
+      mesh.material = chromeMat;
+      return;
+    }
+    if (n.includes("metal")) {
+      mesh.material = new THREE.MeshPhysicalMaterial({
+        name: "Metal",
+        color: 0xd5d8dc,
+        metalness: 0.72,
+        roughness: 0.28,
+        clearcoat: 0.62,
+        clearcoatRoughness: 0.18,
+        envMapIntensity: 1.1,
+        transparent: false,
+        opacity: 1,
+        depthWrite: true,
+        transmission: 0,
+      });
+      return;
+    }
+    if (n.includes("paint")) {
+      mesh.material = paintFor(0xf7f6f2);
+      mesh.userData.paint = true;
+      return;
+    }
+    mesh.material = trimMat;
+  });
+}
+
+async function loadNamedVehicle(
+  file: string,
+  length: number,
+  inletFor: (size: THREE.Vector3) => { x: number; y: number; z: number },
+): Promise<THREE.Group> {
+  const gltf = await loader.loadAsync(`${import.meta.env.BASE_URL}cars/${file}`);
+  const fitted = fitFacingNegZ(gltf.scene, length);
+  dressImported(fitted);
+  fitted.updateMatrixWorld(true);
+  const size = new THREE.Box3().setFromObject(fitted).getSize(new THREE.Vector3());
+  addAuthoredShadow(fitted);
+  const inlet = inletFor(size);
+  fitted.userData.source = file;
+  fitted.userData.halfL = Number((size.z * 0.5).toFixed(3));
+  fitted.userData.halfW = Number((size.x * 0.5).toFixed(3));
+  fitted.userData.roof = Number(size.y.toFixed(3));
+  fitted.userData.inlet = inlet;
+  addChargePort(fitted, inlet);
+  assertOpaqueCarMaterials(fitted);
+  return fitted;
+}
+
 export async function loadCarPrototypes(): Promise<void> {
   prototypes.sedan = await loadSedan();
   prototypes.suv = loadCrossover(prototypes.sedan);
+  prototypes.pickup = await loadNamedVehicle("zaps-ev-pickup.glb", 5.7, (size) => ({
+    x: size.x * 0.5 - 0.04,
+    y: 0.84,
+    z: -size.z * 0.28,
+  }));
+  prototypes.van = await loadNamedVehicle("zaps-ev-van.glb", 6.3, (size) => ({
+    x: size.x * 0.5 - 0.05,
+    y: 1.08,
+    z: -size.z * 0.22,
+  }));
+  prototypes.semi = await loadNamedVehicle("zaps-ev-semi.glb", 7.3, (size) => ({
+    x: size.x * 0.5 - 0.06,
+    y: 1.35,
+    z: size.z * 0.05,
+  }));
 }
 
 export function parkBackdropCars(root: THREE.Object3D): void {
@@ -517,8 +635,38 @@ export function addFleetLineup(parent: THREE.Object3D): THREE.Group {
     label.position.set(pose.x, ((hull.userData.roof as number) ?? 1.6) + 0.85, pose.z);
     row.add(hull, label);
   });
+  const van = paintedHull(0xf7f6f2, "van");
+  van.position.set(LINEUP_VAN_X, 0, LINEUP_Z);
+  const vanLabel = lineupLabel("van");
+  vanLabel.position.set(LINEUP_VAN_X, ((van.userData.roof as number) ?? 2.7) + 0.85, LINEUP_Z);
+  row.add(van, vanLabel);
   parent.add(row);
   return row;
+}
+
+/** Delivery van in stall 9, nose kept off the pedestal. */
+export function parkVanStall(scene: THREE.Object3D): THREE.Box3 | null {
+  const stall = STALLS.find((s) => s.id === 9);
+  const src = prototypes.van;
+  if (!stall || !src) return null;
+  const hull = paintedHull(0xf7f6f2, "van");
+  const halfL = (hull.userData.halfL as number) ?? 3.15;
+  const halfW = (hull.userData.halfW as number) ?? 1.24;
+  const extra = Math.max(0, halfL - CAR_LENGTH * 0.5);
+  const away = Math.sign(stall.x - stall.zeusX) || 1;
+  hull.position.set(stall.x + away * extra, 0, stall.z);
+  hull.rotation.y = stall.carYaw;
+  hull.name = "stall-van";
+  scene.add(hull);
+  const yaw = stall.carYaw;
+  const c = Math.abs(Math.cos(yaw));
+  const s = Math.abs(Math.sin(yaw));
+  const hx = halfL * s + halfW * c;
+  const hz = halfL * c + halfW * s;
+  return new THREE.Box3(
+    new THREE.Vector3(hull.position.x - hx, 0, hull.position.z - hz),
+    new THREE.Vector3(hull.position.x + hx, 2.2, hull.position.z + hz),
+  );
 }
 
 const lodFillerRoots: THREE.Group[] = [];
@@ -762,7 +910,10 @@ function stepDeparts(now: number, scene: THREE.Scene): void {
 export function placeGuest(view: CarView, guest: Guest, now: number, state?: GameState): void {
   if (guest.assignedBay != null) {
     const bay = BAYS[guest.assignedBay - 1];
-    view.root.position.set(bay.x, 0, bay.z);
+    const halfL = (view.root.userData.halfL as number) ?? 2.36;
+    const extra = Math.max(0, halfL - CAR_LENGTH * 0.5);
+    const away = Math.sign(bay.x - bay.zeusX) || 1;
+    view.root.position.set(bay.x + away * extra, 0, bay.z);
     view.root.rotation.y = bay.carYaw;
   } else {
     const named = WAIT_ORDER.indexOf(guest.id as (typeof WAIT_ORDER)[number]);

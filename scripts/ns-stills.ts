@@ -4,9 +4,9 @@
  */
 import { mkdirSync } from "node:fs";
 import { createServer } from "vite";
-import { LINEUP_COUNT, LINEUP_Z, lineupPose } from "../src/cars/fleet.ts";
-import { AB_AISLE_X, BAYS, CANOPIES, PAVILION, START_SHOT, WAIT_SLOTS, WAVE_POINT } from "../src/world/layout.ts";
-import { MCS_NOSE_Z } from "../src/world/mcs.ts";
+import { LINEUP_VAN_X, LINEUP_Z, lineupPose } from "../src/cars/fleet.ts";
+import { AB_AISLE_X, BAYS, CANOPIES, PAVILION, START_SHOT, STALLS, WAIT_SLOTS, WAVE_POINT } from "../src/world/layout.ts";
+import { MCS_NOSE_Z, MCS_RIGS } from "../src/world/mcs.ts";
 
 const OUT = new URL("../docs/shots/", import.meta.url).pathname;
 
@@ -21,6 +21,7 @@ type Shot = {
   eyeY: number;
   fov: number;
   lookAt: { x: number; y: number; z: number };
+  preview?: { name: string; kind: string; x: number; z: number; yaw: number }[];
 };
 
 const start: Shot = {
@@ -109,16 +110,16 @@ const layers: Shot = {
   lookAt: { x: AB_AISLE_X, y: 1.55, z: -54 },
 };
 
-const lineupFocusX = (lineupPose(0).x + lineupPose(LINEUP_COUNT - 1).x) * 0.5;
+const lineupFocusX = (lineupPose(0).x + LINEUP_VAN_X) * 0.5;
 const fleetLineup: Shot = {
   file: "ns-fleet-lineup.png",
   x: lineupFocusX,
-  z: LINEUP_Z - 15,
+  z: LINEUP_Z - 23,
   yaw: 0,
   pitch: 0,
   eyeY: 1.7,
-  fov: 80,
-  lookAt: { x: lineupFocusX, y: 1.35, z: LINEUP_Z },
+  fov: 84,
+  lookAt: { x: lineupFocusX, y: 1.25, z: LINEUP_Z },
 };
 
 const mcsSemi: Shot = {
@@ -132,6 +133,7 @@ const mcsSemi: Shot = {
   lookAt: { x: 22, y: 1.2, z: MCS_NOSE_Z + 10 },
 };
 
+const haleBay = BAYS.find((b) => b.playable === 1)!;
 const ruizBay = BAYS.find((b) => b.playable === 2)!;
 const voraBay = BAYS.find((b) => b.playable === 3)!;
 const pairZ = (ruizBay.z + voraBay.z) * 0.5;
@@ -145,15 +147,53 @@ const compare: Shot = {
   fov: 46,
   lookAt: { x: voraBay.x + 0.6, y: 0.9, z: pairZ },
 };
-const pickupPlug: Shot = {
-  file: "ns-plug.png",
-  x: voraBay.x - 1.1,
-  z: voraBay.z + 8.4,
+const pickupPairZ = (haleBay.z + ruizBay.z) * 0.5;
+const pickupCompare: Shot = {
+  file: "ns-compare-pickup.png",
+  x: haleBay.x + 9.2,
+  z: pickupPairZ + 2.2,
   yaw: 0,
   pitch: 0,
   eyeY: 1.7,
-  fov: 38,
-  lookAt: { x: voraBay.x - 0.35, y: 1.0, z: voraBay.z },
+  fov: 48,
+  lookAt: { x: haleBay.x + 0.2, y: 0.95, z: pickupPairZ },
+};
+const peckStall = STALLS.find((s) => s.id === 8)!;
+const vanStall = STALLS.find((s) => s.id === 9)!;
+const vanPairZ = (peckStall.z + vanStall.z) * 0.5;
+const vanCompare: Shot = {
+  file: "ns-compare-van.png",
+  x: vanStall.x + 10.2,
+  z: vanPairZ + 1.6,
+  yaw: 0,
+  pitch: 0,
+  eyeY: 1.7,
+  fov: 48,
+  lookAt: { x: vanStall.x - 0.4, y: 1.15, z: vanPairZ },
+};
+const semiX = MCS_RIGS[0]!.x;
+const semiCompare: Shot = {
+  file: "ns-compare-semi.png",
+  x: semiX + 7.5,
+  z: MCS_NOSE_Z - 6.5,
+  yaw: 0,
+  pitch: 0,
+  eyeY: 1.7,
+  fov: 52,
+  lookAt: { x: semiX - 2.2, y: 1.45, z: MCS_NOSE_Z + 3.4 },
+  preview: [
+    { name: "gate-sedan", kind: "sedan", x: semiX - 4.8, z: MCS_NOSE_Z + 2.36, yaw: 0 },
+  ],
+};
+const pickupPlug: Shot = {
+  file: "ns-plug.png",
+  x: haleBay.x - 1.4,
+  z: haleBay.z + 8.6,
+  yaw: 0,
+  pitch: 0,
+  eyeY: 1.7,
+  fov: 40,
+  lookAt: { x: haleBay.x - 0.6, y: 1.0, z: haleBay.z },
 };
 
 const kimSlot = WAIT_SLOTS[2]!;
@@ -229,7 +269,7 @@ async function main(): Promise<void> {
     });
     await new Promise((r) => setTimeout(r, 500));
 
-    const gateShots = [start, fleetLineup, mcsSemi, compare, pickupPlug];
+    const gateShots = [start, fleetLineup, mcsSemi, compare, pickupCompare, vanCompare, semiCompare, pickupPlug];
     const shots = process.env.SHOP_PREVIEW
       ? gateShots
       : [start, layers, carDusk, fascia, lounge, charger, leftEdge, canopyEnd, waveFront, fleetLineup, mcsSemi, compare, pickupPlug, vanShot];
@@ -242,11 +282,13 @@ async function main(): Promise<void> {
               lookAt: (x: number, y: number, z: number) => void;
               showLineup: () => void;
               hideLineup: () => void;
+              parkPreview: (name: string, kind: string, x: number, z: number, yaw: number) => void;
             };
           }
         ).__electromat;
         if (s.file === "ns-fleet-lineup.png") api.showLineup();
         else api.hideLineup();
+        for (const p of s.preview ?? []) api.parkPreview(p.name, p.kind, p.x, p.z, p.yaw);
         api.place(s.x, s.z, s.yaw, s.pitch, s.eyeY, s.fov);
         api.lookAt(s.lookAt.x, s.lookAt.y, s.lookAt.z);
       }, shot);
