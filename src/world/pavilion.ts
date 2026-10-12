@@ -626,15 +626,6 @@ export function addPavilion(root: THREE.Group): THREE.Box3[] {
     reflectivity: 0.38,
     side: THREE.DoubleSide,
   });
-  const paneGlow = new THREE.MeshBasicMaterial({
-    color: 0xfff4e4,
-    transparent: true,
-    opacity: 0.045,
-    toneMapped: false,
-    side: THREE.DoubleSide,
-    depthWrite: false,
-  });
-
   const kick = 0.28;
   const doorL = PAVILION_DOOR.localX - PAVILION_DOOR.width * 0.5;
   const doorR = PAVILION_DOOR.localX + PAVILION_DOOR.width * 0.5;
@@ -654,30 +645,35 @@ export function addPavilion(root: THREE.Group): THREE.Box3[] {
   addChargerGlass(g, west + 0.02, -Math.PI / 2, D, glass, mullion);
   g.add(box(W, H - 0.12, T, wall, 0, H * 0.5, north - T * 0.5));
 
-  g.add(box(southLeftW, 0.22, T, wall, west + southLeftW * 0.5, kick + 0.11, south + T * 0.5));
-  g.add(box(southRightW, 0.22, T, wall, doorR + southRightW * 0.5, kick + 0.11, south + T * 0.5));
-  g.add(box(southLeftW, 0.72, T, wall, west + southLeftW * 0.5, 2.88, south + T * 0.5));
-  g.add(box(southRightW, 0.72, T, wall, doorR + southRightW * 0.5, 2.88, south + T * 0.5));
-  g.add(box(southLeftW, 0.42, T, wall, west + southLeftW * 0.5, 0.62, south + T * 0.5));
-  g.add(box(southRightW, 0.42, T, wall, doorR + southRightW * 0.5, 0.62, south + T * 0.5));
-  g.add(box(0.18, H - 0.12, T + 0.04, wall, west + 0.12, H * 0.5, south + T * 0.5));
-  g.add(box(0.18, H - 0.12, T + 0.04, wall, east - 0.12, H * 0.5, south + T * 0.5));
-  g.add(box(T + 0.04, H - 0.12, 0.18, wall, east - T * 0.5, H * 0.5, south + 0.12));
+  g.add(box(0.08, H - 0.12, 0.1, mullion, west + 0.08, H * 0.5, south + 0.02));
+  g.add(box(0.08, H - 0.12, 0.1, mullion, east - 0.08, H * 0.5, south + 0.02));
   g.add(box(T + 0.04, H - 0.12, 0.18, wall, east - T * 0.5, H * 0.5, north - 0.12));
 
-  const jamb = mat(C.chrome, { roughness: 0.32, metalness: 0.72, envMapIntensity: 0.5 });
-  const portal = mat(0xc8ccd2, { roughness: 0.34, metalness: 0.68, envMapIntensity: 0.48 });
-  const jambHair = mat(C.chrome, { roughness: 0.28, metalness: 0.8, envMapIntensity: 0.55 });
-  g.add(box(0.18, doorH + 0.16, 0.2, portal, doorL, doorH * 0.5 + 0.02, south - 0.04));
-  g.add(box(0.18, doorH + 0.16, 0.2, portal, doorR, doorH * 0.5 + 0.02, south - 0.04));
-  g.add(box(doorW + 0.38, 0.16, 0.2, portal, doorX, doorH + 0.14, south - 0.04));
-  g.add(box(0.02, doorH + 0.04, 0.02, jambHair, doorL + 0.08, doorH * 0.5, south - 0.14));
-  g.add(box(0.02, doorH + 0.04, 0.02, jambHair, doorR - 0.08, doorH * 0.5, south - 0.14));
-  g.add(box(doorW + 0.16, 0.02, 0.02, jambHair, doorX, doorH + 0.04, south - 0.14));
-  g.add(box(0.14, doorH + 0.08, 0.16, jamb, doorL, doorH * 0.5 + 0.02, south + 0.02));
-  g.add(box(0.14, doorH + 0.08, 0.16, jamb, doorR, doorH * 0.5 + 0.02, south + 0.02));
-  g.add(box(doorW + 0.28, 0.16, 0.18, jamb, doorX, doorH + 0.1, south + 0.02));
-  g.add(box(doorW + 0.2, 0.06, 0.22, jamb, doorX, 0.04, south + 0.04));
+  const jamb = mat(C.chrome, { roughness: 0.28, metalness: 0.78, envMapIntensity: 0.62 });
+  const frame = mat(0xd8dde4, { roughness: 0.3, metalness: 0.7, envMapIntensity: 0.55 });
+  const leafW = 1.05;
+  const leafH = 2.42;
+  const pairW = leafW * 2 + 0.08;
+  const frameL = doorX - pairW * 0.5;
+  const frameR = doorX + pairW * 0.5;
+  const headY = leafH + 0.08;
+  g.add(box(0.08, leafH + 0.16, 0.12, frame, frameL, leafH * 0.5 + 0.04, south - 0.02));
+  g.add(box(0.08, leafH + 0.16, 0.12, frame, frameR, leafH * 0.5 + 0.04, south - 0.02));
+  g.add(box(pairW + 0.16, 0.1, 0.12, frame, doorX, headY, south - 0.02));
+  g.add(box(pairW + 0.16, 0.08, 0.14, frame, doorX, 0.06, south - 0.01));
+  const sideGlass = (x0: number, x1: number) => {
+    const span = x1 - x0;
+    if (span < 0.4) return;
+    const pane = new THREE.Mesh(new THREE.PlaneGeometry(span - 0.08, leafH - 0.06), glass);
+    pane.position.set((x0 + x1) * 0.5, leafH * 0.5 + 0.08, south + 0.03);
+    g.add(pane);
+    g.add(box(0.045, leafH, 0.06, mullion, x0, leafH * 0.5 + 0.06, south + 0.02));
+  };
+  sideGlass(west + 0.12, frameL);
+  sideGlass(frameR, east - 0.12);
+  const transom = new THREE.Mesh(new THREE.PlaneGeometry(W - 0.4, 0.42), glass);
+  transom.position.set(0, headY + 0.28, south + 0.03);
+  g.add(transom);
 
   const spill = new THREE.Mesh(
     new THREE.PlaneGeometry(doorW - 0.12, doorH - 0.12),
@@ -714,39 +710,25 @@ export function addPavilion(root: THREE.Group): THREE.Box3[] {
   doorLamp.position.set(doorX, doorH + 0.05, south + 0.55);
   g.add(spill, matRun, warmSpill, doorLamp);
 
-  const leaf = new THREE.Group();
-  leaf.position.set(doorL + 0.04, 0, south + 0.04);
-  leaf.rotation.y = 1.52;
-  const leafW = 0.98;
-  const leafH = doorH - 0.16;
-  const leafCx = leafW * 0.5;
-  const leafCy = doorH * 0.5 + 0.02;
-  const leafGlass = new THREE.Mesh(new THREE.PlaneGeometry(leafW - 0.08, leafH - 0.08), glass);
-  leafGlass.position.set(leafCx, leafCy, 0);
-  const stileL = box(0.07, leafH, 0.05, jamb, 0.05, leafCy, 0.01);
-  const stileR = box(0.07, leafH, 0.05, jamb, leafW - 0.05, leafCy, 0.01);
-  const railT = box(leafW, 0.08, 0.05, jamb, leafCx, leafCy + leafH * 0.5 - 0.04, 0.01);
-  const railB = box(leafW, 0.08, 0.05, jamb, leafCx, leafCy - leafH * 0.5 + 0.04, 0.01);
-  const railM = box(leafW - 0.04, 0.06, 0.04, jamb, leafCx, 1.12, 0.01);
-  const pull = box(0.035, 0.34, 0.04, mat(C.chrome, { metalness: 0.85, roughness: 0.2 }), leafW - 0.16, 1.05, -0.04);
-  leaf.add(stileL, stileR, railT, railB, railM, leafGlass, pull);
-  g.add(leaf);
-
-  const portalW = Math.max(1.15, Math.min(2.15, southLeftW - 0.55));
-  const portalWr = Math.max(1.15, Math.min(2.35, southRightW - 0.55));
-  const leftPane = new THREE.Mesh(new THREE.PlaneGeometry(portalW, 1.55), glass);
-  leftPane.position.set(west + southLeftW * 0.55, 1.55, south + 0.06);
-  const rightPane = new THREE.Mesh(new THREE.PlaneGeometry(portalWr, 1.55), glass);
-  rightPane.position.set(doorR + southRightW * 0.48, 1.55, south + 0.06);
-  const leftGlow = new THREE.Mesh(new THREE.PlaneGeometry(portalW - 0.12, 1.4), paneGlow);
-  leftGlow.position.set(west + southLeftW * 0.55, 1.55, south + 0.14);
-  const rightGlow = new THREE.Mesh(new THREE.PlaneGeometry(portalWr - 0.12, 1.4), paneGlow);
-  rightGlow.position.set(doorR + southRightW * 0.48, 1.55, south + 0.14);
-  g.add(leftPane, rightPane, leftGlow, rightGlow);
-  g.add(box(portalW + 0.16, 0.08, 0.1, mullion, west + southLeftW * 0.55, 2.36, south + 0.04));
-  g.add(box(portalW + 0.16, 0.08, 0.1, mullion, west + southLeftW * 0.55, 0.74, south + 0.04));
-  g.add(box(portalWr + 0.16, 0.08, 0.1, mullion, doorR + southRightW * 0.48, 2.36, south + 0.04));
-  g.add(box(portalWr + 0.16, 0.08, 0.1, mullion, doorR + southRightW * 0.48, 0.74, south + 0.04));
+  const addLeaf = (hingeX: number, open: number, pullSide: number) => {
+    const leaf = new THREE.Group();
+    leaf.position.set(hingeX, 0, south - 0.02);
+    leaf.rotation.y = open;
+    const leafCx = leafW * 0.5 * pullSide;
+    const leafCy = leafH * 0.5 + 0.06;
+    const pane = new THREE.Mesh(new THREE.PlaneGeometry(leafW - 0.12, leafH - 0.16), glass);
+    pane.position.set(leafCx, leafCy, 0);
+    const stileL = box(0.055, leafH, 0.045, jamb, pullSide * 0.04, leafCy, 0.01);
+    const stileR = box(0.055, leafH, 0.045, jamb, pullSide * (leafW - 0.04), leafCy, 0.01);
+    const railT = box(leafW, 0.07, 0.045, jamb, leafCx, leafCy + leafH * 0.5 - 0.04, 0.01);
+    const railB = box(leafW, 0.07, 0.045, jamb, leafCx, 0.1, 0.01);
+    const railM = box(leafW - 0.08, 0.045, 0.04, jamb, leafCx, 1.15, 0.012);
+    const pull = box(0.03, 0.42, 0.045, mat(C.chrome, { metalness: 0.86, roughness: 0.18 }), pullSide * (leafW - 0.16), 1.05, -0.03);
+    leaf.add(pane, stileL, stileR, railT, railB, railM, pull);
+    g.add(leaf);
+  };
+  addLeaf(frameL + 0.06, 0.15, 1);
+  addLeaf(frameR - 0.06, -0.72, -1);
 
   const fascia = box(W - 0.35, 0.82, 0.1, fasciaPlate, 0, H - 0.48, south - 0.06);
   fascia.userData.loungeFascia = true;

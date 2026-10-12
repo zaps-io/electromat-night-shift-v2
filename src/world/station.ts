@@ -4,8 +4,8 @@ import { C } from "../brand";
 import { addMcsLane, MCS_LANE } from "./mcs";
 import {
   DRIVE_OUTER,
-  EAST_STRIPE_PY,
   ISLAND,
+  ROW_EAST_Z,
   ISLAND_CAP,
   ISLAND_TIP,
   NORTH_PLANTER,
@@ -115,8 +115,15 @@ function layFlat(
 
 /** Asphalt only inside the traced drive. Desert fills the site; concrete fills the island. */
 function makeAsphalt(root: THREE.Group): THREE.Mesh {
-  const desert = new THREE.MeshStandardMaterial({ color: 0xcbb892, roughness: 0.96, metalness: 0.02 });
+  const desert = new THREE.MeshStandardMaterial({ color: 0x8d7356, roughness: 0.97, metalness: 0.02 });
   const concrete = new THREE.MeshStandardMaterial({ color: 0xd9d4cc, roughness: 0.72, metalness: 0.04 });
+  const fillMat = new THREE.MeshStandardMaterial({ color: 0x4a3b30, roughness: 0.98, metalness: 0.02 });
+  const fill = new THREE.Mesh(new THREE.PlaneGeometry(180, 170), fillMat);
+  fill.rotation.x = -Math.PI / 2;
+  fill.position.y = -0.012;
+  fill.receiveShadow = true;
+  root.add(fill);
+  addNorthContext(root);
   layFlat(root, xzShape(SITE_BOUNDARY), desert, 0, true);
   // The traced plan has no semi bay. This apron is the east-edge deviation under the MCS pad.
   const mcsW = MCS_LANE.xmax - 27.4;
@@ -680,10 +687,12 @@ function addPolyCurb(
 }
 
 const dgMat = new THREE.MeshStandardMaterial({
-  color: 0xc4a574,
+  color: 0xb08960,
   map: gravel(),
-  roughness: 0.94,
-  metalness: 0.02,
+  roughness: 0.88,
+  metalness: 0.03,
+  emissive: 0x3a2a18,
+  emissiveIntensity: 0.08,
 });
 
 function addPlanterPoly(root: THREE.Group, points: readonly (readonly [number, number])[]): void {
@@ -713,11 +722,17 @@ function addPlanterPoly(root: THREE.Group, points: readonly (readonly [number, n
 }
 
 function addStallStripes(root: THREE.Group): void {
-  const paint = mat(0xf4f1ea, { roughness: 0.62, metalness: 0.02 });
+  const paint = new THREE.MeshStandardMaterial({
+    color: 0xf7f4ee,
+    emissive: 0xf4efe6,
+    emissiveIntensity: 0.42,
+    roughness: 0.42,
+    metalness: 0.02,
+  });
   const stripe = (x0: number, x1: number, z: number) => {
     const w = Math.abs(x1 - x0);
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, 0.012, 0.09), paint);
-    mesh.position.set((x0 + x1) * 0.5, 0.045, z);
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, 0.015, 0.12), paint);
+    mesh.position.set((x0 + x1) * 0.5, 0.05, z);
     mesh.receiveShadow = true;
     root.add(mesh);
   };
@@ -728,7 +743,50 @@ function addStallStripes(root: THREE.Group): void {
     stripe(xAt(590), xAt(670), z);
     stripe(xAt(950), xAt(1030), z);
   }
-  for (const py of EAST_STRIPE_PY) stripe(xAt(1040), xAt(1185), planXZ(0, py)[1]);
+  const pitch = 2.74;
+  const eastX0 = xAt(1040) + 0.7;
+  const eastX1 = xAt(1185) + 1.24;
+  const eastLines = [
+    ROW_EAST_Z[0]! + pitch * 0.5,
+    ...ROW_EAST_Z.slice(0, -1).map((z, i) => (z + ROW_EAST_Z[i + 1]!) * 0.5),
+    ROW_EAST_Z[ROW_EAST_Z.length - 1]! - pitch * 0.5,
+  ];
+  for (const z of eastLines) stripe(eastX0, eastX1, z);
+}
+
+/** Street and neighbor roofs north of the planter, on the darker surround. */
+function addNorthContext(root: THREE.Group): void {
+  const road = new THREE.MeshStandardMaterial({ color: 0x3a3834, roughness: 0.95, metalness: 0.04 });
+  const street = new THREE.Mesh(new THREE.PlaneGeometry(96, 10.5), road);
+  street.rotation.x = -Math.PI / 2;
+  street.position.set(-2, 0.006, 33.2);
+  street.receiveShadow = true;
+  root.add(street);
+  const paint = new THREE.MeshBasicMaterial({ color: 0xe7e2d6, toneMapped: false });
+  for (const x of [-28, -8, 12, 32]) {
+    const dash = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 0.16), paint);
+    dash.rotation.x = -Math.PI / 2;
+    dash.position.set(x, 0.02, 33.2);
+    root.add(dash);
+  }
+  const curb = new THREE.MeshStandardMaterial({ color: 0xc8c0b2, roughness: 0.86, metalness: 0.02 });
+  const southCurb = new THREE.Mesh(new THREE.BoxGeometry(96, 0.14, 0.28), curb);
+  southCurb.position.set(-2, 0.08, 27.9);
+  root.add(southCurb);
+  const roofs: { x: number; z: number; w: number; d: number; h: number; color: number }[] = [
+    { x: -30, z: 46, w: 24, d: 14, h: 4.4, color: 0x8c8478 },
+    { x: 4, z: 48, w: 30, d: 16, h: 6.2, color: 0x7a7268 },
+    { x: 38, z: 44, w: 16, d: 12, h: 3.8, color: 0x91887c },
+    { x: -52, z: 6, w: 12, d: 18, h: 5.1, color: 0x6e675e },
+  ];
+  for (const b of roofs) {
+    const mat = new THREE.MeshStandardMaterial({ color: b.color, roughness: 0.84, metalness: 0.04 });
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(b.w, b.h, b.d), mat);
+    mesh.position.set(b.x, b.h * 0.5, b.z);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    root.add(mesh);
+  }
 }
 
 function addTrashEnclosure(root: THREE.Group): void {

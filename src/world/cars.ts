@@ -688,7 +688,7 @@ export function addLodFillers(scene: THREE.Object3D, count = lodFillerBudget): v
   for (const spec of LOD_FILLERS.slice(0, n)) {
     const root = new THREE.Group();
     root.add(paintedHull(spec.paint, spec.hull));
-    root.position.set(spec.x, 0, spec.z);
+    root.position.set(spec.x, 0.02, spec.z);
     root.rotation.y = spec.yaw;
     root.userData.kind = "lod-filler";
     scene.add(root);
@@ -905,13 +905,13 @@ export function placeGuest(view: CarView, guest: Guest, now: number, state?: Gam
     const halfL = (view.root.userData.halfL as number) ?? 2.36;
     const extra = Math.max(0, halfL - CAR_LENGTH * 0.5);
     const away = Math.sign(bay.x - bay.zeusX) || 1;
-    view.root.position.set(bay.x + away * extra, 0, bay.z);
+    view.root.position.set(bay.x + away * extra, 0.02, bay.z);
     view.root.rotation.y = bay.carYaw;
   } else {
     const named = WAIT_ORDER.indexOf(guest.id as (typeof WAIT_ORDER)[number]);
     const slot = named >= 0 ? named : 0;
     const wait = WAIT_SLOTS[Math.min(slot, WAIT_SLOTS.length - 1)];
-    view.root.position.set(wait.x, 0, wait.z);
+    view.root.position.set(wait.x, 0.02, wait.z);
     view.root.rotation.y = wait.yaw;
   }
   const read = lotRead(guest);
