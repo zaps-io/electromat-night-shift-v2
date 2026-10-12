@@ -262,24 +262,6 @@ function addCanopyAt(root: THREE.Group, canopy: Canopy): void {
   top.receiveShadow = true;
   root.add(top);
 
-  const soffitWell = mat(0xe7e0d2, {
-    roughness: 0.58,
-    metalness: 0.04,
-    envMapIntensity: 0.16,
-    emissive: 0xe7e0d2,
-    emissiveIntensity: 0.08,
-  });
-  const underGeo = new THREE.ExtrudeGeometry(roundedRectShape(w - 0.55, d - 0.55, Math.max(0.4, endR - 0.28)), {
-    depth: 0.05,
-    bevelEnabled: false,
-    curveSegments: 14,
-  });
-  underGeo.rotateX(-Math.PI / 2);
-  const soffit = new THREE.Mesh(underGeo, soffitWell);
-  soffit.position.set(cx, y - 0.02, cz);
-  soffit.receiveShadow = true;
-  root.add(soffit);
-
   const fasciaY = y - 0.03 - FASCIA_H * 0.5;
   // No end board. A square panel on the round nose reads as a blank sign from the drive.
   const aisleX = cx + face * (w * 0.5 + 0.05);
