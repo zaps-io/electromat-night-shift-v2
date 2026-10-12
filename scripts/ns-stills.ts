@@ -4,7 +4,7 @@
  */
 import { mkdirSync } from "node:fs";
 import { createServer } from "vite";
-import { LINEUP_VAN_X, LINEUP_Z, lineupPose } from "../src/cars/fleet.ts";
+import { LINEUP_COUNT, LINEUP_Z, lineupPose } from "../src/cars/fleet.ts";
 import { AB_AISLE_X, BAYS, CANOPIES, inPlayableVolume, OVERHEAD_SHOT, PAVILION, START_SHOT, STOREFRONT_SHOT, STALLS, WAIT_SLOTS, WAVE_POINT } from "../src/world/layout.ts";
 import { MCS_DISPENSERS } from "../src/world/mcs.ts";
 
@@ -110,7 +110,7 @@ const layers: Shot = {
   lookAt: { x: AB_AISLE_X, y: 1.55, z: -54 },
 };
 
-const lineupFocusX = (lineupPose(0).x + LINEUP_VAN_X) * 0.5;
+const lineupFocusX = (lineupPose(0).x + lineupPose(LINEUP_COUNT - 1).x) * 0.5;
 const fleetLineup: Shot = {
   file: "ns-fleet-lineup.png",
   x: lineupFocusX,

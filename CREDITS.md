@@ -15,10 +15,9 @@ The shipped file is `public/cars/zaps-ev-sedan.glb` (interior and the duplicate 
 
 The crossover is this same Model 3 with the greenhouse lifted to about 1.62 m. Wheel arches, tires, and the charge port stay on the sedan. Length stays 4.72 m.
 
-Hand-modeled stand-ins were not shipped. The lot now also loads three CC-BY Sketchfab bodies, meshopt-compressed, noses toward -Z:
+Hand-modeled stand-ins were not shipped. The lot now also loads two CC-BY Sketchfab bodies, meshopt-compressed, noses toward -Z:
 
 - Pickup, about 5.70 × 2.59 × 1.81 m, 43.8k triangles. Hale's stall. Stainless shell, separate glass, lamps, and tires. Title: Cybertruck. Author: Onur (@onurpearl). https://sketchfab.com/3d-models/cybertruck-558ea6c828e64a87ae25ade1531c4180 License: CC Attribution 4.0. File: `public/cars/zaps-ev-pickup.glb`.
-- Delivery van, about 6.30 × 2.49 × 2.70 m, decimated to 70k triangles from the author's mesh. Stall 9. The source file was one material, so glass, tires, bumpers, and lamps are split by face position: tinted glass, dark rubber, black trim, a white headlight bar, and red tail lamps. Title: Rivian Amazon Delivery Van. Author: Nieve5677 (@niev). https://sketchfab.com/3d-models/rivian-amazon-delivery-van-c1fe2ca1d1044af2a343fad994773069 License: CC Attribution 4.0. File: `public/cars/zaps-ev-van.glb`.
 - Class 8 tractor, no trailer, about 7.30 × 2.50 × 3.53 m, 80.4k triangles. MCS lane, inlet on the right side behind the cab. Title: Tesla Semi. Author: Oleksii Rozumnyi. https://sketchfab.com/3d-models/tesla-semi-39ffc7c746184e0c9ebd5bbcd0b405dd License: CC Attribution 4.0. File: `public/cars/zaps-ev-semi.glb`. Textures recompressed to WebP.
 
 Kenney meshes are not in the lot.

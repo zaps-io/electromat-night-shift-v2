@@ -251,9 +251,11 @@ for (const p of lead.slice(0, -1)) {
 }
 if (Math.abs(lead[1]!.x) > 0.55) throw new Error("CCS hang too wide at the holster");
 for (const side of [-1, 1] as const) {
-  for (const p of holsterRestPoints(side)) {
-    if (p.z > -0.22) throw new Error("holster rest cable clips into the Zeus body");
-    if (p.z < -0.3) throw new Error("holster rest hangs too far out (spaghetti)");
+  const pts = holsterRestPoints(side);
+  if (Math.max(...pts.map((p) => p.y)) < 2.2) throw new Error("Slim Zeus goosenecks must rise above the pedestal");
+  for (const p of pts) {
+    const clear = Math.abs(p.x) > 0.24 || p.y > 1.42 || Math.abs(p.z) > 0.16;
+    if (!clear) throw new Error("holster rest cable clips into the Zeus body");
   }
 }
 
@@ -1734,7 +1736,7 @@ await MeshoptDecoder.ready;
 const wheelIo = new NodeIO()
   .registerExtensions([EXTMeshoptCompression, KHRMeshQuantization])
   .registerDependencies({ "meshopt.decoder": MeshoptDecoder });
-for (const file of ["zaps-ev-sedan.glb", "zaps-ev-pickup.glb", "zaps-ev-van.glb", "zaps-ev-semi.glb"]) {
+for (const file of ["zaps-ev-sedan.glb", "zaps-ev-pickup.glb", "zaps-ev-semi.glb"]) {
   const doc = await wheelIo.read(fileURLToPath(new URL(`../public/cars/${file}`, import.meta.url)));
   let minY = Infinity;
   let maxY = -Infinity;

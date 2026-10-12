@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
-import { chargePortRing, LINEUP_VAN_X, LINEUP_Z, lineupPose, pickWeighted, SEDAN_PAINTS, type SedanPaintId } from "../cars/fleet";
+import { chargePortRing, lineupPose, pickWeighted, SEDAN_PAINTS, type SedanPaintId } from "../cars/fleet";
 import {
   assertOpaqueCarMaterials,
   forceOpaque,
@@ -583,11 +583,6 @@ export async function loadCarPrototypes(): Promise<void> {
     y: 0.84,
     z: -size.z * 0.28,
   }));
-  prototypes.van = await loadNamedVehicle("zaps-ev-van.glb", 6.3, (size) => ({
-    x: size.x * 0.5 - 0.05,
-    y: 1.08,
-    z: -size.z * 0.22,
-  }));
   prototypes.semi = await loadNamedVehicle("zaps-ev-semi.glb", 7.3, (size) => ({
     x: size.x * 0.5 - 0.06,
     y: 1.35,
@@ -662,38 +657,8 @@ export function addFleetLineup(parent: THREE.Object3D): THREE.Group {
     label.position.set(pose.x, ((hull.userData.roof as number) ?? 1.6) + 0.85, pose.z);
     row.add(hull, label);
   });
-  const van = paintedHull(0xf7f6f2, "van");
-  van.position.set(LINEUP_VAN_X, 0, LINEUP_Z);
-  const vanLabel = lineupLabel("van");
-  vanLabel.position.set(LINEUP_VAN_X, ((van.userData.roof as number) ?? 2.7) + 0.85, LINEUP_Z);
-  row.add(van, vanLabel);
   parent.add(row);
   return row;
-}
-
-/** Delivery van in stall 9, nose kept off the pedestal. */
-export function parkVanStall(scene: THREE.Object3D): THREE.Box3 | null {
-  const stall = STALLS.find((s) => s.id === 9);
-  const src = prototypes.van;
-  if (!stall || !src) return null;
-  const hull = paintedHull(0xf7f6f2, "van");
-  const halfL = (hull.userData.halfL as number) ?? 3.15;
-  const halfW = (hull.userData.halfW as number) ?? 1.24;
-  const extra = Math.max(0, halfL - CAR_LENGTH * 0.5);
-  const away = Math.sign(stall.x - stall.zeusX) || 1;
-  hull.position.set(stall.x + away * extra, 0, stall.z);
-  hull.rotation.y = stall.carYaw;
-  hull.name = "stall-van";
-  scene.add(hull);
-  const yaw = stall.carYaw;
-  const c = Math.abs(Math.cos(yaw));
-  const s = Math.abs(Math.sin(yaw));
-  const hx = halfL * s + halfW * c;
-  const hz = halfL * c + halfW * s;
-  return new THREE.Box3(
-    new THREE.Vector3(hull.position.x - hx, 0, hull.position.z - hz),
-    new THREE.Vector3(hull.position.x + hx, 2.2, hull.position.z + hz),
-  );
 }
 
 const lodFillerRoots: THREE.Group[] = [];

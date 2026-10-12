@@ -747,17 +747,53 @@ function addVisitorStalls(root: THREE.Group): void {
   }
 }
 
+/** Long agave curb. Plants follow the length so the bed reads as a continuous band. */
+function addAgaveRun(root: THREE.Group, x0: number, x1: number, z: number, d = 1.7): void {
+  const w = Math.abs(x1 - x0);
+  const x = (x0 + x1) * 0.5;
+  const curb = mat(0xeee8dc, {
+    roughness: 0.7,
+    metalness: 0.03,
+    map: curbColor(),
+    roughnessMap: curbRough(),
+    envMapIntensity: 0.12,
+  });
+  const bed = new THREE.Mesh(new RoundedBoxGeometry(w, 0.28, d, 2, 0.05), curb);
+  bed.position.set(x, 0.14, z);
+  bed.receiveShadow = true;
+  const fill = new THREE.Mesh(
+    new THREE.PlaneGeometry(w - 0.22, d - 0.22),
+    new THREE.MeshStandardMaterial({
+      color: 0xe0d0a8,
+      map: gravelMap(),
+      roughness: 0.94,
+      metalness: 0.02,
+    }),
+  );
+  fill.rotation.x = -Math.PI / 2;
+  fill.position.set(x, 0.29, z);
+  root.add(bed, fill);
+  const step = 2.35;
+  const start = Math.min(x0, x1) + 1.1;
+  const end = Math.max(x0, x1) - 1.1;
+  let i = 0;
+  for (let px = start; px <= end; px += step) {
+    addAgave(root, px, z + ((i % 2) - 0.5) * 0.28, 0.78 + (i % 3) * 0.08);
+    i += 1;
+  }
+}
+
 function addPlanters(root: THREE.Group): void {
   addDesertBed(root, -37.2, 13.15, 2.8, 2.2);
   addDesertBed(root, 40.4, -18.5, 2.6, 4.2);
   addDesertBed(root, 8.5, -42.6, 8.4, 2.2);
-  // North and south landscape edges, plus the island tips clear of the door.
-  addDesertBed(root, -16, 14.35, 16, 2.1);
-  addDesertBed(root, 12, 14.15, 14, 2.1);
-  addDesertBed(root, -20, -18.5, 12, 2.0);
-  addDesertBed(root, 16, -16.5, 10, 2.0);
-  addDesertBed(root, -8.4, 4.6, 3.2, 2.2);
-  addDesertBed(root, 8.6, 4.6, 3.2, 2.2);
+  addAgaveRun(root, -32, 38, 14.35, 1.75);
+  addAgaveRun(root, -36, 3.2, -43.35, 1.65);
+  addAgaveRun(root, 14.2, 38, -43.35, 1.65);
+  addDesertBed(root, -5.5, 4.4, 3.2, 1.7);
+  addDesertBed(root, 5.6, 4.4, 3.2, 1.7);
+  addDesertBed(root, -5.6, -9.85, 2.4, 1.6);
+  addDesertBed(root, 5.8, -9.85, 2.4, 1.6);
   addMonument(root);
   addVisitorStalls(root);
   for (const [x, z, h] of [

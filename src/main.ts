@@ -60,7 +60,7 @@ import {
   type QualityTier,
 } from "./render/pipeline";
 import type { HullKind } from "./game/state";
-import { addFleetLineup, addLodFillers, carColliders, hullDebug, loadCarPrototypes, paintedHull, parkBackdropCars, parkVanStall, syncCars, trimLodFillers, type CarView } from "./world/cars";
+import { addFleetLineup, addLodFillers, carColliders, hullDebug, loadCarPrototypes, paintedHull, parkBackdropCars, syncCars, trimLodFillers, type CarView } from "./world/cars";
 import { parkMcsRigs } from "./world/mcs";
 import { addPedestrians } from "./world/people";
 import {
@@ -1148,8 +1148,6 @@ void Promise.all([loadCarPrototypes(), brandingReady, artReady]).then(() => {
   addLodFillers(scene);
   parkBackdropCars(skyline);
   station.colliders.push(...parkMcsRigs(scene, paintedHull));
-  const vanBox = parkVanStall(scene);
-  if (vanBox) station.colliders.push(vanBox);
   ready = true;
 });
 

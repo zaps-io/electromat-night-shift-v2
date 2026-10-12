@@ -874,8 +874,8 @@ export const CANOPIES: Canopy[] = [
   canopyFor([17, 18, 19, 20, 21, 22, 23, 24], -1),
 ];
 
-/** NE equipment pad: ESS, rectifiers, TX. East of row D, north of the visitor row. */
-export const YARD = { x: 34.2, z: 11.05, w: 13.4, d: 6.2 };
+/** South equipment pad: the aerial's bottom-left building, west of the south door. */
+export const YARD = { x: -24.5, z: -36.2, w: 13.4, d: 6.2 };
 
 export type VisitorBay = { x: number; z: number; yaw: number };
 
@@ -912,7 +912,7 @@ export const WIDE_SHOT = {
   fov: 48,
 } as const;
 
-/** Straight-down plan. Must read as Ryan's four rows, central lounge, NE yard. */
+/** Straight-down plan. Must read as Ryan's four rows, central lounge, south yard. */
 export const OVERHEAD_SHOT = {
   x: 1.2,
   z: -6,
@@ -1094,7 +1094,7 @@ export const CANOPY_ROW_SHOT = {
   fov: 46,
 } as const;
 
-/** Equipment yard — ESS, rectifier, TX. Gameplay eye on the east lot. */
+/** Equipment yard — ESS, rectifier, TX. Gameplay eye on the south-west pad. */
 export const YARD_SHOT = {
   x: YARD.x - 5.4,
   z: YARD.z - 2.6,
