@@ -284,7 +284,7 @@ const rearOf = (id: number) => {
   const sign = Math.sign(stall.x - stall.zeusX) || 1;
   return stall.x + sign * CAR_LENGTH * 0.5;
 };
-const abAisle = Math.abs(rearOf(1) - rearOf(5));
+const abAisle = Math.abs(rearOf(1) - rearOf(8));
 if (abAisle < 4.2) throw new Error(`A-B aisle collapsed to ${abAisle.toFixed(2)}`);
 
 const gap = pavilionDoorGap();

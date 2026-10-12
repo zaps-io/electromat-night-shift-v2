@@ -14,42 +14,31 @@ export type Stall = {
   ada?: boolean;
 };
 
+import { ROW_EAST_Z, ROW_ISLAND_Z, ROW_WEST_Z, TRACED_CANOPIES, YARD_FOOTPRINT, ZEUS_X } from "../site/ryanPlan";
+
 /**
- * Ryan Zaps-v018 charger field, playably compressed (0.92).
- * Blender XY → game XZ. Four single-sided rows, alternating face:
- * A 4 @ rot 0, B 7 @ rot 180, C 5 @ rot 0, D 8 @ rot 180.
- * Stall pitch stays ~2.6–2.9 m so Slim Zeus cars do not overlap.
+ * Charger field traced from Ryan's aerial. Stripe pitch is 2.74 m.
+ * West canopy 7 facing east, island west flank 5 facing west,
+ * island east flank 5 facing east, east canopy 7 facing west.
  */
-const SITE_SCALE = 0.92;
-const BLENDER_X0 = 34.0405;
-const BLENDER_Y0 = 29.2;
-const toX = (blenderX: number) => (blenderX - BLENDER_X0) * SITE_SCALE;
-const toZ = (blenderY: number) => (blenderY - BLENDER_Y0) * SITE_SCALE;
-
-function rowYs(y0: number, y1: number, n: number): number[] {
-  return Array.from({ length: n }, (_, i) => y0 + ((y1 - y0) * i) / Math.max(1, n - 1));
-}
-
 /** rot 0 faces +X (east). rot 180 faces -X (west). */
 const FACE_EAST = { zeusYaw: -Math.PI / 2, carYaw: FACE_NX, aisle: 1 as const };
 const FACE_WEST = { zeusYaw: Math.PI / 2, carYaw: FACE_PX, aisle: -1 as const };
 
 type RowDef = {
-  bx: number;
-  y0: number;
-  y1: number;
-  n: number;
+  zeusX: number;
+  zs: number[];
   face: typeof FACE_EAST | typeof FACE_WEST;
   /** Stall id → Night Shift bay, when this pedestal is playable. */
   playable: Record<number, number>;
   adaId?: number;
 };
 
-const RYAN_ROWS: RowDef[] = [
-  { bx: 5.357, y0: 21.083, y1: 29.77, n: 4, face: FACE_EAST, playable: { 1: 5 }, adaId: 4 },
-  { bx: 25.045, y0: 21.205, y1: 40.141, n: 7, face: FACE_WEST, playable: { 5: 1, 6: 2, 7: 3, 8: 4, 9: 6 } },
-  { bx: 43.036, y0: 21.083, y1: 32.36, n: 5, face: FACE_EAST, playable: {} },
-  { bx: 62.724, y0: 17.043, y1: 37.467, n: 8, face: FACE_WEST, playable: {} },
+const TRACED_ROWS: RowDef[] = [
+  { zeusX: ZEUS_X.west, zs: ROW_WEST_Z, face: FACE_EAST, playable: { 1: 5 }, adaId: 4 },
+  { zeusX: ZEUS_X.islandWest, zs: ROW_ISLAND_Z, face: FACE_WEST, playable: { 8: 1, 9: 2, 10: 3, 11: 4, 12: 6 } },
+  { zeusX: ZEUS_X.islandEast, zs: ROW_ISLAND_Z, face: FACE_EAST, playable: {} },
+  { zeusX: ZEUS_X.east, zs: ROW_EAST_Z, face: FACE_WEST, playable: {} },
 ];
 
 /** Tesla Model 3 fit length. Stall X is Zeus + half hull + pedestal + bumper gap. */
@@ -82,18 +71,17 @@ function stallCarX(zeusX: number, aisleSign: 1 | -1): number {
 }
 
 let nextStallId = 1;
-export const STALLS: Stall[] = RYAN_ROWS.flatMap((row) => {
-  const zeusX = toX(row.bx);
+export const STALLS: Stall[] = TRACED_ROWS.flatMap((row) => {
   const face = row.face;
-  return rowYs(row.y0, row.y1, row.n).map((by) => {
+  return row.zs.map((z) => {
     const id = nextStallId++;
     return {
       id,
-      x: stallCarX(zeusX, face.aisle),
-      z: toZ(by),
+      x: stallCarX(row.zeusX, face.aisle),
+      z,
       carYaw: face.carYaw,
-      zeusX,
-      zeusZ: toZ(by),
+      zeusX: row.zeusX,
+      zeusZ: z,
       zeusYaw: face.zeusYaw,
       playable: row.playable[id],
       ada: row.adaId === id,
@@ -103,11 +91,11 @@ export const STALLS: Stall[] = RYAN_ROWS.flatMap((row) => {
 
 /** Kept so older shot scripts can still name the west and east inner rows. */
 export const LEFT_CANOPY_X = STALLS.find((s) => s.id === 1)!.zeusX;
-export const RIGHT_CANOPY_X = STALLS.find((s) => s.id === 12)!.zeusX;
+export const RIGHT_CANOPY_X = STALLS.find((s) => s.id === 13)!.zeusX;
 export const LEFT_EAST_ZEUS_X = LEFT_CANOPY_X;
-export const LEFT_WEST_ZEUS_X = STALLS.find((s) => s.id === 5)!.zeusX;
+export const LEFT_WEST_ZEUS_X = STALLS.find((s) => s.id === 8)!.zeusX;
 export const RIGHT_WEST_ZEUS_X = RIGHT_CANOPY_X;
-export const RIGHT_EAST_ZEUS_X = STALLS.find((s) => s.id === 17)!.zeusX;
+export const RIGHT_EAST_ZEUS_X = STALLS.find((s) => s.id === 18)!.zeusX;
 export const LEFT_EAST_CAR_X = stallCarX(LEFT_EAST_ZEUS_X, 1);
 export const LEFT_WEST_CAR_X = stallCarX(LEFT_WEST_ZEUS_X, -1);
 export const RIGHT_WEST_CAR_X = stallCarX(RIGHT_WEST_ZEUS_X, 1);
@@ -156,10 +144,10 @@ function rearX(stall: Stall): number {
   return stall.x + stallAisleSign(stall) * CAR_LENGTH * 0.5;
 }
 
-/** Northbound aisle between rows A and B (they face each other). */
-export const AB_AISLE_X = (rearX(stallById(1)) + rearX(stallById(5))) * 0.5;
-/** Southbound aisle between rows C and D. */
-export const CD_AISLE_X = (rearX(stallById(12)) + rearX(stallById(17))) * 0.5;
+/** Northbound aisle between the west canopy row and the island's west flank. */
+export const AB_AISLE_X = (rearX(stallById(1)) + rearX(stallById(8))) * 0.5;
+/** Southbound aisle between the island's east flank and the east canopy row. */
+export const CD_AISLE_X = (rearX(stallById(13)) + rearX(stallById(18))) * 0.5;
 /** Drive-lane band. Parking stops sit on the pedestals, outside this span. */
 export const AISLE_WALK = { xmin: AB_AISLE_X - 1.55, xmax: AB_AISLE_X + 1.55 } as const;
 
@@ -177,7 +165,7 @@ export const WAIT_SLOTS = [0, 1, 2, 3, 4].map((i) => ({
 /** Lot PAY on the west drive (far from Peck) + lounge door stand. */
 export const PAY_POINTS = [
   { x: AB_AISLE_X - 16.4, z: queueHeadZ - 6.5 },
-  { x: 3.55, z: toZ(19.94) - 2.15 },
+  { x: 3.55, z: -8.2 },
 ] as const;
 export const KIOSK = PAY_POINTS[0];
 export const KIOSK_REACH = 7.2;
@@ -192,21 +180,20 @@ export const RELAX_REACH = 3.1;
 /** Aimed reach. Un-aimed close range lives in interact.ts so spawn does not steal PAY. */
 export const WAVE_REACH = 7.2;
 
-/** Asphalt rails: visitor rows, four charger rows, queue, NE yard. */
-export const LOT_RAILS = { xmin: -40.4, xmax: 42.6, zmin: -45.6, zmax: 15.2 };
+/** Asphalt rails follow the traced site, including the east MCS pad. */
+export const LOT_RAILS = { xmin: -52, xmax: 44, zmin: -36, zmax: 26 };
 
 /**
  * West of this X, south of the door yard, is planter / sidewalk / unlit void.
  */
 export const WEST_APRON_X = -38.15;
 
-/** Lounge between rows B and C. South fascia sits on Ryan's wordmark sample Y. */
+/** Lounge centered on the traced island. Door world X stays 0.8. */
 const LOUNGE_W = 13.35;
 const LOUNGE_D = 11.53;
-const LOUNGE_SOUTH_Z = toZ(19.94);
 export const PAVILION = {
   x: 0,
-  z: LOUNGE_SOUTH_Z + LOUNGE_D * 0.5,
+  z: 0,
   yaw: 0,
   w: LOUNGE_W,
   d: LOUNGE_D,
@@ -735,13 +722,12 @@ export function westVoidWalls(): { cx: number; cy: number; cz: number; w: number
   ];
 }
 
-/** Planter beds on the outer landscape — walk around, not through. */
+/**
+ * Planter beds are visual. A full-width curb would cut the south apron and the
+ * traced drive, so walking uses the lot rects and the west void wall only.
+ */
 export function planterColliders(): { cx: number; cy: number; cz: number; w: number; h: number; d: number }[] {
-  return [
-    { cx: -37.2, cy: 0.5, cz: 13.15, w: 2.8, h: 1.0, d: 2.2 },
-    { cx: 40.4, cy: 0.5, cz: -18.5, w: 2.6, h: 1.0, d: 4.2 },
-    { cx: 8.5, cy: 0.45, cz: -42.6, w: 8.4, h: 1.0, d: 2.2 },
-  ];
+  return [];
 }
 
 /** World-space door opening used by walk tests and signage. */
@@ -841,51 +827,25 @@ export type Canopy = {
   zeusX: number;
 };
 
-function canopyFor(ids: number[], face: 1 | -1): Canopy {
-  const stalls = ids.map((id) => stallById(id));
-  const zeusX = stalls[0]!.zeusX;
-  const zs = stalls.map((s) => s.z);
-  const z0 = Math.min(...zs);
-  const z1 = Math.max(...zs);
-  // Slim straight spine over the pedestals. A roof as wide as the cars, with a
-  // corner radius near half that width, read as one round saucer from above.
-  const slim = 3.05;
-  let x = zeusX + face * 0.2;
-  const loungeWest = PAVILION.x - PAVILION.w * 0.5 - 0.45;
-  const loungeEast = PAVILION.x + PAVILION.w * 0.5 + 0.45;
-  if (face < 0 && x + slim * 0.5 > loungeWest && zeusX < PAVILION.x) x = loungeWest - slim * 0.5;
-  if (face > 0 && x - slim * 0.5 < loungeEast && zeusX > PAVILION.x) x = loungeEast + slim * 0.5;
-  return {
-    x,
-    z: (z0 + z1) * 0.5,
-    w: slim,
-    d: z1 - z0 + 1.8,
-    y: 3.47,
-    face,
-    zeusX,
-  };
-}
+/** Four roofs taken from the aerial's bright bars, not from the old grid. */
+export const CANOPIES: Canopy[] = TRACED_CANOPIES.map((canopy) => ({
+  x: canopy.x,
+  z: canopy.z,
+  w: canopy.w,
+  d: canopy.d,
+  y: 3.47,
+  face: canopy.face,
+  zeusX: canopy.zeusX,
+}));
 
-/** Canopy_1..4 — one white roof per Ryan charger row. Columns ~3.35 m. */
-export const CANOPIES: Canopy[] = [
-  canopyFor([1, 2, 3, 4], 1),
-  canopyFor([5, 6, 7, 8, 9, 10, 11], -1),
-  canopyFor([12, 13, 14, 15, 16], 1),
-  canopyFor([17, 18, 19, 20, 21, 22, 23, 24], -1),
-];
-
-/** South equipment pad: the aerial's bottom-left building, west of the south door. */
-export const YARD = { x: -24.5, z: -36.2, w: 13.4, d: 6.2 };
+/** Southwest equipment building from the aerial's bottom-left block. */
+export const YARD = { x: YARD_FOOTPRINT.x, z: YARD_FOOTPRINT.z, w: YARD_FOOTPRINT.w, d: YARD_FOOTPRINT.d };
 
 export type VisitorBay = { x: number; z: number; yaw: number };
 
-function visitorRow(x: number, z0: number, n: number, pitch: number, yaw: number): VisitorBay[] {
-  return Array.from({ length: n }, (_, i) => ({ x, z: z0 + i * pitch, yaw }));
-}
-
-/** Perimeter visitor stalls. West faces the drive (+X). East faces the drive (-X). */
-export const VISITOR_WEST = visitorRow(-35.4, -8.2, 8, 2.7, -Math.PI / 2);
-export const VISITOR_EAST = visitorRow(35.6, -9.4, 7, 2.65, Math.PI / 2);
+/** The aerial has no perimeter visitor row. */
+export const VISITOR_WEST: VisitorBay[] = [];
+export const VISITOR_EAST: VisitorBay[] = [];
 
 const peckBay = BAYS.find((b) => b.playable === 4)!;
 const openBay = BAYS.find((b) => b.playable === 6)!;
@@ -912,15 +872,15 @@ export const WIDE_SHOT = {
   fov: 48,
 } as const;
 
-/** Straight-down plan. Must read as Ryan's four rows, central lounge, south yard. */
+/** Straight down on the traced origin so the aerial can share scale and north-up. */
 export const OVERHEAD_SHOT = {
-  x: 1.2,
-  z: -6,
-  eyeY: 78,
+  x: 0,
+  z: 0,
+  eyeY: 96,
   yaw: 0,
-  pitch: -1.2,
-  lookAt: { x: 1.2, y: 0, z: -4 },
-  fov: 52,
+  pitch: -1.57,
+  lookAt: { x: 0, y: 0, z: 0.05 },
+  fov: 46,
 } as const;
 
 export const REAR_SHOT = {
@@ -1017,15 +977,15 @@ export const DOOR_IN_SHOT = {
   fov: 62,
 } as const;
 
-/** East charger aisle, looking west through the glass at the lounge. A Slim Zeus sits just left of the lens. */
+/** Outside the south drive, Ryan's storefront angle: glass lounge and the east chargers. */
 export const STOREFRONT_SHOT = {
-  x: 9.55,
-  z: -6.17,
+  x: 16.4,
+  z: -12.4,
   eyeY: 1.62,
-  yaw: -1.6,
+  yaw: -2.4,
   pitch: 0.04,
-  lookAt: { x: 2.4, y: 1.4, z: -5.4 },
-  fov: 52,
+  lookAt: { x: 2.2, y: 1.55, z: -0.4 },
+  fov: 42,
 } as const;
 
 /** Wide lounge interior: cafe, gondola, seating, east glass. */

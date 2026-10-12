@@ -1,14 +1,26 @@
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { C } from "../brand";
-import { addMcsLane } from "./mcs";
+import { addMcsLane, MCS_LANE } from "./mcs";
+import {
+  DRIVE_OUTER,
+  EAST_STRIPE_PY,
+  ISLAND,
+  ISLAND_CAP,
+  ISLAND_TIP,
+  NORTH_PLANTER,
+  SITE_BOUNDARY,
+  SOUTH_PLANTER,
+  TRASH_FOOTPRINT,
+  WEST_STRIPE_PY,
+  planXZ,
+  xzShape,
+} from "../site/ryanPlan";
 import {
   BAY_SIZE,
   CANOPIES,
-  LOT_RAILS,
   PARK_STOP,
   PAY_POINTS,
-  PAVILION,
   STALLS,
   VISITOR_EAST,
   VISITOR_WEST,
@@ -85,14 +97,38 @@ function box(
   return mesh;
 }
 
+function layFlat(
+  root: THREE.Group,
+  shape: THREE.Shape,
+  material: THREE.Material,
+  y: number,
+  walk = false,
+): THREE.Mesh {
+  const mesh = new THREE.Mesh(new THREE.ShapeGeometry(shape), material);
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.position.y = y;
+  mesh.receiveShadow = true;
+  if (walk) mesh.userData.walkGround = true;
+  root.add(mesh);
+  return mesh;
+}
+
+/** Asphalt only inside the traced drive. Desert fills the site; concrete fills the island. */
 function makeAsphalt(root: THREE.Group): THREE.Mesh {
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(130, 130), rev6AsphaltMaterial());
-  ground.rotation.x = -Math.PI / 2;
-  ground.position.y = 0.004;
-  ground.receiveShadow = true;
-  ground.userData.walkGround = true;
-  root.add(ground);
-  return ground;
+  const desert = new THREE.MeshStandardMaterial({ color: 0xcbb892, roughness: 0.96, metalness: 0.02 });
+  const concrete = new THREE.MeshStandardMaterial({ color: 0xd9d4cc, roughness: 0.72, metalness: 0.04 });
+  layFlat(root, xzShape(SITE_BOUNDARY), desert, 0, true);
+  // The traced plan has no semi bay. This apron is the east-edge deviation under the MCS pad.
+  const mcsW = MCS_LANE.xmax - 27.4;
+  const mcsD = MCS_LANE.zmax - MCS_LANE.zmin + 3.2;
+  const mcsPad = new THREE.Mesh(new THREE.BoxGeometry(mcsW, 0.02, mcsD), desert);
+  mcsPad.position.set(27.4 + mcsW * 0.5, 0.006, (MCS_LANE.zmin + MCS_LANE.zmax) * 0.5);
+  mcsPad.receiveShadow = true;
+  mcsPad.userData.walkGround = true;
+  root.add(mcsPad);
+  const drive = layFlat(root, xzShape(DRIVE_OUTER, [ISLAND]), rev6AsphaltMaterial(), 0.02, true);
+  layFlat(root, xzShape(ISLAND), concrete, 0.032, true);
+  return drive;
 }
 
 export function addLotMirror(root: THREE.Group, _renderer: THREE.WebGLRenderer): void {
@@ -580,46 +616,7 @@ function addKiosks(root: THREE.Group): { kiosks: THREE.Group[]; alerts: THREE.Sp
 }
 
 function addLotRails(root: THREE.Group): void {
-  const rail = mat(0xe8e2d4, { roughness: 0.62, metalness: 0.04 });
-  const { xmin, xmax, zmin, zmax } = LOT_RAILS;
-  const y = 0.16;
-  const t = 0.18;
-  const hx = (xmax - xmin) * 0.5;
-  const hz = (zmax - zmin) * 0.5;
-  const cx = (xmin + xmax) * 0.5;
-  const cz = (zmin + zmax) * 0.5;
-  root.add(box(hx * 2 + t, 0.28, t, rail, cx, y, zmin));
-  root.add(box(hx * 2 + t, 0.28, t, rail, cx, y, zmax));
-  const pavSouth = PAVILION.z - PAVILION.d * 0.5 - 0.15;
-  const pavNorth = PAVILION.z + PAVILION.d * 0.5 + 0.15;
-  root.add(box(t, 0.28, pavSouth - zmin, rail, xmin, y, (zmin + pavSouth) * 0.5));
-  root.add(box(t, 0.28, zmax - pavNorth, rail, xmin, y, (pavNorth + zmax) * 0.5));
-  root.add(box(t, 0.28, hz * 2, rail, xmax, y, cz));
-}
-
-function addPalm(root: THREE.Group, x: number, z: number, h = 5.2): void {
-  const trunk = mat(0x1c1812, { roughness: 0.92 });
-  const frond = mat(0x1a2414, { roughness: 0.86 });
-  const bole = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.1, h, 8), trunk);
-  bole.position.set(x, h * 0.5, z);
-  bole.castShadow = true;
-  bole.raycast = () => {};
-  root.add(bole);
-  const crown = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 6), frond);
-  crown.position.set(x, h * 0.94, z);
-  crown.raycast = () => {};
-  root.add(crown);
-  for (let i = 0; i < 6; i++) {
-    const leaf = new THREE.Mesh(new THREE.ConeGeometry(0.12, 1.05, 5), frond);
-    const a = (i / 6) * Math.PI * 2;
-    leaf.position.set(x + Math.cos(a) * 0.16, h * 0.78, z + Math.sin(a) * 0.16);
-    leaf.rotation.order = "YXZ";
-    leaf.rotation.y = a;
-    leaf.rotation.z = 0.95;
-    leaf.castShadow = false;
-    leaf.raycast = () => {};
-    root.add(leaf);
-  }
+  addPolyCurb(root, SITE_BOUNDARY, 0.02, 0.22, 0.16);
 }
 
 function addAgave(root: THREE.Group, x: number, z: number, scale = 1): void {
@@ -642,11 +639,23 @@ function addAgave(root: THREE.Group, x: number, z: number, scale = 1): void {
   root.add(pebble);
 }
 
-function gravelMap(): THREE.CanvasTexture {
-  return gravel();
+function pointInPoly(poly: readonly (readonly [number, number])[], x: number, z: number): boolean {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, zi] = poly[i]!;
+    const [xj, zj] = poly[j]!;
+    if (zi > z !== zj > z && x < ((xj - xi) * (z - zi)) / (zj - zi) + xi) inside = !inside;
+  }
+  return inside;
 }
 
-function addDesertBed(root: THREE.Group, x: number, z: number, w: number, d: number): void {
+function addPolyCurb(
+  root: THREE.Group,
+  points: readonly (readonly [number, number])[],
+  y: number,
+  h: number,
+  t: number,
+): void {
   const curb = mat(0xeee8dc, {
     roughness: 0.7,
     metalness: 0.03,
@@ -654,30 +663,84 @@ function addDesertBed(root: THREE.Group, x: number, z: number, w: number, d: num
     roughnessMap: curbRough(),
     envMapIntensity: 0.12,
   });
-  const bed = new THREE.Mesh(new RoundedBoxGeometry(w, 0.32, d, 2, 0.06), curb);
-  bed.position.set(x, 0.16, z);
-  bed.receiveShadow = true;
-  const gravel = new THREE.Mesh(
-    new THREE.PlaneGeometry(w - 0.28, d - 0.28),
-    new THREE.MeshStandardMaterial({
-      color: 0xe0d0a8,
-      map: gravelMap(),
-      roughness: 0.94,
-      metalness: 0.02,
-    }),
-  );
-  gravel.rotation.x = -Math.PI / 2;
-  gravel.position.set(x, 0.33, z);
-  root.add(bed, gravel);
-  const cols = 3;
-  const rows = 2;
-  for (let i = 0; i < cols; i++) {
-    for (let j = 0; j < rows; j++) {
-      const px = x - w * 0.28 + (i * w * 0.56) / (cols - 1);
-      const pz = z - d * 0.22 + (j * d * 0.44) / (rows - 1);
-      addAgave(root, px, pz, 0.85 + ((i + j) % 3) * 0.12);
+  for (let i = 0; i < points.length; i++) {
+    const [x0, z0] = points[i]!;
+    const [x1, z1] = points[(i + 1) % points.length]!;
+    const dx = x1 - x0;
+    const dz = z1 - z0;
+    const len = Math.hypot(dx, dz);
+    if (len < 0.25) continue;
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(t, h, len), curb);
+    mesh.position.set((x0 + x1) * 0.5, y + h * 0.5, (z0 + z1) * 0.5);
+    mesh.rotation.y = Math.atan2(dx, dz);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    root.add(mesh);
+  }
+}
+
+const dgMat = new THREE.MeshStandardMaterial({
+  color: 0xc4a574,
+  map: gravel(),
+  roughness: 0.94,
+  metalness: 0.02,
+});
+
+function addPlanterPoly(root: THREE.Group, points: readonly (readonly [number, number])[]): void {
+  layFlat(root, xzShape(points), dgMat, 0.2);
+  addPolyCurb(root, points, 0.04, 0.22, 0.14);
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minZ = Infinity;
+  let maxZ = -Infinity;
+  for (const [x, z] of points) {
+    minX = Math.min(minX, x);
+    maxX = Math.max(maxX, x);
+    minZ = Math.min(minZ, z);
+    maxZ = Math.max(maxZ, z);
+  }
+  const step = 2.3;
+  let n = 0;
+  for (let x = minX + 0.7; x < maxX - 0.4; x += step) {
+    for (let z = minZ + 0.55; z < maxZ - 0.4; z += step * 0.86) {
+      const px = x + ((n * 3) % 5) * 0.07;
+      const pz = z + ((n * 5) % 4) * 0.06;
+      if (!pointInPoly(points, px, pz)) continue;
+      addAgave(root, px, pz, 0.76 + (n % 3) * 0.1);
+      n += 1;
     }
   }
+}
+
+function addStallStripes(root: THREE.Group): void {
+  const paint = mat(0xf4f1ea, { roughness: 0.62, metalness: 0.02 });
+  const stripe = (x0: number, x1: number, z: number) => {
+    const w = Math.abs(x1 - x0);
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, 0.012, 0.09), paint);
+    mesh.position.set((x0 + x1) * 0.5, 0.045, z);
+    mesh.receiveShadow = true;
+    root.add(mesh);
+  };
+  const xAt = (px: number) => planXZ(px, 0)[0];
+  for (const py of WEST_STRIPE_PY) stripe(xAt(430), xAt(600), planXZ(0, py)[1]);
+  for (const py of WEST_STRIPE_PY.slice(1, 7)) {
+    const z = planXZ(0, py)[1];
+    stripe(xAt(590), xAt(670), z);
+    stripe(xAt(950), xAt(1030), z);
+  }
+  for (const py of EAST_STRIPE_PY) stripe(xAt(1040), xAt(1185), planXZ(0, py)[1]);
+}
+
+function addTrashEnclosure(root: THREE.Group): void {
+  const { x, z, w, d } = TRASH_FOOTPRINT;
+  const wall = mat(0xcfc6b4, { roughness: 0.78, metalness: 0.04 });
+  const h = 1.25;
+  const t = 0.12;
+  root.add(box(w, 0.08, d, wall, x, 0.08, z));
+  root.add(box(w, h, t, wall, x, h * 0.5, z + d * 0.5));
+  root.add(box(w, h, t, wall, x, h * 0.5, z - d * 0.5));
+  root.add(box(t, h, d, wall, x - w * 0.5, h * 0.5, z));
+  root.add(box(t, h, d, wall, x + w * 0.5, h * 0.5, z));
 }
 
 function pylonBoard(): THREE.CanvasTexture {
@@ -718,8 +781,8 @@ function addMonument(root: THREE.Group): void {
   const precast = mat(0xd4c6ae, { roughness: 0.62, metalness: 0.04, envMapIntensity: 0.18 });
   const alum = mat(C.chrome, { roughness: 0.34, metalness: 0.72, envMapIntensity: 0.5 });
   const cream = mat(C.cream, { roughness: 0.42, metalness: 0.06 });
-  const mx = -9.4;
-  const mz = -13.6;
+  const mx = -2.2;
+  const mz = 10.8;
   const pylon = new THREE.Mesh(new RoundedBoxGeometry(0.42, 3.15, 1.28, 3, 0.1), precast);
   pylon.position.set(mx, 1.62, mz);
   const trim = new THREE.Mesh(new RoundedBoxGeometry(0.08, 3.22, 1.36, 2, 0.04), alum);
@@ -747,63 +810,15 @@ function addVisitorStalls(root: THREE.Group): void {
   }
 }
 
-/** Long agave curb. Plants follow the length so the bed reads as a continuous band. */
-function addAgaveRun(root: THREE.Group, x0: number, x1: number, z: number, d = 1.7): void {
-  const w = Math.abs(x1 - x0);
-  const x = (x0 + x1) * 0.5;
-  const curb = mat(0xeee8dc, {
-    roughness: 0.7,
-    metalness: 0.03,
-    map: curbColor(),
-    roughnessMap: curbRough(),
-    envMapIntensity: 0.12,
-  });
-  const bed = new THREE.Mesh(new RoundedBoxGeometry(w, 0.28, d, 2, 0.05), curb);
-  bed.position.set(x, 0.14, z);
-  bed.receiveShadow = true;
-  const fill = new THREE.Mesh(
-    new THREE.PlaneGeometry(w - 0.22, d - 0.22),
-    new THREE.MeshStandardMaterial({
-      color: 0xe0d0a8,
-      map: gravelMap(),
-      roughness: 0.94,
-      metalness: 0.02,
-    }),
-  );
-  fill.rotation.x = -Math.PI / 2;
-  fill.position.set(x, 0.29, z);
-  root.add(bed, fill);
-  const step = 2.35;
-  const start = Math.min(x0, x1) + 1.1;
-  const end = Math.max(x0, x1) - 1.1;
-  let i = 0;
-  for (let px = start; px <= end; px += step) {
-    addAgave(root, px, z + ((i % 2) - 0.5) * 0.28, 0.78 + (i % 3) * 0.08);
-    i += 1;
-  }
-}
-
 function addPlanters(root: THREE.Group): void {
-  addDesertBed(root, -37.2, 13.15, 2.8, 2.2);
-  addDesertBed(root, 40.4, -18.5, 2.6, 4.2);
-  addDesertBed(root, 8.5, -42.6, 8.4, 2.2);
-  addAgaveRun(root, -32, 38, 14.35, 1.75);
-  addAgaveRun(root, -36, 3.2, -43.35, 1.65);
-  addAgaveRun(root, 14.2, 38, -43.35, 1.65);
-  addDesertBed(root, -5.5, 4.4, 3.2, 1.7);
-  addDesertBed(root, 5.6, 4.4, 3.2, 1.7);
-  addDesertBed(root, -5.6, -9.85, 2.4, 1.6);
-  addDesertBed(root, 5.8, -9.85, 2.4, 1.6);
+  addPlanterPoly(root, NORTH_PLANTER);
+  addPlanterPoly(root, SOUTH_PLANTER);
+  addPlanterPoly(root, ISLAND_CAP);
+  addPlanterPoly(root, ISLAND_TIP);
+  addStallStripes(root);
+  addTrashEnclosure(root);
   addMonument(root);
   addVisitorStalls(root);
-  for (const [x, z, h] of [
-    [-42.5, 6.2, 6.2],
-    [-42.2, -12.4, 5.6],
-    [44.6, 4.2, 6.0],
-    [44.2, -16.8, 5.4],
-  ] as const) {
-    addPalm(root, x, z, h);
-  }
 }
 
 function addYard(root: THREE.Group): void {
@@ -822,34 +837,34 @@ function addYard(root: THREE.Group): void {
     root.add(side);
   }
   const postMat = mat(0x4a4e52, { metalness: 0.3, roughness: 0.5 });
-  for (let i = 0; i < 8; i++) {
+  const postN = 6;
+  for (let i = 0; i < postN; i++) {
     const post = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.4, 6), postMat);
-    post.position.set(YARD.x - YARD.w * 0.45 + i * 1.25, 0.7, YARD.z - YARD.d * 0.48);
+    const span = YARD.w * 0.78;
+    post.position.set(YARD.x - span * 0.5 + (i * span) / (postN - 1), 0.7, YARD.z - YARD.d * 0.38);
     root.add(post);
   }
   const tx = new THREE.Mesh(new RoundedBoxGeometry(1.15, 1.35, 1.15, 2, 0.04), steel);
-  tx.position.set(YARD.x - 3.4, 0.72, YARD.z + 0.4);
-  const chill = new THREE.Mesh(new RoundedBoxGeometry(1.6, 1.1, 0.9, 2, 0.04), dark);
-  chill.position.set(YARD.x - 1.5, 0.6, YARD.z + 1.3);
+  tx.position.set(YARD.x - YARD.w * 0.28, 0.72, YARD.z + 0.2);
+  const chill = new THREE.Mesh(new RoundedBoxGeometry(1.4, 1.1, 0.8, 2, 0.04), dark);
+  chill.position.set(YARD.x - YARD.w * 0.08, 0.6, YARD.z + YARD.d * 0.22);
   root.add(tx, chill);
   for (let i = 0; i < 3; i++) {
-    const r = new THREE.Mesh(new THREE.BoxGeometry(0.45, 1.2, 0.7), steel);
-    r.position.set(YARD.x - 3.2 + i * 0.55, 0.65, YARD.z - 1.5);
+    const r = new THREE.Mesh(new THREE.BoxGeometry(0.4, 1.05, 0.55), steel);
+    r.position.set(YARD.x - YARD.w * 0.28 + i * 0.48, 0.58, YARD.z - YARD.d * 0.18);
     root.add(r);
   }
+  const essW = Math.min(4.2, YARD.w * 0.42);
   for (let i = 0; i < 2; i++) {
-    const ess = new THREE.Mesh(new RoundedBoxGeometry(6.1, 1.55, 1.45, 2, 0.05), dark);
-    ess.position.set(YARD.x + 1.1, 0.82, YARD.z - 1.3 + i * 2.15);
+    const ess = new THREE.Mesh(new RoundedBoxGeometry(essW, 1.35, 1.15, 2, 0.05), dark);
+    ess.position.set(YARD.x + YARD.w * 0.16, 0.72, YARD.z - 0.7 + i * 1.7);
     root.add(ess);
   }
-  for (let i = 0; i < 4; i++) {
-    const dc = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.7, 0.55), steel);
-    dc.position.set(YARD.x + 3.6, 0.4, YARD.z - 2.0 + i * 0.85);
+  for (let i = 0; i < 3; i++) {
+    const dc = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.62, 0.48), steel);
+    dc.position.set(YARD.x + YARD.w * 0.34, 0.36, YARD.z - 1.1 + i * 0.7);
     root.add(dc);
   }
-  const dcc = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.95, 0.7), steel);
-  dcc.position.set(YARD.x - 5.6, 0.52, YARD.z - 0.2);
-  root.add(dcc);
 
   const tag = (text: string, w: number, x: number, y: number, z: number) => {
     const c = document.createElement("canvas");
@@ -872,9 +887,9 @@ function addYard(root: THREE.Group): void {
     mesh.position.set(x, y, z);
     root.add(mesh);
   };
-  tag("TX", 0.9, YARD.x - 3.4, 1.2, YARD.z + 0.4 - 0.64);
-  tag("RECTIFIER", 1.7, YARD.x - 2.65, 1.45, YARD.z - 1.5 - 0.42);
-  tag("ESS", 1.15, YARD.x + 1.1, 1.55, YARD.z - 1.3 - 0.82);
+  tag("TX", 0.9, YARD.x - YARD.w * 0.28, 1.15, YARD.z + 0.2 - 0.64);
+  tag("RECTIFIER", 1.5, YARD.x - YARD.w * 0.22, 1.25, YARD.z - YARD.d * 0.18 - 0.36);
+  tag("ESS", 1.05, YARD.x + YARD.w * 0.16, 1.35, YARD.z - 0.7 - 0.7);
 }
 
 function addStreetlights(root: THREE.Group): void {
@@ -886,14 +901,14 @@ function addStreetlights(root: THREE.Group): void {
     toneMapped: false,
   });
   for (const [x, z] of [
-    [-32.4, -20.0],
-    [-8.2, -22.4],
-    [14.6, -22.4],
-    [36.4, -20.0],
-    [-32.8, 8.4],
-    [18.4, 12.6],
-    [0.2, 13.4],
-    [38.8, 6.2],
+    [-27.4, 8.2],
+    [-27.2, -6.4],
+    [-12.0, 17.2],
+    [8.4, 17.4],
+    [26.2, 6.4],
+    [26.4, -6.2],
+    [-10.2, -16.6],
+    [12.6, -16.8],
   ]) {
     const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.06, 5.2, 8), poleMat);
     pole.position.set(x, 2.6, z);

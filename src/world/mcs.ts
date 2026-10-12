@@ -2,16 +2,19 @@ import * as THREE from "three";
 import type { HullKind } from "../game/state";
 import { tubeFromPoints } from "./cables";
 
-/** Southeast pull-through. Noses point south so a rig can enter from the street and leave north. */
-export const MCS_NOSE_Z = -38;
-export const MCS_LANE = { xmin: 4.2, xmax: 27.5, zmin: -40.6, zmax: -17.5 };
+/**
+ * No semi bay is in the traced aerial. The pad sits on the east edge's south
+ * end, east of the drive polygon, so the tractor stays out of the U aisle.
+ */
+export const MCS_NOSE_Z = -18;
+export const MCS_LANE = { xmin: 30.2, xmax: 39.2, zmin: -21.2, zmax: -9.2 };
 /** One tractor, no trailer. Parked in the south bay, inlet on the dispenser. */
 export const MCS_RIGS: { paint: number; dispenser: number }[] = [{ paint: 0xf7f6f2, dispenser: 0 }];
 
-/** East edge of the pad. Each dispenser owns one pull-through bay to its west. */
+/** East of the traced drive. Each dispenser owns one pull-through bay to its west. */
 export const MCS_DISPENSERS = [
-  { x: 25.6, z: -33.5 },
-  { x: 25.6, z: -24.5 },
+  { x: 36.4, z: -16.4 },
+  { x: 36.4, z: -12.2 },
 ];
 
 /** Gap from the inlet face to the dispenser center, so the lead can hang clear. */

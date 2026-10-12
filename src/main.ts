@@ -713,6 +713,14 @@ function loop(now: number): void {
   pedestrians.tick(now / 1000);
   tickHand(hand, now / 1000, walker.position.y);
   if (ready) syncCars(cars, scene, state, now / 1000);
+  const fog = scene.fog as THREE.Fog;
+  if (walker.position.y > 40) {
+    fog.near = 160;
+    fog.far = 520;
+  } else {
+    fog.near = 34;
+    fog.far = 128;
+  }
   paintHud();
   pipeline.render();
   fpsFrames += 1;

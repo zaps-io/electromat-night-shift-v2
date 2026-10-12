@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { AB_AISLE_X, BAY_SIZE, CANOPIES, CD_AISLE_X, PAVILION, PAVILION_DOOR, STALLS, VISITOR_EAST, VISITOR_WEST, stallAisleSign } from "./layout";
+import { DRIVE_OUTER, ISLAND, xzShape } from "../site/ryanPlan";
 import { asphaltNormal, textureAnisotropy } from "./tex";
 import { loadDuskEnvironment } from "../render/pipeline";
 
@@ -533,27 +534,21 @@ function addDrivePaint(root: THREE.Group): void {
   const doorX = PAVILION.x + PAVILION_DOOR.localX;
   const doorZ = PAVILION.z - PAVILION.d * 0.5;
   addFlat(root, markMat, CROP_CROSSWALK, MARK_IMG.w, MARK_IMG.h, 6.4, doorX, doorZ - 3.4, 0);
-  addFlat(root, markMat, CROP_STOP, MARK_IMG.w, MARK_IMG.h, 3.4, AB_AISLE_X, -38.6, Math.PI / 2, DECAL_Y + 0.002);
+  addFlat(root, markMat, CROP_STOP, MARK_IMG.w, MARK_IMG.h, 3.4, AB_AISLE_X, -14.6, Math.PI / 2, DECAL_Y + 0.002);
 
-  // Clockwise one-way. Image-up is the arrow head. yaw π sends it toward +Z.
-  for (const z of [-8, -18, -28, -36]) {
-    addFlat(root, markMat, CROP_ARROW, MARK_IMG.w, MARK_IMG.h, 0.9, -31.8, z, 0);
-  }
-  for (const z of [-30, -18, -8, 2, 9]) {
+  // Clockwise one-way on the traced U. Image-up is the arrow head. yaw π heads +Z.
+  for (const z of [10, 4, -2, -8]) {
     addFlat(root, markMat, CROP_ARROW, MARK_IMG.w, MARK_IMG.h, 0.9, AB_AISLE_X, z, Math.PI);
   }
-  for (const x of [-24, -10, 4, 18]) {
-    addFlat(root, markMat, CROP_ARROW, MARK_IMG.w, MARK_IMG.h, 0.9, x, 12.4, Math.PI / 2);
+  for (const x of [-14, -2, 10, 20]) {
+    addFlat(root, markMat, CROP_ARROW, MARK_IMG.w, MARK_IMG.h, 0.9, x, 15.6, Math.PI / 2);
   }
-  addFlat(root, markMat, CROP_TURN, MARK_IMG.w, MARK_IMG.h, 1.45, -28.4, 10.6, Math.PI / 2, DECAL_Y, true);
-  for (const z of [8, 0, -10, -20, -30]) {
+  addFlat(root, markMat, CROP_TURN, MARK_IMG.w, MARK_IMG.h, 1.45, -22.4, 13.2, Math.PI / 2, DECAL_Y, true);
+  for (const z of [10, 4, -2, -8]) {
     addFlat(root, markMat, CROP_ARROW, MARK_IMG.w, MARK_IMG.h, 0.9, CD_AISLE_X, z, 0);
   }
-  for (const z of [-28, -16, -4, 6]) {
-    addFlat(root, markMat, CROP_ARROW, MARK_IMG.w, MARK_IMG.h, 0.9, 31.4, z, Math.PI);
-  }
-  for (const x of [22, 8, -6, -20]) {
-    addFlat(root, markMat, CROP_ARROW, MARK_IMG.w, MARK_IMG.h, 0.9, x, -40.2, -Math.PI / 2);
+  for (const x of [18, 6, -6, -16]) {
+    addFlat(root, markMat, CROP_ARROW, MARK_IMG.w, MARK_IMG.h, 0.9, x, -15.8, -Math.PI / 2);
   }
 
   for (const bay of [...VISITOR_WEST, ...VISITOR_EAST]) {
@@ -644,9 +639,9 @@ function addLoungeGlass(root: THREE.Group): void {
 }
 
 function addWearDecals(root: THREE.Group): void {
-  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(130, 130), wearMat);
+  const mesh = new THREE.Mesh(new THREE.ShapeGeometry(xzShape(DRIVE_OUTER, [ISLAND])), wearMat);
   mesh.rotation.x = -Math.PI / 2;
-  mesh.position.y = 0.012;
+  mesh.position.y = 0.028;
   mesh.renderOrder = 2;
   mesh.receiveShadow = false;
   mesh.userData.noBake = true;
