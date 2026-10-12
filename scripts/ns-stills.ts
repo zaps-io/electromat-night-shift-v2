@@ -176,7 +176,7 @@ const peckStall = STALLS.find((s) => s.id === 8)!;
 const vanStall = STALLS.find((s) => s.id === 9)!;
 const vanPairZ = (peckStall.z + vanStall.z) * 0.5;
 const vanCompare: Shot = driveShot("ns-compare-van.png", vanStall.x, vanPairZ, 7.8, 50, -2.2);
-const lotMix: Shot = driveShot("ns-lot-mix.png", haleBay.x, (haleBay.z + vanStall.z) * 0.5, 9.6, 76, 0);
+const lotMix: Shot = driveShot("ns-lot-mix.png", haleBay.x, (haleBay.z + vanStall.z) * 0.5, 9.6, 98, 0);
 const pickupPlug: Shot = {
   file: "ns-plug.png",
   x: haleBay.x - 1.4,
