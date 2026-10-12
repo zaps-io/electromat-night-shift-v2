@@ -847,19 +847,19 @@ function canopyFor(ids: number[], face: 1 | -1): Canopy {
   const zs = stalls.map((s) => s.z);
   const z0 = Math.min(...zs);
   const z1 = Math.max(...zs);
-  const tail = rearX(stalls[0]!);
-  const back = zeusX - face * 0.65;
-  let x0 = Math.min(tail, back) - 0.45;
-  let x1 = Math.max(tail, back) + 0.5;
-  const loungeWest = PAVILION.x - PAVILION.w * 0.5 - 0.5;
-  const loungeEast = PAVILION.x + PAVILION.w * 0.5 + 0.5;
-  if (face < 0 && zeusX < PAVILION.x) x1 = Math.min(x1, loungeWest);
-  if (face > 0 && zeusX > PAVILION.x) x0 = Math.max(x0, loungeEast);
+  // Slim straight spine over the pedestals. A roof as wide as the cars, with a
+  // corner radius near half that width, read as one round saucer from above.
+  const slim = 3.05;
+  let x = zeusX + face * 0.2;
+  const loungeWest = PAVILION.x - PAVILION.w * 0.5 - 0.45;
+  const loungeEast = PAVILION.x + PAVILION.w * 0.5 + 0.45;
+  if (face < 0 && x + slim * 0.5 > loungeWest && zeusX < PAVILION.x) x = loungeWest - slim * 0.5;
+  if (face > 0 && x - slim * 0.5 < loungeEast && zeusX > PAVILION.x) x = loungeEast + slim * 0.5;
   return {
-    x: (x0 + x1) * 0.5,
+    x,
     z: (z0 + z1) * 0.5,
-    w: Math.max(4.4, x1 - x0),
-    d: z1 - z0 + 2.5,
+    w: slim,
+    d: z1 - z0 + 1.8,
     y: 3.47,
     face,
     zeusX,

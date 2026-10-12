@@ -5,7 +5,7 @@
 import { mkdirSync } from "node:fs";
 import { createServer } from "vite";
 import { LINEUP_VAN_X, LINEUP_Z, lineupPose } from "../src/cars/fleet.ts";
-import { AB_AISLE_X, BAYS, CANOPIES, inPlayableVolume, PAVILION, START_SHOT, STALLS, WAIT_SLOTS, WAVE_POINT } from "../src/world/layout.ts";
+import { AB_AISLE_X, BAYS, CANOPIES, inPlayableVolume, OVERHEAD_SHOT, PAVILION, START_SHOT, STOREFRONT_SHOT, STALLS, WAIT_SLOTS, WAVE_POINT } from "../src/world/layout.ts";
 import { MCS_DISPENSERS } from "../src/world/mcs.ts";
 
 const OUT = new URL("../docs/shots/", import.meta.url).pathname;
@@ -261,7 +261,9 @@ async function main(): Promise<void> {
     });
     await new Promise((r) => setTimeout(r, 500));
 
-    const gateShots = [vanCompare, lotMix];
+    const overhead: Shot = { file: "ns-overhead.png", ...OVERHEAD_SHOT };
+    const storefront: Shot = { file: "ns-storefront.png", ...STOREFRONT_SHOT };
+    const gateShots = [overhead, storefront, lotMix, mcsSemi];
     const shots = process.env.SHOP_PREVIEW
       ? gateShots
       : [start, layers, carDusk, fascia, lounge, charger, leftEdge, canopyEnd, waveFront, fleetLineup, mcsSemi, compare, pickupCompare, vanCompare, lotMix, pickupPlug, vanShot];

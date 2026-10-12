@@ -235,6 +235,12 @@ function addInterior(g: THREE.Group, W: number, D: number, H: number): THREE.Box
     roughness: 0.62,
     metalness: 0.04,
   });
+  const chairCloth = new THREE.MeshStandardMaterial({
+    color: 0xe07a2f,
+    map: leather(),
+    roughness: 0.55,
+    metalness: 0.04,
+  });
   const cream = mat(C.cream, { roughness: 0.55, metalness: 0.04, envMapIntensity: 0.22 });
   const woodMat = mat(0x6a4a32, { roughness: 0.62, metalness: 0.06 });
   const charcoal = mat(C.charcoal, { roughness: 0.5, metalness: 0.1 });
@@ -400,8 +406,8 @@ function addInterior(g: THREE.Group, W: number, D: number, H: number): THREE.Box
 
   addSofa(g, 3.45, 3.85, Math.PI, cloth, cream, 2.25);
   addSofa(g, 4.45, 2.85, -Math.PI / 2, cloth, cream, 1.55);
-  addChair(g, 2.15, 1.65, -2.2, cloth, cream);
-  addChair(g, 3.35, 4.45, 0.35, cloth, cream);
+  addChair(g, 2.15, 1.65, -2.2, chairCloth, cream);
+  addChair(g, 3.35, 4.45, 0.35, chairCloth, cream);
   const table = new THREE.Mesh(new THREE.CylinderGeometry(0.46, 0.48, 0.08, 16), woodMat);
   table.position.set(2.55, 0.46, 3.45);
   const pedestal = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, 0.4, 8), charcoal);
@@ -808,14 +814,15 @@ export function addPavilion(root: THREE.Group): THREE.Box3[] {
   roof.position.y = H + 0.1;
   roof.castShadow = true;
   g.add(roof);
-  const cornerR = 0.38;
+  const steelCol = mat(C.chrome, { metalness: 0.86, roughness: 0.18, envMapIntensity: 0.85 });
+  const cornerR = 0.22;
   for (const [sx, sz] of [
     [-1, -1],
     [1, -1],
     [-1, 1],
     [1, 1],
   ] as const) {
-    const drum = new THREE.Mesh(new THREE.CylinderGeometry(cornerR, cornerR, H - 0.06, 18), wall);
+    const drum = new THREE.Mesh(new THREE.CylinderGeometry(cornerR, cornerR, H - 0.06, 16), steelCol);
     drum.position.set(sx * (W * 0.5 - cornerR + 0.04), H * 0.5, sz * (D * 0.5 - cornerR + 0.04));
     drum.castShadow = true;
     g.add(drum);

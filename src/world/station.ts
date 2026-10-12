@@ -243,8 +243,8 @@ const warmPoolMat = new THREE.MeshBasicMaterial({
 
 function addCanopyAt(root: THREE.Group, canopy: Canopy): void {
   const { x: cx, z: cz, w, d, y, face, zeusX } = canopy;
-  // Capsule ends: radius is almost half the short side, so the row finishes in a round nose.
-  const endR = Math.min(w * 0.5 - 0.12, d * 0.46);
+  // Straight linear roof. A large end radius turns a short row into a saucer.
+  const endR = 0.38;
   const topGeo = new THREE.ExtrudeGeometry(roundedRectShape(w, d, endR), {
     depth: 0.16,
     bevelEnabled: true,
@@ -751,6 +751,13 @@ function addPlanters(root: THREE.Group): void {
   addDesertBed(root, -37.2, 13.15, 2.8, 2.2);
   addDesertBed(root, 40.4, -18.5, 2.6, 4.2);
   addDesertBed(root, 8.5, -42.6, 8.4, 2.2);
+  // North and south landscape edges, plus the island tips clear of the door.
+  addDesertBed(root, -16, 14.35, 16, 2.1);
+  addDesertBed(root, 12, 14.15, 14, 2.1);
+  addDesertBed(root, -20, -18.5, 12, 2.0);
+  addDesertBed(root, 16, -16.5, 10, 2.0);
+  addDesertBed(root, -8.4, 4.6, 3.2, 2.2);
+  addDesertBed(root, 8.6, 4.6, 3.2, 2.2);
   addMonument(root);
   addVisitorStalls(root);
   for (const [x, z, h] of [

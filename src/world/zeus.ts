@@ -125,7 +125,6 @@ const geo = {
   body: new RoundedBoxGeometry(0.38, 2.5, 0.18, 4, 0.02),
   cap: new RoundedBoxGeometry(0.4, 0.04, 0.2, 3, 0.01),
   hair: new THREE.BoxGeometry(0.36, 0.05, 0.018),
-  stem: new THREE.CylinderGeometry(0.03, 0.038, 0.24, 10),
   recess: new THREE.BoxGeometry(0.3, 1.35, 0.014),
   bezelH: new THREE.BoxGeometry(0.36, 0.014, 0.012),
   bezelV: new THREE.BoxGeometry(0.014, 0.5, 0.012),
@@ -135,52 +134,7 @@ const geo = {
   barrel: new THREE.CylinderGeometry(0.016, 0.018, 0.12, 10),
   grip: new THREE.CylinderGeometry(0.015, 0.017, 0.09, 10),
   nose: new THREE.CylinderGeometry(0.012, 0.015, 0.03, 8),
-  badge: new THREE.CircleGeometry(0.13, 24),
-  badgeDisc: new THREE.CylinderGeometry(0.148, 0.148, 0.012, 24),
 };
-
-const badgeCache = new Map<number, THREE.MeshBasicMaterial>();
-const digitTex = new Map<number, THREE.CanvasTexture>();
-
-function digitTexture(n: number): THREE.CanvasTexture {
-  const cached = digitTex.get(n);
-  if (cached) return cached;
-  const c = document.createElement("canvas");
-  c.width = 256;
-  c.height = 256;
-  const ctx = c.getContext("2d")!;
-  ctx.clearRect(0, 0, 256, 256);
-  ctx.fillStyle = "#F5F0E8";
-  ctx.beginPath();
-  ctx.arc(128, 128, 118, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.lineWidth = 12;
-  ctx.strokeStyle = "#1E1E24";
-  ctx.stroke();
-  ctx.fillStyle = "#1E1E24";
-  ctx.font = n > 9 ? "900 112px sans-serif" : "900 148px sans-serif";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(String(n), 128, 138);
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = 8;
-  tex.needsUpdate = true;
-  digitTex.set(n, tex);
-  return tex;
-}
-
-function stallBadgeMat(stallId: number, label: number): THREE.MeshBasicMaterial {
-  const cached = badgeCache.get(stallId);
-  if (cached) return cached;
-  const mat = new THREE.MeshBasicMaterial({
-    map: digitTexture(label),
-    toneMapped: false,
-    side: THREE.FrontSide,
-  });
-  badgeCache.set(stallId, mat);
-  return mat;
-}
 
 const cableGeoL = tubeFromPoints(holsterRestPoints(-1), 0.016, 10);
 const cableGeoR = tubeFromPoints(holsterRestPoints(1), 0.016, 10);
@@ -223,7 +177,7 @@ export function addZeusCharger(
   yaw = 0,
   _detail: "full" | "lite" = "full",
   stallId?: number,
-  bayNumber?: number,
+  _bayNumber?: number,
 ): void {
   const g = new THREE.Group();
   g.position.set(x, 0, z);
@@ -285,31 +239,6 @@ export function addZeusCharger(
   const right = addFrontHolster(g, 1);
   if (stallId != null) holstersByStall.set(stallId, [left, right]);
 
-  if (stallId != null) {
-    const label = bayNumber ?? stallId;
-    // Playable bays read from the aisle: the disc sits above the cap and a sedan roof (~1.5 m).
-    const lift = bayNumber != null ? 1.22 : 0.78;
-    const badgeY = 2.9;
-    const badgeZ = -0.14;
-    const stem = new THREE.Mesh(geo.stem, alum);
-    stem.position.set(0, 2.74, badgeZ + 0.02);
-    const disc = new THREE.Mesh(geo.badgeDisc, black);
-    disc.rotation.x = Math.PI / 2;
-    disc.scale.setScalar(lift);
-    disc.position.set(0, badgeY, badgeZ);
-    const badgeMat = stallBadgeMat(stallId, label);
-    const face = new THREE.Mesh(geo.badge, badgeMat);
-    face.scale.setScalar(lift);
-    face.position.set(0, badgeY, badgeZ - 0.014);
-    face.rotation.y = Math.PI;
-    face.userData.kind = "stall-badge";
-    face.userData.stallId = stallId;
-    const back = new THREE.Mesh(geo.badge, badgeMat);
-    back.scale.setScalar(lift);
-    back.position.set(0, badgeY, badgeZ + 0.02);
-    g.add(stem, disc, face, back);
-  }
-
   g.add(base, body, cap, hair, recess, bezelTop, bezelBot, bezelL, bezelR, display, logo);
   root.add(g);
 }
@@ -317,13 +246,9 @@ export function addZeusCharger(
 /** Screen carries idle / amber plug-in / cyan charging. The bay digit stays cream. */
 export function tintStallBadge(stallId: number, read: string): void {
   const screen = screenMats.get(stallId);
-  if (screen) {
-    screen.map = screenForRead(read);
-    screen.needsUpdate = true;
-  }
-  const mat = badgeCache.get(stallId);
-  if (!mat) return;
-  mat.color.setHex(0xffffff);
+  if (!screen) return;
+  screen.map = screenForRead(read);
+  screen.needsUpdate = true;
 }
 
 /** Both waist holsters keep a connector and a rest cable. The car lead is a separate mesh. */

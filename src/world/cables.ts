@@ -18,13 +18,15 @@ export function ccsLeadPoints(inlet: { x: number; y: number; z: number }): THREE
   ];
 }
 
-/** Tight hang from the waist holster. Stays in the front z-band so it does not clip the body. */
+/** Tall hook on the pedestal side. Stays in the front z-band so it does not clip the body. */
 export function holsterRestPoints(side: -1 | 1): THREE.Vector3[] {
+  const x = 0.2 * side;
   return [
-    new THREE.Vector3(0.185 * side, 1.02, -0.245),
-    new THREE.Vector3(0.18 * side, 0.78, -0.275),
-    new THREE.Vector3(0.176 * side, 0.52, -0.26),
-    new THREE.Vector3(0.172 * side, 0.3, -0.235),
+    new THREE.Vector3(x, 1.05, -0.245),
+    new THREE.Vector3(x * 1.25, 1.72, -0.26),
+    new THREE.Vector3(x * 1.55, 2.28, -0.25),
+    new THREE.Vector3(x * 1.15, 2.48, -0.24),
+    new THREE.Vector3(x * 0.72, 2.18, -0.255),
   ];
 }
 
