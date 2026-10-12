@@ -43,7 +43,8 @@ const TRACED_ROWS: RowDef[] = [
 
 /** Tesla Model 3 fit length. Stall X is Zeus + half hull + pedestal + bumper gap. */
 export const CAR_LENGTH = 4.72;
-export const QUEUE_GAP = 1.7;
+/** Bumper gap. Five sedans at 1.7 m ran past the traced drive; 1.28 m keeps every bumper inside. */
+export const QUEUE_GAP = 1.28;
 export const ZEUS_HALF_DEPTH = 0.28;
 /**
  * Bumper-to-Zeus face. Wide enough for a pedestrian strip between the island
@@ -173,14 +174,12 @@ function driveZAt(x: number): { south: number; north: number } {
 
 const aisleSpan = driveZAt(AB_AISLE_X);
 const halfCar = CAR_LENGTH * 0.5;
-const fitRoom = aisleSpan.north - aisleSpan.south - CAR_LENGTH;
-const overhang = Math.max(0, (4 * queueGap - fitRoom) / 2);
-const southCenter = aisleSpan.south + halfCar - overhang;
+const curbInset = 0.22;
+const southCenter = aisleSpan.south + halfCar + curbInset;
 
 /**
  * Nose-to-tail on the A–B aisle, inside the traced drive. Cars face +Z.
- * Index 0 is the north head. The aisle is shorter than five sedans plus gaps,
- * so each end may cross the curb by `overhang` meters rather than stacking on the desert.
+ * Index 0 is the north head. Pitch is CAR_LENGTH + QUEUE_GAP so bumpers stay off the curb.
  */
 export const WAIT_SLOTS = [0, 1, 2, 3, 4].map((i) => ({
   x: AB_AISLE_X,

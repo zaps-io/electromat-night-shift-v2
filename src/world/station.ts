@@ -205,16 +205,18 @@ function roundedRectShape(w: number, d: number, r: number): THREE.Shape {
 const canopyBrush = brushMetal();
 const canopySteel = new THREE.MeshPhysicalMaterial({
   name: "CanopySteel",
-  color: 0xb4bdc6,
+  color: 0xf4f6f8,
   map: canopyBrush.map,
   roughnessMap: canopyBrush.rough,
   normalMap: canopyBrush.normal,
-  normalScale: new THREE.Vector2(0.35, 0.8),
-  metalness: 0.88,
-  roughness: 0.28,
-  clearcoat: 0.22,
-  clearcoatRoughness: 0.35,
-  envMapIntensity: 0.72,
+  normalScale: new THREE.Vector2(0.25, 0.55),
+  metalness: 0.42,
+  roughness: 0.46,
+  clearcoat: 0.06,
+  clearcoatRoughness: 0.55,
+  envMapIntensity: 0.16,
+  emissive: 0xe7ebf0,
+  emissiveIntensity: 0.22,
 });
 const canopyFascia = new THREE.MeshStandardMaterial({
   color: 0x23282e,
