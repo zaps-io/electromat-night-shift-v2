@@ -2,6 +2,9 @@
 
 interface ElectromatApi {
   startNight: () => void;
+  showLineup: () => void;
+  hideLineup: () => void;
+  parkPreview: (name: string, kind: string, x: number, z: number, yaw: number) => boolean;
   act: () => void;
   place: (x: number, z: number, yaw?: number, pitch?: number, eyeY?: number, fov?: number) => void;
   lookAt: (x: number, y: number, z: number) => void;

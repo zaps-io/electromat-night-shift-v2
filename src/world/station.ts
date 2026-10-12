@@ -1,13 +1,25 @@
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { C } from "../brand";
+import { addMcsLane, MCS_LANE } from "./mcs";
+import {
+  DRIVE_OUTER,
+  ISLAND,
+  ROW_EAST_Z,
+  ISLAND_TIP,
+  NORTH_PLANTER,
+  SITE_BOUNDARY,
+  SOUTH_PLANTER,
+  TRASH_FOOTPRINT,
+  WEST_STRIPE_PY,
+  planXZ,
+  xzShape,
+} from "../site/ryanPlan";
 import {
   BAY_SIZE,
   CANOPIES,
-  LOT_RAILS,
   PARK_STOP,
   PAY_POINTS,
-  PAVILION,
   STALLS,
   VISITOR_EAST,
   VISITOR_WEST,
@@ -20,7 +32,7 @@ import {
   westVoidWalls,
 } from "./layout";
 import { addPavilion } from "./pavilion";
-import { brushMetal, creamPanels, curbColor, curbRough, gravel } from "./tex";
+import { brushMetal, curbColor, curbRough, gravel } from "./tex";
 import { addRev6LotDressing, rev6AsphaltMaterial } from "./rev6art";
 import { applyBakedLotLight } from "./lightmaps";
 import { makePayIcon, makeWaveGuide, makeWaveIcon } from "./icons";
@@ -84,14 +96,45 @@ function box(
   return mesh;
 }
 
+function layFlat(
+  root: THREE.Group,
+  shape: THREE.Shape,
+  material: THREE.Material,
+  y: number,
+  walk = false,
+): THREE.Mesh {
+  const mesh = new THREE.Mesh(new THREE.ShapeGeometry(shape), material);
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.position.y = y;
+  mesh.receiveShadow = true;
+  if (walk) mesh.userData.walkGround = true;
+  root.add(mesh);
+  return mesh;
+}
+
+/** Asphalt only inside the traced drive. Desert fills the site; concrete fills the island. */
 function makeAsphalt(root: THREE.Group): THREE.Mesh {
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(130, 130), rev6AsphaltMaterial());
-  ground.rotation.x = -Math.PI / 2;
-  ground.position.y = 0.004;
-  ground.receiveShadow = true;
-  ground.userData.walkGround = true;
-  root.add(ground);
-  return ground;
+  const desert = new THREE.MeshStandardMaterial({ color: 0x8d7356, roughness: 0.97, metalness: 0.02 });
+  const concrete = new THREE.MeshStandardMaterial({ color: 0xd9d4cc, roughness: 0.72, metalness: 0.04 });
+  const fillMat = new THREE.MeshStandardMaterial({ color: 0x4a3b30, roughness: 0.98, metalness: 0.02 });
+  const fill = new THREE.Mesh(new THREE.PlaneGeometry(180, 170), fillMat);
+  fill.rotation.x = -Math.PI / 2;
+  fill.position.y = -0.012;
+  fill.receiveShadow = true;
+  root.add(fill);
+  addNorthContext(root);
+  layFlat(root, xzShape(SITE_BOUNDARY), desert, 0, true);
+  // The traced plan has no semi bay. This apron is the east-edge deviation under the MCS pad.
+  const mcsW = MCS_LANE.xmax - 27.4;
+  const mcsD = MCS_LANE.zmax - MCS_LANE.zmin + 3.2;
+  const mcsPad = new THREE.Mesh(new THREE.BoxGeometry(mcsW, 0.02, mcsD), desert);
+  mcsPad.position.set(27.4 + mcsW * 0.5, 0.006, (MCS_LANE.zmin + MCS_LANE.zmax) * 0.5);
+  mcsPad.receiveShadow = true;
+  mcsPad.userData.walkGround = true;
+  root.add(mcsPad);
+  const drive = layFlat(root, xzShape(DRIVE_OUTER, [ISLAND]), rev6AsphaltMaterial(), 0.02, true);
+  layFlat(root, xzShape(ISLAND), concrete, 0.032, true);
+  return drive;
 }
 
 export function addLotMirror(root: THREE.Group, _renderer: THREE.WebGLRenderer): void {
@@ -160,27 +203,31 @@ function roundedRectShape(w: number, d: number, r: number): THREE.Shape {
 }
 
 const canopyBrush = brushMetal();
-const canopyPanels = creamPanels();
-const canopyCream = new THREE.MeshPhysicalMaterial({
-  name: "CanopyCream",
-  color: C.cream,
-  emissive: C.cream,
-  emissiveIntensity: 0.06,
-  map: canopyPanels,
-  metalness: 0.08,
-  roughness: 0.48,
-  clearcoat: 0.06,
-  clearcoatRoughness: 0.4,
-  envMapIntensity: 0.28,
+const canopySteel = new THREE.MeshPhysicalMaterial({
+  name: "CanopySteel",
+  color: 0xb4bdc6,
+  map: canopyBrush.map,
+  roughnessMap: canopyBrush.rough,
+  normalMap: canopyBrush.normal,
+  normalScale: new THREE.Vector2(0.35, 0.8),
+  metalness: 0.88,
+  roughness: 0.28,
+  clearcoat: 0.22,
+  clearcoatRoughness: 0.35,
+  envMapIntensity: 0.72,
 });
 const canopyFascia = new THREE.MeshStandardMaterial({
-  color: C.cream,
-  emissive: C.cream,
-  emissiveIntensity: 0.12,
-  map: canopyPanels,
-  roughness: 0.46,
-  metalness: 0.06,
-  envMapIntensity: 0.22,
+  color: 0x23282e,
+  roughness: 0.38,
+  metalness: 0.74,
+  envMapIntensity: 0.45,
+});
+const canopySoffit = new THREE.MeshStandardMaterial({
+  color: 0xfff6ea,
+  emissive: 0xfff1dc,
+  emissiveIntensity: 1.45,
+  roughness: 0.42,
+  metalness: 0.02,
 });
 const canopyColumn = new THREE.MeshPhysicalMaterial({
   color: 0xf2f4f6,
@@ -206,11 +253,11 @@ const FASCIA_H = 1.05;
 
 const bayStripGeo = new THREE.BoxGeometry(1, 0.04, 0.1);
 const bayStripMat = new THREE.MeshStandardMaterial({
-  color: 0xfff4e4,
-  emissive: 0xffc898,
-  emissiveIntensity: 0.72,
-  roughness: 0.38,
-  metalness: 0.02,
+  color: 0xfff8f0,
+  emissive: 0xfff3e2,
+  emissiveIntensity: 1.35,
+  roughness: 0.32,
+  metalness: 0.04,
 });
 
 function warmPoolTexture(): THREE.CanvasTexture {
@@ -242,8 +289,8 @@ const warmPoolMat = new THREE.MeshBasicMaterial({
 
 function addCanopyAt(root: THREE.Group, canopy: Canopy): void {
   const { x: cx, z: cz, w, d, y, face, zeusX } = canopy;
-  // Capsule ends: radius is almost half the short side, so the row finishes in a round nose.
-  const endR = Math.min(w * 0.5 - 0.12, d * 0.46);
+  // Straight linear roof. A large end radius turns a short row into a saucer.
+  const endR = 0.38;
   const topGeo = new THREE.ExtrudeGeometry(roundedRectShape(w, d, endR), {
     depth: 0.16,
     bevelEnabled: true,
@@ -253,63 +300,29 @@ function addCanopyAt(root: THREE.Group, canopy: Canopy): void {
     curveSegments: 16,
   });
   topGeo.rotateX(-Math.PI / 2);
-  const top = new THREE.Mesh(topGeo, canopyCream);
+  const top = new THREE.Mesh(topGeo, canopySteel);
   top.userData.canopyTop = true;
   top.position.set(cx, y, cz);
   shellBox(cx, cz, w, d, y);
   top.castShadow = true;
   top.receiveShadow = true;
   root.add(top);
-
-  const soffitWell = mat(0xe7e0d2, {
-    roughness: 0.58,
-    metalness: 0.04,
-    envMapIntensity: 0.16,
-    emissive: 0xe7e0d2,
-    emissiveIntensity: 0.08,
-  });
-  const underGeo = new THREE.ExtrudeGeometry(roundedRectShape(w - 0.55, d - 0.55, Math.max(0.4, endR - 0.28)), {
-    depth: 0.05,
-    bevelEnabled: false,
-    curveSegments: 14,
-  });
-  underGeo.rotateX(-Math.PI / 2);
-  const soffit = new THREE.Mesh(underGeo, soffitWell);
+  const soffit = new THREE.Mesh(
+    new THREE.BoxGeometry(Math.max(0.6, w - 0.36), 0.025, Math.max(0.8, d - 0.55)),
+    canopySoffit,
+  );
   soffit.position.set(cx, y - 0.02, cz);
-  soffit.receiveShadow = true;
+  soffit.userData.noBake = true;
   root.add(soffit);
 
   const fasciaY = y - 0.03 - FASCIA_H * 0.5;
-  // The short ends are curves. A square fascia board there would square the shell back off.
-  const flatEnd = w - endR * 2;
-  if (flatEnd > 2.6) {
-    const fasciaZ = cz - d * 0.5 - 0.06;
-    const fasciaW = Math.min(flatEnd - 0.3, Math.max(2.2, w - 2.5));
-    const fascia = new THREE.Mesh(new THREE.BoxGeometry(fasciaW, FASCIA_H, 0.1), canopyFascia);
-    fascia.position.set(cx, fasciaY, fasciaZ);
-    fascia.castShadow = true;
-    fascia.userData.canopyFascia = true;
-    fascia.userData.fasciaSign = {
-      x: cx,
-      y: fasciaY,
-      z: fasciaZ - 0.1,
-      yaw: Math.PI,
-      maxW: fasciaW * 0.86,
-      maxH: FASCIA_H * 0.8,
-    };
-    root.add(fascia);
-    const trim = new THREE.Mesh(new THREE.BoxGeometry(fasciaW - 0.12, 0.016, 0.04), canopyTrim);
-    trim.position.set(cx, fasciaY - FASCIA_H * 0.5 - 0.01, fasciaZ - 0.04);
-    root.add(trim);
-  }
+  // No end board. A square panel on the round nose reads as a blank sign from the drive.
   const aisleX = cx + face * (w * 0.5 + 0.05);
   const flatSide = Math.max(1.4, d - endR * 2 - 0.5);
-  const aisleD = Math.min(d - 2.4, 6.2, flatSide);
-  const aisleFascia = new THREE.Mesh(new THREE.BoxGeometry(0.1, FASCIA_H, aisleD), canopyFascia);
-  aisleFascia.position.set(aisleX, fasciaY, cz);
-  aisleFascia.castShadow = true;
-  aisleFascia.userData.canopyFascia = true;
-  aisleFascia.userData.fasciaSign = {
+  const aisleD = Math.min(3.4, flatSide);
+  const signAnchor = new THREE.Object3D();
+  signAnchor.position.set(aisleX, fasciaY, cz);
+  signAnchor.userData.fasciaSign = {
     x: aisleX + face * 0.1,
     y: fasciaY,
     z: cz,
@@ -317,15 +330,23 @@ function addCanopyAt(root: THREE.Group, canopy: Canopy): void {
     maxW: aisleD * 0.86,
     maxH: FASCIA_H * 0.8,
   };
-  root.add(aisleFascia);
-  const aisleTrim = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.016, Math.max(1.2, aisleD - 0.2)), canopyTrim);
-  aisleTrim.position.set(aisleX + face * 0.06, fasciaY - FASCIA_H * 0.5 - 0.01, cz);
-  root.add(aisleTrim);
+  root.add(signAnchor);
+  // East-facing rows show this board's blank back to the west drive. Letters stay; the slab does not.
+  if (face < 0) {
+    const aisleFascia = new THREE.Mesh(new THREE.BoxGeometry(0.1, FASCIA_H, aisleD), canopyFascia);
+    aisleFascia.position.set(aisleX, fasciaY, cz);
+    aisleFascia.castShadow = true;
+    aisleFascia.userData.canopyFascia = true;
+    root.add(aisleFascia);
+    const aisleTrim = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.016, Math.max(1.2, aisleD - 0.2)), canopyTrim);
+    aisleTrim.position.set(aisleX + face * 0.06, fasciaY - FASCIA_H * 0.5 - 0.01, cz);
+    root.add(aisleTrim);
+  }
   for (const [ox, oz] of [
     [-0.22, -0.16],
     [0.2, 0.18],
   ] as const) {
-    const pool = new THREE.PointLight(0xffc898, 1.7, 10.5, 2);
+    const pool = new THREE.PointLight(0xfff4e4, 2.4, 12, 2);
     pool.position.set(cx + ox * w, y - 0.7, cz + oz * d);
     pool.castShadow = false;
     root.add(pool);
@@ -612,46 +633,7 @@ function addKiosks(root: THREE.Group): { kiosks: THREE.Group[]; alerts: THREE.Sp
 }
 
 function addLotRails(root: THREE.Group): void {
-  const rail = mat(0xe8e2d4, { roughness: 0.62, metalness: 0.04 });
-  const { xmin, xmax, zmin, zmax } = LOT_RAILS;
-  const y = 0.16;
-  const t = 0.18;
-  const hx = (xmax - xmin) * 0.5;
-  const hz = (zmax - zmin) * 0.5;
-  const cx = (xmin + xmax) * 0.5;
-  const cz = (zmin + zmax) * 0.5;
-  root.add(box(hx * 2 + t, 0.28, t, rail, cx, y, zmin));
-  root.add(box(hx * 2 + t, 0.28, t, rail, cx, y, zmax));
-  const pavSouth = PAVILION.z - PAVILION.d * 0.5 - 0.15;
-  const pavNorth = PAVILION.z + PAVILION.d * 0.5 + 0.15;
-  root.add(box(t, 0.28, pavSouth - zmin, rail, xmin, y, (zmin + pavSouth) * 0.5));
-  root.add(box(t, 0.28, zmax - pavNorth, rail, xmin, y, (pavNorth + zmax) * 0.5));
-  root.add(box(t, 0.28, hz * 2, rail, xmax, y, cz));
-}
-
-function addPalm(root: THREE.Group, x: number, z: number, h = 5.2): void {
-  const trunk = mat(0x1c1812, { roughness: 0.92 });
-  const frond = mat(0x1a2414, { roughness: 0.86 });
-  const bole = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.1, h, 8), trunk);
-  bole.position.set(x, h * 0.5, z);
-  bole.castShadow = true;
-  bole.raycast = () => {};
-  root.add(bole);
-  const crown = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 6), frond);
-  crown.position.set(x, h * 0.94, z);
-  crown.raycast = () => {};
-  root.add(crown);
-  for (let i = 0; i < 6; i++) {
-    const leaf = new THREE.Mesh(new THREE.ConeGeometry(0.12, 1.05, 5), frond);
-    const a = (i / 6) * Math.PI * 2;
-    leaf.position.set(x + Math.cos(a) * 0.16, h * 0.78, z + Math.sin(a) * 0.16);
-    leaf.rotation.order = "YXZ";
-    leaf.rotation.y = a;
-    leaf.rotation.z = 0.95;
-    leaf.castShadow = false;
-    leaf.raycast = () => {};
-    root.add(leaf);
-  }
+  addPolyCurb(root, SITE_BOUNDARY, 0.02, 0.22, 0.16);
 }
 
 function addAgave(root: THREE.Group, x: number, z: number, scale = 1): void {
@@ -674,11 +656,23 @@ function addAgave(root: THREE.Group, x: number, z: number, scale = 1): void {
   root.add(pebble);
 }
 
-function gravelMap(): THREE.CanvasTexture {
-  return gravel();
+function pointInPoly(poly: readonly (readonly [number, number])[], x: number, z: number): boolean {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, zi] = poly[i]!;
+    const [xj, zj] = poly[j]!;
+    if (zi > z !== zj > z && x < ((xj - xi) * (z - zi)) / (zj - zi) + xi) inside = !inside;
+  }
+  return inside;
 }
 
-function addDesertBed(root: THREE.Group, x: number, z: number, w: number, d: number): void {
+function addPolyCurb(
+  root: THREE.Group,
+  points: readonly (readonly [number, number])[],
+  y: number,
+  h: number,
+  t: number,
+): void {
   const curb = mat(0xeee8dc, {
     roughness: 0.7,
     metalness: 0.03,
@@ -686,30 +680,184 @@ function addDesertBed(root: THREE.Group, x: number, z: number, w: number, d: num
     roughnessMap: curbRough(),
     envMapIntensity: 0.12,
   });
-  const bed = new THREE.Mesh(new RoundedBoxGeometry(w, 0.32, d, 2, 0.06), curb);
-  bed.position.set(x, 0.16, z);
-  bed.receiveShadow = true;
-  const gravel = new THREE.Mesh(
-    new THREE.PlaneGeometry(w - 0.28, d - 0.28),
-    new THREE.MeshStandardMaterial({
-      color: 0xe0d0a8,
-      map: gravelMap(),
-      roughness: 0.94,
-      metalness: 0.02,
-    }),
-  );
-  gravel.rotation.x = -Math.PI / 2;
-  gravel.position.set(x, 0.33, z);
-  root.add(bed, gravel);
-  const cols = 3;
-  const rows = 2;
-  for (let i = 0; i < cols; i++) {
-    for (let j = 0; j < rows; j++) {
-      const px = x - w * 0.28 + (i * w * 0.56) / (cols - 1);
-      const pz = z - d * 0.22 + (j * d * 0.44) / (rows - 1);
-      addAgave(root, px, pz, 0.85 + ((i + j) % 3) * 0.12);
+  for (let i = 0; i < points.length; i++) {
+    const [x0, z0] = points[i]!;
+    const [x1, z1] = points[(i + 1) % points.length]!;
+    const dx = x1 - x0;
+    const dz = z1 - z0;
+    const len = Math.hypot(dx, dz);
+    if (len < 0.25) continue;
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(t, h, len), curb);
+    mesh.position.set((x0 + x1) * 0.5, y + h * 0.5, (z0 + z1) * 0.5);
+    mesh.rotation.y = Math.atan2(dx, dz);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    root.add(mesh);
+  }
+}
+
+const dgMat = new THREE.MeshStandardMaterial({
+  color: 0xb08960,
+  map: gravel(),
+  roughness: 0.88,
+  metalness: 0.03,
+  emissive: 0x3a2a18,
+  emissiveIntensity: 0.08,
+});
+
+function addPlanterPoly(root: THREE.Group, points: readonly (readonly [number, number])[]): void {
+  layFlat(root, xzShape(points), dgMat, 0.2);
+  addPolyCurb(root, points, 0.04, 0.22, 0.14);
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minZ = Infinity;
+  let maxZ = -Infinity;
+  for (const [x, z] of points) {
+    minX = Math.min(minX, x);
+    maxX = Math.max(maxX, x);
+    minZ = Math.min(minZ, z);
+    maxZ = Math.max(maxZ, z);
+  }
+  const step = 2.3;
+  let n = 0;
+  for (let x = minX + 0.7; x < maxX - 0.4; x += step) {
+    for (let z = minZ + 0.55; z < maxZ - 0.4; z += step * 0.86) {
+      const px = x + ((n * 3) % 5) * 0.07;
+      const pz = z + ((n * 5) % 4) * 0.06;
+      if (!pointInPoly(points, px, pz)) continue;
+      addAgave(root, px, pz, 0.76 + (n % 3) * 0.1);
+      n += 1;
     }
   }
+}
+
+function addStallStripes(root: THREE.Group): void {
+  const paint = new THREE.MeshStandardMaterial({
+    color: 0xf7f4ee,
+    emissive: 0xf4efe6,
+    emissiveIntensity: 0.42,
+    roughness: 0.42,
+    metalness: 0.02,
+  });
+  const stripe = (x0: number, x1: number, z: number) => {
+    const w = Math.abs(x1 - x0);
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, 0.015, 0.12), paint);
+    mesh.position.set((x0 + x1) * 0.5, 0.05, z);
+    mesh.receiveShadow = true;
+    root.add(mesh);
+  };
+  const xAt = (px: number) => planXZ(px, 0)[0];
+  for (const py of WEST_STRIPE_PY) stripe(xAt(430), xAt(600), planXZ(0, py)[1]);
+  for (const py of WEST_STRIPE_PY.slice(1, 7)) {
+    const z = planXZ(0, py)[1];
+    stripe(xAt(590), xAt(670), z);
+    stripe(xAt(950), xAt(1030), z);
+  }
+  const pitch = 2.74;
+  const eastX0 = xAt(1040) + 0.7;
+  const eastX1 = xAt(1185) + 1.24;
+  const eastLines = [
+    ROW_EAST_Z[0]! + pitch * 0.5,
+    ...ROW_EAST_Z.slice(0, -1).map((z, i) => (z + ROW_EAST_Z[i + 1]!) * 0.5),
+    ROW_EAST_Z[ROW_EAST_Z.length - 1]! - pitch * 0.5,
+  ];
+  for (const z of eastLines) stripe(eastX0, eastX1, z);
+}
+
+/** Street and neighbor roofs north of the planter, on the darker surround. */
+function addNorthContext(root: THREE.Group): void {
+  const road = new THREE.MeshStandardMaterial({ color: 0x3a3834, roughness: 0.95, metalness: 0.04 });
+  const street = new THREE.Mesh(new THREE.PlaneGeometry(96, 10.5), road);
+  street.rotation.x = -Math.PI / 2;
+  street.position.set(-2, 0.006, 33.2);
+  street.receiveShadow = true;
+  root.add(street);
+  const paint = new THREE.MeshBasicMaterial({ color: 0xe7e2d6, toneMapped: false });
+  for (const x of [-28, -8, 12, 32]) {
+    const dash = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 0.16), paint);
+    dash.rotation.x = -Math.PI / 2;
+    dash.position.set(x, 0.02, 33.2);
+    root.add(dash);
+  }
+  const curb = new THREE.MeshStandardMaterial({ color: 0xc8c0b2, roughness: 0.86, metalness: 0.02 });
+  const southCurb = new THREE.Mesh(new THREE.BoxGeometry(96, 0.14, 0.28), curb);
+  southCurb.position.set(-2, 0.08, 27.9);
+  root.add(southCurb);
+  addEastNeighbors(root);
+}
+
+/** East masses from the aerial, image x 1276–1430. North of the MCS pad. */
+function addEastNeighbors(root: THREE.Group): void {
+  const shift = 1.24;
+  const boxOf = (x0: number, y0: number, x1: number, y1: number) => {
+    const [ax, az] = planXZ(x0, y0);
+    const [bx, bz] = planXZ(x1, y1);
+    return {
+      x: (ax + bx) * 0.5 + shift,
+      z: (az + bz) * 0.5,
+      w: Math.abs(bx - ax),
+      d: Math.abs(bz - az),
+    };
+  };
+  const roofs = [
+    { ...boxOf(1276, 258, 1430, 348), h: 5.6, color: 0x8e877c },
+    { ...boxOf(1276, 424, 1430, 588), h: 7.8, color: 0x6a655e },
+  ];
+  for (const b of roofs) {
+    const wall = new THREE.MeshStandardMaterial({ color: b.color, roughness: 0.86, metalness: 0.05 });
+    const roof = new THREE.MeshStandardMaterial({ color: 0xb7b1a6, roughness: 0.72, metalness: 0.08 });
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(b.w, b.h, b.d), wall);
+    mesh.position.set(b.x, b.h * 0.5, b.z);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    const cap = new THREE.Mesh(new THREE.BoxGeometry(b.w + 0.2, 0.18, b.d + 0.2), roof);
+    cap.position.set(b.x, b.h + 0.06, b.z);
+    cap.castShadow = true;
+    root.add(mesh, cap);
+  }
+  const lotMat = new THREE.MeshStandardMaterial({ color: 0x2a2826, roughness: 0.94, metalness: 0.03 });
+  const lots = [boxOf(1284, 352, 1422, 418), boxOf(1284, 598, 1422, 678)];
+  for (const lot of lots) {
+    const pad = new THREE.Mesh(new THREE.PlaneGeometry(lot.w, lot.d), lotMat);
+    pad.rotation.x = -Math.PI / 2;
+    pad.position.set(lot.x, 0.01, lot.z);
+    pad.receiveShadow = true;
+    root.add(pad);
+  }
+  const paints = [0xf7f6f2, 0x1a1c20, 0x4a4e55, 0x152a4a, 0x8c1c22, 0xe4dcd0];
+  const paintMat = paints.map((color) => new THREE.MeshStandardMaterial({ color, roughness: 0.32, metalness: 0.48 }));
+  const glass = new THREE.MeshStandardMaterial({ color: 0x14181e, roughness: 0.18, metalness: 0.62 });
+  let n = 0;
+  for (const lot of lots) {
+    const count = 4;
+    for (let i = 0; i < count; i++) {
+      const z = lot.z - lot.d * 0.5 + (i + 0.5) * (lot.d / count);
+      const car = new THREE.Group();
+      car.position.set(lot.x, 0, z);
+      car.rotation.y = Math.PI / 2;
+      const body = new THREE.Mesh(new THREE.BoxGeometry(1.78, 0.52, 4.35), paintMat[n % paintMat.length]!);
+      body.position.y = 0.62;
+      body.castShadow = true;
+      const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.52, 0.4, 2.05), glass);
+      cabin.position.set(0, 0.42, -0.12);
+      body.add(cabin);
+      car.add(body);
+      root.add(car);
+      n += 1;
+    }
+  }
+}
+
+function addTrashEnclosure(root: THREE.Group): void {
+  const { x, z, w, d } = TRASH_FOOTPRINT;
+  const wall = mat(0xcfc6b4, { roughness: 0.78, metalness: 0.04 });
+  const h = 1.25;
+  const t = 0.12;
+  root.add(box(w, 0.08, d, wall, x, 0.08, z));
+  root.add(box(w, h, t, wall, x, h * 0.5, z + d * 0.5));
+  root.add(box(w, h, t, wall, x, h * 0.5, z - d * 0.5));
+  root.add(box(t, h, d, wall, x - w * 0.5, h * 0.5, z));
+  root.add(box(t, h, d, wall, x + w * 0.5, h * 0.5, z));
 }
 
 function pylonBoard(): THREE.CanvasTexture {
@@ -750,8 +898,8 @@ function addMonument(root: THREE.Group): void {
   const precast = mat(0xd4c6ae, { roughness: 0.62, metalness: 0.04, envMapIntensity: 0.18 });
   const alum = mat(C.chrome, { roughness: 0.34, metalness: 0.72, envMapIntensity: 0.5 });
   const cream = mat(C.cream, { roughness: 0.42, metalness: 0.06 });
-  const mx = -9.4;
-  const mz = -13.6;
+  const mx = -2.2;
+  const mz = 10.8;
   const pylon = new THREE.Mesh(new RoundedBoxGeometry(0.42, 3.15, 1.28, 3, 0.1), precast);
   pylon.position.set(mx, 1.62, mz);
   const trim = new THREE.Mesh(new RoundedBoxGeometry(0.08, 3.22, 1.36, 2, 0.04), alum);
@@ -780,19 +928,13 @@ function addVisitorStalls(root: THREE.Group): void {
 }
 
 function addPlanters(root: THREE.Group): void {
-  addDesertBed(root, -37.2, 13.15, 2.8, 2.2);
-  addDesertBed(root, 40.4, -18.5, 2.6, 4.2);
-  addDesertBed(root, 8.5, -42.6, 8.4, 2.2);
+  addPlanterPoly(root, NORTH_PLANTER);
+  addPlanterPoly(root, SOUTH_PLANTER);
+  addPlanterPoly(root, ISLAND_TIP);
+  addStallStripes(root);
+  addTrashEnclosure(root);
   addMonument(root);
   addVisitorStalls(root);
-  for (const [x, z, h] of [
-    [-42.5, 6.2, 6.2],
-    [-42.2, -12.4, 5.6],
-    [44.6, 4.2, 6.0],
-    [44.2, -16.8, 5.4],
-  ] as const) {
-    addPalm(root, x, z, h);
-  }
 }
 
 function addYard(root: THREE.Group): void {
@@ -811,34 +953,34 @@ function addYard(root: THREE.Group): void {
     root.add(side);
   }
   const postMat = mat(0x4a4e52, { metalness: 0.3, roughness: 0.5 });
-  for (let i = 0; i < 8; i++) {
+  const postN = 6;
+  for (let i = 0; i < postN; i++) {
     const post = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.4, 6), postMat);
-    post.position.set(YARD.x - YARD.w * 0.45 + i * 1.25, 0.7, YARD.z - YARD.d * 0.48);
+    const span = YARD.w * 0.78;
+    post.position.set(YARD.x - span * 0.5 + (i * span) / (postN - 1), 0.7, YARD.z - YARD.d * 0.38);
     root.add(post);
   }
   const tx = new THREE.Mesh(new RoundedBoxGeometry(1.15, 1.35, 1.15, 2, 0.04), steel);
-  tx.position.set(YARD.x - 3.4, 0.72, YARD.z + 0.4);
-  const chill = new THREE.Mesh(new RoundedBoxGeometry(1.6, 1.1, 0.9, 2, 0.04), dark);
-  chill.position.set(YARD.x - 1.5, 0.6, YARD.z + 1.3);
+  tx.position.set(YARD.x - YARD.w * 0.28, 0.72, YARD.z + 0.2);
+  const chill = new THREE.Mesh(new RoundedBoxGeometry(1.4, 1.1, 0.8, 2, 0.04), dark);
+  chill.position.set(YARD.x - YARD.w * 0.08, 0.6, YARD.z + YARD.d * 0.22);
   root.add(tx, chill);
   for (let i = 0; i < 3; i++) {
-    const r = new THREE.Mesh(new THREE.BoxGeometry(0.45, 1.2, 0.7), steel);
-    r.position.set(YARD.x - 3.2 + i * 0.55, 0.65, YARD.z - 1.5);
+    const r = new THREE.Mesh(new THREE.BoxGeometry(0.4, 1.05, 0.55), steel);
+    r.position.set(YARD.x - YARD.w * 0.28 + i * 0.48, 0.58, YARD.z - YARD.d * 0.18);
     root.add(r);
   }
+  const essW = Math.min(4.2, YARD.w * 0.42);
   for (let i = 0; i < 2; i++) {
-    const ess = new THREE.Mesh(new RoundedBoxGeometry(6.1, 1.55, 1.45, 2, 0.05), dark);
-    ess.position.set(YARD.x + 1.1, 0.82, YARD.z - 1.3 + i * 2.15);
+    const ess = new THREE.Mesh(new RoundedBoxGeometry(essW, 1.35, 1.15, 2, 0.05), dark);
+    ess.position.set(YARD.x + YARD.w * 0.16, 0.72, YARD.z - 0.7 + i * 1.7);
     root.add(ess);
   }
-  for (let i = 0; i < 4; i++) {
-    const dc = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.7, 0.55), steel);
-    dc.position.set(YARD.x + 3.6, 0.4, YARD.z - 2.0 + i * 0.85);
+  for (let i = 0; i < 3; i++) {
+    const dc = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.62, 0.48), steel);
+    dc.position.set(YARD.x + YARD.w * 0.34, 0.36, YARD.z - 1.1 + i * 0.7);
     root.add(dc);
   }
-  const dcc = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.95, 0.7), steel);
-  dcc.position.set(YARD.x - 5.6, 0.52, YARD.z - 0.2);
-  root.add(dcc);
 
   const tag = (text: string, w: number, x: number, y: number, z: number) => {
     const c = document.createElement("canvas");
@@ -861,9 +1003,9 @@ function addYard(root: THREE.Group): void {
     mesh.position.set(x, y, z);
     root.add(mesh);
   };
-  tag("TX", 0.9, YARD.x - 3.4, 1.2, YARD.z + 0.4 - 0.64);
-  tag("RECTIFIER", 1.7, YARD.x - 2.65, 1.45, YARD.z - 1.5 - 0.42);
-  tag("ESS", 1.15, YARD.x + 1.1, 1.55, YARD.z - 1.3 - 0.82);
+  tag("TX", 0.9, YARD.x - YARD.w * 0.28, 1.15, YARD.z + 0.2 - 0.64);
+  tag("RECTIFIER", 1.5, YARD.x - YARD.w * 0.22, 1.25, YARD.z - YARD.d * 0.18 - 0.36);
+  tag("ESS", 1.05, YARD.x + YARD.w * 0.16, 1.35, YARD.z - 0.7 - 0.7);
 }
 
 function addStreetlights(root: THREE.Group): void {
@@ -875,14 +1017,14 @@ function addStreetlights(root: THREE.Group): void {
     toneMapped: false,
   });
   for (const [x, z] of [
-    [-32.4, -20.0],
-    [-8.2, -22.4],
-    [14.6, -22.4],
-    [36.4, -20.0],
-    [-32.8, 8.4],
-    [18.4, 12.6],
-    [0.2, 13.4],
-    [38.8, 6.2],
+    [-27.4, 8.2],
+    [-27.2, -6.4],
+    [-12.0, 17.2],
+    [8.4, 17.4],
+    [26.2, 6.4],
+    [26.4, -6.2],
+    [-10.2, -16.6],
+    [12.6, -16.8],
   ]) {
     const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.06, 5.2, 8), poleMat);
     pole.position.set(x, 2.6, z);
@@ -906,6 +1048,7 @@ export function buildStation(): Station {
   addStreetlights(root);
   addYard(root);
   addRev6LotDressing(root);
+  addMcsLane(root);
 
   const bayAnchors: THREE.Object3D[] = [];
   for (const stall of STALLS) {

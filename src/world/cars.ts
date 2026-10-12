@@ -1,17 +1,17 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
+import { chargePortRing, lineupPose, pickWeighted, SEDAN_PAINTS, type SedanPaintId } from "../cars/fleet";
 import {
   assertOpaqueCarMaterials,
   forceOpaque,
   glassMaterial,
   OPAQUE_SEDAN_INLET,
-  OPAQUE_SUV_INLET,
   paintMaterial,
 } from "../cars/opaque";
 import type { GameState, Guest, HullKind, LotRead } from "../game/state";
 import { arrivedGuests, lotRead } from "../game/shift";
-import { BAYS, STALLS, WAIT_ORDER, WAIT_SLOTS } from "./layout";
+import { BAYS, CAR_LENGTH, STALLS, WAIT_ORDER, WAIT_SLOTS } from "./layout";
 import { ccsLeadPoints, tubeFromPoints } from "./cables";
 import { makeAttentionIcon, makeBatteryIcon } from "./icons";
 import { setZeusHolsterPlugged, tintStallBadge } from "./zeus";
@@ -32,8 +32,14 @@ const loader = new GLTFLoader();
 loader.setMeshoptDecoder(MeshoptDecoder);
 const prototypes: Partial<Record<HullKind, THREE.Group>> = {};
 const inletByKind: Record<HullKind, { x: number; y: number; z: number }> = {
+  hatch: { x: 0.84, y: 0.68, z: -1.15 },
   sedan: OPAQUE_SEDAN_INLET,
-  suv: OPAQUE_SUV_INLET,
+  suv: { x: 0.98, y: 0.9, z: -1.25 },
+  pickup: { x: 1.02, y: 0.92, z: -1.85 },
+  van: { x: 1.06, y: 0.95, z: -2.05 },
+  box: { x: 1.2, y: 1.22, z: -2.45 },
+  semi: { x: 1.34, y: 1.42, z: -7.15 },
+  bus: { x: 1.32, y: 1.18, z: -3.2 },
 };
 
 const paintCache = new Map<number, THREE.MeshPhysicalMaterial>();
@@ -43,9 +49,70 @@ function paintFor(color: number): THREE.MeshPhysicalMaterial {
   let mat = paintCache.get(color);
   if (!mat) {
     mat = paintMaterial(color);
+    const swatch = SEDAN_PAINTS.find((row) => row.color === color);
+    if (swatch) dressPaint(mat, swatch.id);
     paintCache.set(color, mat);
   }
   return mat;
+}
+
+/** Clearcoat stays. Silver and the deep colors pick up the dusk env; pearl gets a light sheen. */
+function dressPaint(mat: THREE.MeshPhysicalMaterial, id: SedanPaintId): void {
+  if (id === "white") {
+    mat.metalness = 0.06;
+    mat.roughness = 0.3;
+    mat.clearcoat = 0.84;
+  } else if (id === "black") {
+    mat.metalness = 0.46;
+    mat.roughness = 0.22;
+    mat.clearcoat = 0.96;
+  } else if (id === "silver") {
+    mat.metalness = 0.74;
+    mat.roughness = 0.24;
+    mat.clearcoat = 0.92;
+  } else if (id === "blue") {
+    mat.metalness = 0.5;
+    mat.roughness = 0.18;
+    mat.clearcoat = 0.95;
+  } else if (id === "red") {
+    mat.metalness = 0.4;
+    mat.roughness = 0.18;
+    mat.clearcoat = 0.96;
+  } else {
+    mat.metalness = 0.2;
+    mat.roughness = 0.14;
+    mat.clearcoat = 0.98;
+    mat.iridescence = 0.42;
+    mat.iridescenceIOR = 1.33;
+    mat.sheen = 0.32;
+    mat.sheenRoughness = 0.4;
+    mat.sheenColor = new THREE.Color(0xd5e2f2);
+  }
+}
+
+/** Tire meshes have to sit in the lower half. An upside-down shell fails this. */
+export function assertWheelsLow(root: THREE.Object3D, label = "vehicle"): void {
+  root.updateMatrixWorld(true);
+  const all = new THREE.Box3().setFromObject(root);
+  const tires = new THREE.Box3();
+  let found = false;
+  root.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    const n = labelOf(mesh);
+    if (!n.includes("rubber") && !n.includes("tire")) return;
+    tires.union(new THREE.Box3().setFromObject(mesh));
+    found = true;
+  });
+  if (!found) throw new Error(`${label} has no tire mesh`);
+  const height = Math.max(0.2, all.max.y - all.min.y);
+  const mid = (tires.min.y + tires.max.y) * 0.5;
+  if (mid > all.min.y + height * 0.42) {
+    throw new Error(`${label} tires sit high (mid ${mid.toFixed(2)}, height ${height.toFixed(2)})`);
+  }
+  if (tires.min.y > all.min.y + 0.35) {
+    throw new Error(`${label} tires do not reach the ground`);
+  }
 }
 
 function labelOf(mesh: THREE.Mesh): string {
@@ -276,32 +343,7 @@ function fitFacingNegZ(scene: THREE.Group, length = 4.72): THREE.Group {
 
 
 function addChargePort(root: THREE.Group, inlet: { x: number; y: number; z: number }): void {
-  const port = new THREE.Mesh(
-    new THREE.CircleGeometry(0.055, 16),
-    new THREE.MeshStandardMaterial({
-      name: "ChargePort",
-      color: 0x1e1e24,
-      emissive: 0x1e1e24,
-      emissiveIntensity: 0.15,
-      transparent: false,
-      opacity: 1,
-      depthWrite: true,
-      toneMapped: false,
-    }),
-  );
-  port.position.set(inlet.x, inlet.y, inlet.z);
-  port.rotation.y = Math.PI / 2;
-  root.add(port);
-}
-
-function makeCrossover(sedan: THREE.Group): THREE.Group {
-  const wrap = sedan.clone(true);
-  wrap.scale.set(1.02, 1.12, 1.03);
-  wrap.updateMatrixWorld(true);
-  const box = new THREE.Box3().setFromObject(wrap);
-  wrap.position.y -= box.min.y;
-  wrap.userData.source = `${sedan.userData.source ?? "sedan"}+crossover`;
-  return wrap;
+  root.add(chargePortRing(inlet, 0.055));
 }
 
 async function loadSedan(): Promise<THREE.Group> {
@@ -325,28 +367,236 @@ async function loadSedan(): Promise<THREE.Group> {
   });
   fitted.userData.meshCount = meshes;
   fitted.userData.paintVerts = paint;
+  fitted.userData.halfL = 2.36;
+  fitted.userData.halfW = 0.94;
+  fitted.userData.roof = 1.48;
+  fitted.userData.inlet = OPAQUE_SEDAN_INLET;
   addChargePort(fitted, OPAQUE_SEDAN_INLET);
   assertOpaqueCarMaterials(fitted);
   if (paint < 1500) throw new Error(`sedan paint hull too thin (${paint} verts)`);
   if (rubber < 200) throw new Error(`sedan tires missing (${rubber} verts)`);
   if (meshes > 16) throw new Error(`sedan split into ${meshes} meshes`);
+  assertWheelsLow(fitted, "sedan");
+  return fitted;
+}
+
+/** Model Y height. The belt stays put so wheel arches and tires stay round. */
+const CROSSOVER_ROOF = 1.62;
+const CROSSOVER_BELT = 0.82;
+const CROSSOVER_RAMP0 = 0.8;
+const CROSSOVER_RAMP1 = 1.02;
+
+function smooth01(t: number): number {
+  const x = Math.min(1, Math.max(0, t));
+  return x * x * (3 - 2 * x);
+}
+
+function worldMaxY(root: THREE.Object3D, match: (name: string) => boolean): number {
+  let y = 0;
+  const box = new THREE.Box3();
+  root.updateMatrixWorld(true);
+  root.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh || !match(labelOf(mesh))) return;
+    box.setFromObject(mesh);
+    if (box.max.y > y) y = box.max.y;
+  });
+  return y;
+}
+
+/** Lift the greenhouse of a fitted Model 3. Wheels, lamps below the belt, and the charge port stay. */
+function liftGreenhouse(root: THREE.Object3D, roof0: number, roof1: number): void {
+  const gain = (roof1 - CROSSOVER_BELT) / Math.max(0.2, roof0 - CROSSOVER_BELT) - 1;
+  const v = new THREE.Vector3();
+  const inv = new THREE.Matrix4();
+  root.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh || !mesh.geometry?.getAttribute("position")) return;
+    const n = labelOf(mesh);
+    if (
+      n.includes("cabin") ||
+      n.includes("decal") ||
+      n.includes("chargeport") ||
+      n.includes("ghost") ||
+      n.includes("rubber")
+    ) {
+      return;
+    }
+    const geo = mesh.geometry.clone();
+    mesh.geometry = geo;
+    const pos = geo.getAttribute("position");
+    mesh.updateWorldMatrix(true, false);
+    inv.copy(mesh.matrixWorld).invert();
+    let moved = false;
+    for (let i = 0; i < pos.count; i++) {
+      v.fromBufferAttribute(pos, i).applyMatrix4(mesh.matrixWorld);
+      if (v.y <= CROSSOVER_RAMP0) continue;
+      const extra = gain * Math.max(0, v.y - CROSSOVER_BELT);
+      const fade = smooth01((v.y - CROSSOVER_RAMP0) / (CROSSOVER_RAMP1 - CROSSOVER_RAMP0));
+      const next = v.y + extra * fade;
+      if (next - v.y < 1e-5) continue;
+      v.y = next;
+      v.applyMatrix4(inv);
+      pos.setXYZ(i, v.x, v.y, v.z);
+      moved = true;
+    }
+    if (!moved) return;
+    pos.needsUpdate = true;
+    geo.computeBoundingBox();
+    geo.computeBoundingSphere();
+  });
+}
+
+function loadCrossover(sedan: THREE.Group): THREE.Group {
+  const body = sedan.clone(true);
+  const roof0 = worldMaxY(body, (n) => n.includes("paint") || n.includes("glass"));
+  liftGreenhouse(body, roof0, CROSSOVER_ROOF);
+  const roof1 = worldMaxY(body, (n) => n.includes("paint") || n.includes("glass"));
+  const rubberTop = worldMaxY(body, (n) => n.includes("rubber"));
+  if (!Number.isFinite(roof1) || roof1 > 2.2 || roof1 < roof0 + 0.12) {
+    throw new Error(`crossover roof did not lift (${roof0.toFixed(2)} -> ${roof1.toFixed(2)})`);
+  }
+  if (rubberTop > 0.75) throw new Error(`crossover stretched a tire (${rubberTop.toFixed(2)})`);
+  let wild = 0;
+  body.updateMatrixWorld(true);
+  const span = new THREE.Box3().setFromObject(body);
+  if (span.max.y > 2.4 || span.min.y < -0.05 || Math.abs(span.max.x) > 1.6 || Math.abs(span.max.z) > 2.7) wild = 1;
+  if (wild) throw new Error(`crossover bounds left the Model 3 footprint (${span.min.toArray()} ${span.max.toArray()})`);
+  body.userData.source = "zaps-ev-sedan.glb";
+  body.userData.roof = Number(roof1.toFixed(3));
+  body.userData.halfL = 2.36;
+  body.userData.halfW = 0.94;
+  body.userData.inlet = { ...OPAQUE_SEDAN_INLET };
+  assertOpaqueCarMaterials(body);
+  return body;
+}
+
+function addAuthoredShadow(root: THREE.Group): void {
+  root.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(root);
+  const size = box.getSize(new THREE.Vector3());
+  const shadow = new THREE.Mesh(
+    new THREE.PlaneGeometry(Math.max(1.2, size.x * 0.82), Math.max(2.2, size.z * 0.88)),
+    shadowMat,
+  );
+  shadow.rotation.x = -Math.PI / 2;
+  shadow.position.set(0, 0.02, (box.min.z + box.max.z) * 0.5);
+  shadow.renderOrder = 1;
+  shadow.name = "Decal";
+  root.add(shadow);
+}
+
+function firstMat(mesh: THREE.Mesh): THREE.MeshStandardMaterial | null {
+  const mat = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
+  return (mat as THREE.MeshStandardMaterial) ?? null;
+}
+
+/** Keep glass, lamps, and tires separate. Stainless stays stainless. Paint can take a guest color. */
+function dressImported(root: THREE.Object3D): void {
+  root.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    const n = labelOf(mesh);
+    const src = firstMat(mesh);
+    if (n.includes("glass")) {
+      mesh.material = sharedGlass;
+      return;
+    }
+    if (n.includes("rubber") || n.includes("tire")) {
+      const mat = rubberMat.clone();
+      if (src?.normalMap) mat.normalMap = src.normalMap;
+      mesh.material = mat;
+      return;
+    }
+    if (n.includes("tail")) {
+      mesh.material = tailMat;
+      return;
+    }
+    if (n.includes("lamp") || n.includes("light") || n.includes("head")) {
+      const mat = lampMat.clone();
+      if (src?.emissiveMap) {
+        src.emissiveMap.colorSpace = THREE.SRGBColorSpace;
+        mat.emissiveMap = src.emissiveMap;
+      }
+      mesh.material = mat;
+      return;
+    }
+    if (n.includes("chrome") || n.includes("disk") || n.includes("hub")) {
+      mesh.material = chromeMat;
+      return;
+    }
+    if (n.includes("metal")) {
+      mesh.material = new THREE.MeshPhysicalMaterial({
+        name: "Metal",
+        color: 0xd5d8dc,
+        metalness: 0.72,
+        roughness: 0.28,
+        clearcoat: 0.62,
+        clearcoatRoughness: 0.18,
+        envMapIntensity: 1.1,
+        transparent: false,
+        opacity: 1,
+        depthWrite: true,
+        transmission: 0,
+      });
+      return;
+    }
+    if (n.includes("paint")) {
+      mesh.material = paintFor(0xf7f6f2);
+      mesh.userData.paint = true;
+      return;
+    }
+    mesh.material = trimMat;
+  });
+}
+
+async function loadNamedVehicle(
+  file: string,
+  length: number,
+  inletFor: (size: THREE.Vector3) => { x: number; y: number; z: number },
+): Promise<THREE.Group> {
+  const gltf = await loader.loadAsync(`${import.meta.env.BASE_URL}cars/${file}`);
+  const fitted = fitFacingNegZ(gltf.scene, length);
+  dressImported(fitted);
+  fitted.updateMatrixWorld(true);
+  const size = new THREE.Box3().setFromObject(fitted).getSize(new THREE.Vector3());
+  addAuthoredShadow(fitted);
+  const inlet = inletFor(size);
+  fitted.userData.source = file;
+  fitted.userData.halfL = Number((size.z * 0.5).toFixed(3));
+  fitted.userData.halfW = Number((size.x * 0.5).toFixed(3));
+  fitted.userData.roof = Number(size.y.toFixed(3));
+  fitted.userData.inlet = inlet;
+  addChargePort(fitted, inlet);
+  assertOpaqueCarMaterials(fitted);
+  assertWheelsLow(fitted, file);
   return fitted;
 }
 
 export async function loadCarPrototypes(): Promise<void> {
-  const sedan = await loadSedan();
-  prototypes.sedan = sedan;
-  prototypes.suv = makeCrossover(sedan);
-  inletByKind.sedan = OPAQUE_SEDAN_INLET;
-  inletByKind.suv = OPAQUE_SUV_INLET;
-  assertOpaqueCarMaterials(prototypes.suv);
+  prototypes.sedan = await loadSedan();
+  prototypes.suv = loadCrossover(prototypes.sedan);
+  prototypes.pickup = await loadNamedVehicle("zaps-ev-pickup.glb", 5.7, (size) => ({
+    x: size.x * 0.5 - 0.04,
+    y: 0.84,
+    z: -size.z * 0.28,
+  }));
+  prototypes.semi = await loadNamedVehicle("zaps-ev-semi.glb", 7.3, (size) => ({
+    x: size.x * 0.5 - 0.06,
+    y: 1.35,
+    z: size.z * 0.05,
+  }));
 }
 
 export function parkBackdropCars(root: THREE.Object3D): void {
+  let n = 0;
   root.traverse((o) => {
     if (o.userData.kind !== "street-slot") return;
     const color = (o.userData.paint as number) ?? 0x1e1e24;
-    const hull = makeHull(color, "sedan");
+    const hull = paintedHull(color, pickWeighted(n + 11));
+    n += 1;
     o.add(hull);
   });
 }
@@ -356,26 +606,76 @@ function tintPaint(root: THREE.Object3D, color: number): void {
   root.traverse((o) => {
     const mesh = o as THREE.Mesh;
     if (!mesh.isMesh) return;
-    if (mesh.userData.paint || mesh.name === "Paint") mesh.material = paint;
+    if (mesh.userData.paint) mesh.material = paint;
   });
 }
 
-function makeHull(color: number, hull: HullKind): THREE.Group {
-  const kind = hull === "suv" ? "suv" : "sedan";
-  const src = prototypes[kind] ?? prototypes.sedan!;
+export function paintedHull(color: number, hull: HullKind): THREE.Group {
+  const src = prototypes[hull] ?? prototypes.sedan!;
   const body = src.clone(true);
   tintPaint(body, color);
   return body;
+}
+
+function lineupLabel(kind: string): THREE.Sprite {
+  const c = document.createElement("canvas");
+  c.width = 512;
+  c.height = 128;
+  const ctx = c.getContext("2d")!;
+  ctx.fillStyle = "rgba(30,30,36,0.88)";
+  ctx.fillRect(16, 16, 480, 96);
+  ctx.strokeStyle = "#00D4F5";
+  ctx.lineWidth = 8;
+  ctx.strokeRect(16, 16, 480, 96);
+  ctx.fillStyle = "#F5F0E8";
+  ctx.font = "700 64px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(kind.toUpperCase(), 256, 68);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, toneMapped: false }));
+  sprite.scale.set(2.4, 0.6, 1);
+  sprite.name = "lineup-label";
+  return sprite;
+}
+
+/** Side-by-side debug row. Not part of the night; stills turn it on. */
+export function addFleetLineup(parent: THREE.Object3D): THREE.Group {
+  const row = new THREE.Group();
+  row.name = "fleet-lineup";
+  const lineup: { label: string; kind: HullKind; color: number }[] = SEDAN_PAINTS.map((swatch) => ({
+    label: swatch.label,
+    kind: "sedan" as const,
+    color: swatch.color,
+  }));
+  lineup.forEach((swatch, i) => {
+    const pose = lineupPose(i);
+    const hull = paintedHull(swatch.color, swatch.kind);
+    hull.position.set(pose.x, 0, pose.z);
+    const label = lineupLabel(swatch.label);
+    label.position.set(pose.x, ((hull.userData.roof as number) ?? 1.6) + 0.85, pose.z);
+    row.add(hull, label);
+  });
+  parent.add(row);
+  return row;
 }
 
 const lodFillerRoots: THREE.Group[] = [];
 export let lodFillerBudget = 4;
 
 const FILLER_IDS = [2, 10, 13, 18, 22] as const;
-const FILLER_PAINT = [0xe8e2d4, 0xc8ccd0, 0x1c2434, 0x6b5344, 0x2a3848] as const;
+const FILLER_PAINT = SEDAN_PAINTS.map((swatch) => swatch.color);
 export const LOD_FILLERS = FILLER_IDS.map((id, i) => {
   const stall = STALLS.find((s) => s.id === id)!;
-  return { x: stall.x, z: stall.z, yaw: stall.carYaw, paint: FILLER_PAINT[i]!, waiting: false as const };
+  return {
+    x: stall.x,
+    z: stall.z,
+    yaw: stall.carYaw,
+    paint: FILLER_PAINT[i]!,
+    hull: pickWeighted(id),
+    waiting: false as const,
+  };
 });
 
 export function addLodFillers(scene: THREE.Object3D, count = lodFillerBudget): void {
@@ -387,8 +687,8 @@ export function addLodFillers(scene: THREE.Object3D, count = lodFillerBudget): v
   lodFillerBudget = n;
   for (const spec of LOD_FILLERS.slice(0, n)) {
     const root = new THREE.Group();
-    root.add(makeHull(spec.paint, "sedan"));
-    root.position.set(spec.x, 0, spec.z);
+    root.add(paintedHull(spec.paint, spec.hull));
+    root.position.set(spec.x, 0.02, spec.z);
     root.rotation.y = spec.yaw;
     root.userData.kind = "lod-filler";
     scene.add(root);
@@ -475,9 +775,9 @@ function makeCable(inlet: { x: number; y: number; z: number }): THREE.Mesh {
 }
 
 function finishCar(root: THREE.Group, guest: Guest, inletPos: { x: number; y: number; z: number }): CarView {
-  const kind = guest.hull ?? "sedan";
   root.userData.guestId = guest.id;
   root.userData.kind = "car";
+  const roof = (root.userData.roof as number) ?? 1.5;
 
   const ghost = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false, name: "ghost" });
   const inlet = new THREE.Mesh(new THREE.SphereGeometry(0.42, 10, 8), ghost);
@@ -487,17 +787,17 @@ function finishCar(root: THREE.Group, guest: Guest, inletPos: { x: number; y: nu
   root.add(inlet);
 
   const driver = new THREE.Mesh(new THREE.SphereGeometry(0.28, 8, 6), ghost);
-  driver.position.set(0.2, kind === "suv" ? 1.36 : 1.12, 0.15);
+  driver.position.set(0.15, Math.max(0.9, roof - 0.45), -0.15);
   driver.userData.kind = "driver";
   driver.userData.guestId = guest.id;
   root.add(driver);
 
   const attention = makeAttentionIcon();
-  attention.position.set(0, kind === "suv" ? 2.36 : 2.02, 0);
+  attention.position.set(0, roof + 0.42, 0);
   root.add(attention);
 
   const battery = makeBatteryIcon();
-  battery.position.set(0.1, kind === "suv" ? 2.85 : 2.55, 0.08);
+  battery.position.set(0.1, roof + 0.95, 0.08);
   battery.visible = false;
   root.add(battery);
 
@@ -526,8 +826,13 @@ function finishCar(root: THREE.Group, guest: Guest, inletPos: { x: number; y: nu
 export function spawnCar(guest: Guest): CarView {
   const kind = guest.hull ?? "sedan";
   const root = new THREE.Group();
-  root.add(makeHull(guest.paint, kind));
-  return finishCar(root, guest, inletByKind[kind]);
+  const hull = paintedHull(guest.paint, kind);
+  root.add(hull);
+  root.userData.halfL = hull.userData.halfL ?? 2.36;
+  root.userData.halfW = hull.userData.halfW ?? 0.94;
+  root.userData.roof = hull.userData.roof ?? 1.48;
+  const stored = hull.userData.inlet as { x: number; y: number; z: number } | undefined;
+  return finishCar(root, guest, stored ?? inletByKind[kind]);
 }
 
 const readPrev = new Map<string, LotRead>();
@@ -597,13 +902,16 @@ function stepDeparts(now: number, scene: THREE.Scene): void {
 export function placeGuest(view: CarView, guest: Guest, now: number, state?: GameState): void {
   if (guest.assignedBay != null) {
     const bay = BAYS[guest.assignedBay - 1];
-    view.root.position.set(bay.x, 0, bay.z);
+    const halfL = (view.root.userData.halfL as number) ?? 2.36;
+    const extra = Math.max(0, halfL - CAR_LENGTH * 0.5);
+    const away = Math.sign(bay.x - bay.zeusX) || 1;
+    view.root.position.set(bay.x + away * extra, 0.02, bay.z);
     view.root.rotation.y = bay.carYaw;
   } else {
     const named = WAIT_ORDER.indexOf(guest.id as (typeof WAIT_ORDER)[number]);
     const slot = named >= 0 ? named : 0;
     const wait = WAIT_SLOTS[Math.min(slot, WAIT_SLOTS.length - 1)];
-    view.root.position.set(wait.x, 0, wait.z);
+    view.root.position.set(wait.x, 0.02, wait.z);
     view.root.rotation.y = wait.yaw;
   }
   const read = lotRead(guest);
@@ -618,7 +926,7 @@ export function placeGuest(view: CarView, guest: Guest, now: number, state?: Gam
   if (guest.assignedBay != null) {
     setZeusHolsterPlugged(BAYS[guest.assignedBay - 1]?.id, guest.plugged && !guest.served);
   }
-  view.attention.position.y = (guest.hull === "suv" ? 2.36 : 2.02) + Math.sin(now * 3) * 0.05;
+  view.attention.position.y = ((view.root.userData.roof as number) ?? 1.5) + 0.42 + Math.sin(now * 3) * 0.05;
 }
 
 export function syncCars(map: Map<string, CarView>, scene: THREE.Scene, state: GameState, now: number): void {
@@ -661,10 +969,10 @@ export function syncCars(map: Map<string, CarView>, scene: THREE.Scene, state: G
 /** Hull AABBs. Walker radius adds the near-plane margin on top of these. */
 export function carColliders(map: Map<string, CarView>): THREE.Box3[] {
   const boxes: THREE.Box3[] = [];
-  const halfL = 2.36;
-  const halfW = 0.94;
   for (const view of map.values()) {
     if (!view.root.parent) continue;
+    const halfL = (view.root.userData.halfL as number) ?? 2.36;
+    const halfW = (view.root.userData.halfW as number) ?? 0.94;
     const yaw = view.root.rotation.y;
     const c = Math.abs(Math.cos(yaw));
     const s = Math.abs(Math.sin(yaw));

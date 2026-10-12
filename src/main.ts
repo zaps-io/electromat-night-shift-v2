@@ -59,7 +59,10 @@ import {
   initialQuality,
   type QualityTier,
 } from "./render/pipeline";
-import { addLodFillers, carColliders, hullDebug, loadCarPrototypes, parkBackdropCars, syncCars, trimLodFillers, type CarView } from "./world/cars";
+import type { HullKind } from "./game/state";
+import { addFleetLineup, addLodFillers, carColliders, hullDebug, loadCarPrototypes, paintedHull, parkBackdropCars, syncCars, trimLodFillers, type CarView } from "./world/cars";
+import { parkMcsRigs } from "./world/mcs";
+import { addPedestrians } from "./world/people";
 import {
   BAYS,
   BOARD_SHOT,
@@ -138,10 +141,10 @@ setTextureAnisotropy(renderer.capabilities.getMaxAnisotropy());
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(HORIZON);
-scene.fog = new THREE.Fog(HORIZON, 34, 128);
-scene.add(new THREE.HemisphereLight(0xe7d2bc, 0x4a4036, 0.5));
-const sun = new THREE.DirectionalLight(0xffd2a4, 2.45);
-const fill = new THREE.DirectionalLight(0x9aafc4, 0.22);
+scene.fog = new THREE.Fog(0x241c18, 34, 112);
+scene.add(new THREE.HemisphereLight(0x6e645c, 0x1c1814, 0.26));
+const sun = new THREE.DirectionalLight(0xffb48a, 1.05);
+const fill = new THREE.DirectionalLight(0x4c5c72, 0.1);
 fill.position.set(28, 12, 18);
 scene.add(fill);
 sun.position.set(34, 18, -42);
@@ -151,6 +154,7 @@ scene.add(sun);
 const station = buildStation();
 addLotMirror(station.root, renderer);
 scene.add(station.root);
+const pedestrians = addPedestrians(station.root);
 const skyline = buildSkyline();
 mountSkylineRing(skyline);
 scene.add(skyline);
@@ -706,8 +710,17 @@ function loop(now: number): void {
   resize();
   if (state.phase === "shift") tick(state, (dt * 1000) / MS_PER_GAME_MIN);
   walker.tick(dt, station.colliders.concat(carColliders(cars)));
+  pedestrians.tick(now / 1000);
   tickHand(hand, now / 1000, walker.position.y);
   if (ready) syncCars(cars, scene, state, now / 1000);
+  const fog = scene.fog as THREE.Fog;
+  if (walker.position.y > 40) {
+    fog.near = 160;
+    fog.far = 520;
+  } else {
+    fog.near = 34;
+    fog.far = 112;
+  }
   paintHud();
   pipeline.render();
   fpsFrames += 1;
@@ -992,6 +1005,26 @@ window.__electromat = {
     return state;
   },
   startNight: dropIn,
+  showLineup() {
+    const prev = scene.getObjectByName("fleet-lineup");
+    if (prev) scene.remove(prev);
+    addFleetLineup(scene);
+    return true;
+  },
+  hideLineup() {
+    const prev = scene.getObjectByName("fleet-lineup");
+    if (prev) scene.remove(prev);
+  },
+  parkPreview(name: string, kind: string, x: number, z: number, yaw: number) {
+    const prev = scene.getObjectByName(name);
+    if (prev) scene.remove(prev);
+    const hull = paintedHull(0xf7f6f2, kind as HullKind);
+    hull.name = name;
+    hull.position.set(x, 0, z);
+    hull.rotation.y = yaw;
+    scene.add(hull);
+    return true;
+  },
   act,
   place(x: number, z: number, yaw = 0, pitch = 0, eyeY = 1.64, fov?: number) {
     walker.setFov(fov ?? (eyeY > 3.2 ? WIDE_SHOT.fov : START_SHOT.fov));
@@ -1114,7 +1147,7 @@ window.__electromat = {
     const data = capture(w, h);
     for (const o of hidden) o.visible = true;
     scene.background = prev;
-    scene.fog = new THREE.Fog(HORIZON, 34, 128);
+    scene.fog = new THREE.Fog(0x241c18, 34, 112);
     return data;
   },
 };
@@ -1122,6 +1155,7 @@ window.__electromat = {
 void Promise.all([loadCarPrototypes(), brandingReady, artReady]).then(() => {
   addLodFillers(scene);
   parkBackdropCars(skyline);
+  station.colliders.push(...parkMcsRigs(scene, paintedHull));
   ready = true;
 });
 

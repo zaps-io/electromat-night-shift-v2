@@ -36,7 +36,7 @@ export function createRenderer(canvas: HTMLCanvasElement): THREE.WebGLRenderer {
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.18;
+  renderer.toneMappingExposure = 0.94;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   return renderer;
 }
@@ -184,18 +184,18 @@ export function createPipeline(
     resolutionScale: 0.65,
   });
   const bloom = new BloomEffect({
-    intensity: 0.045,
-    luminanceThreshold: 0.86,
-    luminanceSmoothing: 0.22,
+    intensity: 0.08,
+    luminanceThreshold: 0.72,
+    luminanceSmoothing: 0.2,
     mipmapBlur: true,
-    radius: 0.42,
+    radius: 0.48,
   });
-  const grade = new BrightnessContrastEffect({ brightness: 0.035, contrast: 0.04 });
+  const grade = new BrightnessContrastEffect({ brightness: -0.03, contrast: 0.08 });
   const hue = new HueSaturationEffect({ hue: 0, saturation: -0.06 });
   const vignette = new VignetteEffect({
     eskil: false,
-    offset: 0.28,
-    darkness: 0.42,
+    offset: 0.22,
+    darkness: 0.58,
   });
   const smaa = new SMAAEffect();
   composer.addPass(normalPass);

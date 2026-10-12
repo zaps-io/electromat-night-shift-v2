@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import {
   COMBO_GAP,
   DISRUPT_MIN,
@@ -250,9 +251,11 @@ for (const p of lead.slice(0, -1)) {
 }
 if (Math.abs(lead[1]!.x) > 0.55) throw new Error("CCS hang too wide at the holster");
 for (const side of [-1, 1] as const) {
-  for (const p of holsterRestPoints(side)) {
-    if (p.z > -0.22) throw new Error("holster rest cable clips into the Zeus body");
-    if (p.z < -0.3) throw new Error("holster rest hangs too far out (spaghetti)");
+  const pts = holsterRestPoints(side);
+  if (Math.max(...pts.map((p) => p.y)) < 2.2) throw new Error("Slim Zeus goosenecks must rise above the pedestal");
+  for (const p of pts) {
+    const clear = Math.abs(p.x) > 0.24 || p.y > 1.42 || Math.abs(p.z) > 0.16;
+    if (!clear) throw new Error("holster rest cable clips into the Zeus body");
   }
 }
 
@@ -281,7 +284,7 @@ const rearOf = (id: number) => {
   const sign = Math.sign(stall.x - stall.zeusX) || 1;
   return stall.x + sign * CAR_LENGTH * 0.5;
 };
-const abAisle = Math.abs(rearOf(1) - rearOf(5));
+const abAisle = Math.abs(rearOf(1) - rearOf(8));
 if (abAisle < 4.2) throw new Error(`A-B aisle collapsed to ${abAisle.toFixed(2)}`);
 
 const gap = pavilionDoorGap();
@@ -1631,5 +1634,158 @@ if (/function stallBadgeMat[\s\S]{0,280}DoubleSide/.test(zeusSrc)) {
 }
 const brandSrc = readFileSync(new URL("../src/world/branding.ts", import.meta.url), "utf8");
 if (brandSrc.includes("loungeFront")) throw new Error("south zaps mark must not duplicate over the LOUNGE sign");
+
+const { BAY_WEIGHTS, FLEET_WEIGHTS, SEDAN_PAINTS, buildFleetVehicle, pickWeighted } = await import("../src/cars/fleet.ts");
+const fleetKinds = ["hatch", "suv", "pickup", "van", "box", "bus", "semi"] as const;
+const fleetLengths: number[] = [];
+for (const kind of fleetKinds) {
+  const body = buildFleetVehicle(kind);
+  body.updateMatrixWorld(true);
+  const size = new THREE.Box3().setFromObject(body).getSize(new THREE.Vector3());
+  fleetLengths.push(size.z);
+  let clearcoat = 0;
+  let tails = 0;
+  body.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    if (mesh.name === "Tail") tails += 1;
+    const mat = mesh.material as THREE.MeshPhysicalMaterial;
+    if (mesh.userData.paint) {
+      if ((mat.clearcoat ?? 0) < 0.5) throw new Error(`${kind} paint lost its clearcoat`);
+      if ((mat.transmission ?? 0) > 0.001) throw new Error(`${kind} paint has transmission`);
+      if (mat.transparent) throw new Error(`${kind} paint is transparent`);
+    }
+    if (mesh.name === "Glass" && ((mat.transmission ?? 0) > 0.001 || mat.transparent)) {
+      throw new Error(`${kind} glass must stay opaque`);
+    }
+  });
+  if (!tails) throw new Error(`${kind} is missing tail lamps`);
+  const inlet = body.userData.inlet as { x: number; y: number; z: number };
+  if (inlet.x < 0.7) throw new Error(`${kind} charge port is not on the right side`);
+  if (inlet.z > -0.4) throw new Error(`${kind} charge port is not toward the nose`);
+  let cyan = 0;
+  let cargo = 0;
+  let tinted = 0;
+  body.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    if (mesh.name === "ChargePort") {
+      const color = (mesh.material as THREE.MeshStandardMaterial).color;
+      if (color?.getHex() !== 0x00d4f5) throw new Error(`${kind} charge port is not the cyan ring`);
+      cyan += 1;
+    }
+    if (mesh.name === "Cargo") {
+      if (mesh.userData.paint) throw new Error(`${kind} cargo color must stay locked`);
+      cargo += 1;
+    }
+    if (mesh.userData.paint) tinted += 1;
+  });
+  if (!cyan) throw new Error(`${kind} is missing a charge-port ring`);
+  if (!tinted) throw new Error(`${kind} has no tinted paint`);
+  if ((kind === "box" || kind === "semi") && !cargo) throw new Error(`${kind} needs a locked white body`);
+  if (kind !== "box" && kind !== "semi" && cargo) throw new Error(`${kind} should be a single paint`);
+}
+if (fleetLengths[0]! >= fleetLengths[1]!) throw new Error("hatch should be shorter than the crossover");
+if (fleetLengths[2]! <= fleetLengths[1]!) throw new Error("pickup should be longer than the crossover");
+if (fleetLengths[3]! <= fleetLengths[2]!) throw new Error("van should be longer than the pickup");
+if (fleetLengths[4]! <= fleetLengths[3]!) throw new Error("box truck should be longer than the van");
+if (fleetLengths[5]! <= fleetLengths[4]!) throw new Error("bus should be longer than the box truck");
+if (fleetLengths[5]! > 14) throw new Error("bus should stay a transit length");
+if (fleetLengths[6]! < 18) throw new Error("semi tractor and trailer should read as a long rig");
+if (fleetLengths[6]! > 20.6) throw new Error("semi must fit the MCS pull-through");
+if (new Set(fleetLengths.map((n) => n.toFixed(2))).size !== fleetLengths.length) {
+  throw new Error("fleet silhouettes collapsed to one length");
+}
+if (BAY_WEIGHTS.some((row) => row.kind === "box" || row.kind === "semi" || row.kind === "bus")) {
+  throw new Error("box, semi, and bus must not spawn in a passenger bay");
+}
+const sedanW = BAY_WEIGHTS.find((row) => row.kind === "sedan")?.weight ?? 0;
+const suvW = BAY_WEIGHTS.find((row) => row.kind === "suv")?.weight ?? 0;
+const otherW = BAY_WEIGHTS.filter((row) => row.kind !== "sedan" && row.kind !== "suv").reduce((sum, row) => sum + row.weight, 0);
+if (sedanW + suvW <= otherW) throw new Error("passenger stalls should be mostly sedans and crossovers");
+if (carsSrc.includes("loadKenneyVehicle") || carsSrc.includes("buildFleetVehicle")) {
+  throw new Error("the lot must spawn the Model 3, not Kenney or the box hulls");
+}
+const paintIds = SEDAN_PAINTS.map((row) => row.id).join(",");
+if (paintIds !== "white,black,silver,blue,red,pearl") {
+  throw new Error("Model 3 paint set drifted");
+}
+if (new Set(SEDAN_PAINTS.map((row) => row.color)).size !== SEDAN_PAINTS.length) {
+  throw new Error("paint variants collapsed to one color");
+}
+if (FLEET_WEIGHTS.some((row) => row.kind !== "sedan") || BAY_WEIGHTS.some((row) => row.kind !== "sedan")) {
+  throw new Error("only the Model 3 sedan is in the spawn mix");
+}
+for (let i = 0; i < 30; i++) {
+  const kind = pickWeighted(i);
+  if (kind !== "sedan") throw new Error("passenger mix spawned a non-sedan");
+}
+const mcsSrc = readFileSync(new URL("../src/world/mcs.ts", import.meta.url), "utf8");
+if (mcsSrc.includes('kind: "box"') || mcsSrc.includes("MCS_BUS")) {
+  throw new Error("no box or bus on the MCS lane");
+}
+if (!/MCS_RIGS[^\n]*=\s*\[\s*\{/.test(mcsSrc) || !mcsSrc.includes('"semi"')) {
+  throw new Error("MCS lane should park the tractor only");
+}
+if ((mcsSrc.match(/mcs-dispenser/g) ?? []).length < 1) throw new Error("MCS dispensers missing");
+
+const { NodeIO } = await import("@gltf-transform/core");
+const { EXTMeshoptCompression, KHRMeshQuantization } = await import("@gltf-transform/extensions");
+const { MeshoptDecoder } = await import("meshoptimizer");
+await MeshoptDecoder.ready;
+const wheelIo = new NodeIO()
+  .registerExtensions([EXTMeshoptCompression, KHRMeshQuantization])
+  .registerDependencies({ "meshopt.decoder": MeshoptDecoder });
+for (const file of ["zaps-ev-sedan.glb", "zaps-ev-pickup.glb", "zaps-ev-semi.glb"]) {
+  const doc = await wheelIo.read(fileURLToPath(new URL(`../public/cars/${file}`, import.meta.url)));
+  let minY = Infinity;
+  let maxY = -Infinity;
+  let tireMin = Infinity;
+  let tireMax = -Infinity;
+  let found = false;
+  for (const node of doc.getRoot().listNodes()) {
+    const mesh = node.getMesh();
+    if (!mesh) continue;
+    const matNames = mesh.listPrimitives().map((prim) => prim.getMaterial()?.getName() ?? "").join(" ");
+    const tire = `${node.getName()} ${mesh.getName()} ${matNames}`.toLowerCase();
+    const isTire = tire.includes("rubber") || tire.includes("tire");
+    const m = node.getWorldMatrix();
+    for (const prim of mesh.listPrimitives()) {
+      const acc = prim.getAttribute("POSITION");
+      const arr = acc?.getArray();
+      if (!arr) continue;
+      const quant = !acc.getNormalized()
+        ? 1
+        : acc.getComponentType() === 5120
+          ? 1 / 127
+          : acc.getComponentType() === 5121
+            ? 1 / 255
+            : acc.getComponentType() === 5122
+              ? 1 / 32767
+              : acc.getComponentType() === 5123
+                ? 1 / 65535
+                : 1;
+      for (let i = 0; i < arr.length; i += 3) {
+        const x = arr[i] * quant;
+        const y0 = arr[i + 1] * quant;
+        const z = arr[i + 2] * quant;
+        const y = m[1] * x + m[5] * y0 + m[9] * z + m[13];
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+        if (!isTire) continue;
+        found = true;
+        if (y < tireMin) tireMin = y;
+        if (y > tireMax) tireMax = y;
+      }
+    }
+  }
+  if (!found) throw new Error(`${file} has no tire mesh`);
+  const height = Math.max(0.2, maxY - minY);
+  const mid = (tireMin + tireMax) * 0.5;
+  if (mid > minY + height * 0.42) {
+    throw new Error(`${file} tires sit high (mid ${mid.toFixed(2)}, height ${height.toFixed(2)})`);
+  }
+  if (tireMin > minY + 0.35) throw new Error(`${file} tires do not reach the ground`);
+}
 
 console.log("verify-shift ok");
