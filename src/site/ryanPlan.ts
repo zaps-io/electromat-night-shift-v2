@@ -108,8 +108,8 @@ export const SITE_BOUNDARY = planPoly([
  */
 const NORTH_DRIVE_CURVE = smoothOpen(
   [
-    [450, 340],
-    [600, 372],
+    [402, 340],
+    [560, 358],
     [780, 400],
     [980, 402],
     [1120, 376],
@@ -117,19 +117,39 @@ const NORTH_DRIVE_CURVE = smoothOpen(
   ],
   6,
 );
-const NW_DRIVE_ARC = arcImg(450, 420, 80, Math.PI, Math.PI * 1.5, 10);
+/** Tight fillet at the canopy's northwest tip. The old r=80 bow cut through the roof. */
+const NW_DRIVE_ARC = arcImg(402, 372, 32, Math.PI, Math.PI * 1.5, 8);
 const NE_DRIVE_ARC = arcImg(1180, 420, 70, Math.PI * 1.5, Math.PI * 2, 10);
+/** Southwest fillet. Ends on the west edge x=370 and the south gravel line y=804. */
+const SW_DRIVE_ARC = arcImg(422, 752, 52, Math.PI * 0.5, Math.PI, 8);
+/**
+ * Southeast bow plus the south gravel line. The east side of the U drops
+ * south to about image y 898, then the edge climbs back to y 804 on the west.
+ * Control points sit on the warm-gravel onset in the aerial.
+ */
+const SOUTH_EDGE_PX: [number, number][] = [
+  [1250, 752],
+  [1236, 786],
+  [1192, 824],
+  [1144, 868],
+  [1080, 894],
+  [980, 898],
+  [900, 896],
+  [820, 852],
+  [740, 818],
+  [640, 804],
+  [520, 804],
+  [422, 804],
+];
+const SOUTH_EDGE = smoothOpen(SOUTH_EDGE_PX, 4);
 
-/** Asphalt drive. NW and NE corners are quarter arcs; the island is the hole. */
+/** Asphalt drive. NW is a tight fillet; the SE bow follows the gravel line. */
 const DRIVE_PX: [number, number][] = dedupe([
-  ...arcImg(448, 752, 78, Math.PI * 0.5, Math.PI, 10),
+  ...SW_DRIVE_ARC,
   ...NW_DRIVE_ARC,
   ...NORTH_DRIVE_CURVE,
   ...NE_DRIVE_ARC,
-  ...arcImg(1172, 752, 78, 0, Math.PI * 0.5, 10),
-  [980, 842],
-  [720, 856],
-  [520, 842],
+  ...SOUTH_EDGE,
 ]);
 export const DRIVE_OUTER = planSmooth(DRIVE_PX, true);
 
@@ -192,22 +212,23 @@ export const NORTH_PLANTER = planSmooth(
  * drive under the west canopy's south end. Not a closed ellipse.
  */
 export const SOUTH_PLANTER = planSmooth(
-  [
+  dedupe([
     [220, 748],
     [360, 748],
-    [360, 872],
-    [1248, 864],
+    [360, 804],
+    ...[...SOUTH_EDGE].reverse(),
+    [1268, 780],
     [1260, 946],
     [180, 952],
     [200, 872],
-  ],
+  ]),
   true,
 );
 
 /** Southwest equipment building, the aerial's bottom-left block. */
 export const YARD_PX = { x0: 8, y0: 774, x1: 155, y1: 907 };
-/** Southeast trash / utility box. */
-export const TRASH_PX = { x0: 1188, y0: 858, x1: 1246, y1: 914 };
+/** Southeast trash enclosure, in the gravel just outside the SE bow. */
+export const TRASH_PX = { x0: 1204, y0: 832, x1: 1248, y1: 878 };
 
 function rect(x0: number, y0: number, x1: number, y1: number) {
   const [ax, az] = planXZ(x0, y0);
@@ -221,7 +242,17 @@ function rect(x0: number, y0: number, x1: number, y1: number) {
 }
 
 export const YARD_FOOTPRINT = rect(YARD_PX.x0, YARD_PX.y0, YARD_PX.x1, YARD_PX.y1);
-export const TRASH_FOOTPRINT = rect(TRASH_PX.x0, TRASH_PX.y0, TRASH_PX.x1, TRASH_PX.y1);
+/** Same east shift as the drive, so the enclosure stays in the gravel beside the bow. */
+export const TRASH_FOOTPRINT = (() => {
+  const [ax, az] = planPoint(TRASH_PX.x0, TRASH_PX.y0);
+  const [bx, bz] = planPoint(TRASH_PX.x1, TRASH_PX.y1);
+  return {
+    x: (ax + bx) * 0.5,
+    z: (az + bz) * 0.5,
+    w: Math.abs(bx - ax),
+    d: Math.abs(bz - az),
+  };
+})();
 
 /** Canopy roofs traced from the bright bars. face +1: stalls lie on +X. */
 export const TRACED_CANOPIES = [

@@ -205,16 +205,18 @@ function roundedRectShape(w: number, d: number, r: number): THREE.Shape {
 const canopyBrush = brushMetal();
 const canopySteel = new THREE.MeshPhysicalMaterial({
   name: "CanopySteel",
-  color: 0xb4bdc6,
+  color: 0xf4f6f8,
   map: canopyBrush.map,
   roughnessMap: canopyBrush.rough,
   normalMap: canopyBrush.normal,
-  normalScale: new THREE.Vector2(0.35, 0.8),
-  metalness: 0.88,
-  roughness: 0.28,
-  clearcoat: 0.22,
-  clearcoatRoughness: 0.35,
-  envMapIntensity: 0.72,
+  normalScale: new THREE.Vector2(0.25, 0.55),
+  metalness: 0.42,
+  roughness: 0.46,
+  clearcoat: 0.06,
+  clearcoatRoughness: 0.55,
+  envMapIntensity: 0.16,
+  emissive: 0xe7ebf0,
+  emissiveIntensity: 0.22,
 });
 const canopyFascia = new THREE.MeshStandardMaterial({
   color: 0x23282e,
@@ -636,24 +638,44 @@ function addLotRails(root: THREE.Group): void {
   addPolyCurb(root, SITE_BOUNDARY, 0.02, 0.22, 0.16);
 }
 
-function addAgave(root: THREE.Group, x: number, z: number, scale = 1): void {
-  const succulent = mat(0x5a7a38, { roughness: 0.7 });
-  const rock = mat(0x8a8070, { roughness: 0.88 });
-  for (let i = 0; i < 8; i++) {
-    const blade = new THREE.Mesh(new THREE.ConeGeometry(0.045 * scale, 0.55 * scale, 5), succulent);
-    const a = (i / 8) * Math.PI * 2;
-    blade.position.set(x + Math.cos(a) * 0.16 * scale, 0.28 * scale, z + Math.sin(a) * 0.16 * scale);
-    blade.rotation.z = 0.72;
-    blade.rotation.y = a;
-    root.add(blade);
-  }
-  const heart = new THREE.Mesh(new THREE.SphereGeometry(0.1 * scale, 8, 6), succulent);
-  heart.position.set(x, 0.16 * scale, z);
-  root.add(heart);
-  const pebble = new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 5), rock);
-  pebble.position.set(x + 0.28, 0.06, z - 0.12);
-  pebble.scale.set(1.5, 0.5, 1.15);
-  root.add(pebble);
+/** Sparse agaves, one instanced draw. The aerial is gravel with plants every few meters, not a carpet. */
+function addAgaves(root: THREE.Group, spots: readonly { x: number; z: number; s: number }[]): void {
+  if (!spots.length) return;
+  const succulent = mat(0x3f6b34, { roughness: 0.74 });
+  const rock = mat(0x9a8e7c, { roughness: 0.92 });
+  const blades = new THREE.InstancedMesh(new THREE.ConeGeometry(0.055, 0.7, 5), succulent, spots.length * 6);
+  const hearts = new THREE.InstancedMesh(new THREE.SphereGeometry(0.12, 6, 5), succulent, spots.length);
+  const rocks = new THREE.InstancedMesh(new THREE.SphereGeometry(0.09, 5, 4), rock, spots.length);
+  const dummy = new THREE.Object3D();
+  let b = 0;
+  spots.forEach((spot, i) => {
+    dummy.position.set(spot.x, 0.14 * spot.s, spot.z);
+    dummy.rotation.set(0, 0, 0);
+    dummy.scale.setScalar(spot.s);
+    dummy.updateMatrix();
+    hearts.setMatrixAt(i, dummy.matrix);
+    dummy.position.set(spot.x + 0.36 * spot.s, 0.05, spot.z - 0.16 * spot.s);
+    dummy.scale.set(1.5 * spot.s, 0.42 * spot.s, 1.15 * spot.s);
+    dummy.updateMatrix();
+    rocks.setMatrixAt(i, dummy.matrix);
+    for (let k = 0; k < 6; k++) {
+      const a = (k / 6) * Math.PI * 2 + spot.x * 0.2;
+      dummy.position.set(
+        spot.x + Math.cos(a) * 0.2 * spot.s,
+        0.3 * spot.s,
+        spot.z + Math.sin(a) * 0.2 * spot.s,
+      );
+      dummy.scale.setScalar(spot.s * (0.85 + (k % 3) * 0.12));
+      dummy.rotation.set(0, a, 0.78);
+      dummy.updateMatrix();
+      blades.setMatrixAt(b, dummy.matrix);
+      b += 1;
+    }
+  });
+  blades.instanceMatrix.needsUpdate = true;
+  hearts.instanceMatrix.needsUpdate = true;
+  rocks.instanceMatrix.needsUpdate = true;
+  root.add(blades, hearts, rocks);
 }
 
 function pointInPoly(poly: readonly (readonly [number, number])[], x: number, z: number): boolean {
@@ -718,17 +740,21 @@ function addPlanterPoly(root: THREE.Group, points: readonly (readonly [number, n
     minZ = Math.min(minZ, z);
     maxZ = Math.max(maxZ, z);
   }
-  const step = 2.3;
+  const spots: { x: number; z: number; s: number }[] = [];
+  const step = 4.8;
   let n = 0;
-  for (let x = minX + 0.7; x < maxX - 0.4; x += step) {
-    for (let z = minZ + 0.55; z < maxZ - 0.4; z += step * 0.86) {
-      const px = x + ((n * 3) % 5) * 0.07;
-      const pz = z + ((n * 5) % 4) * 0.06;
-      if (!pointInPoly(points, px, pz)) continue;
-      addAgave(root, px, pz, 0.76 + (n % 3) * 0.1);
+  for (let x = minX + 1.1; x < maxX - 0.8; x += step) {
+    for (let z = minZ + 1.2; z < maxZ - 0.8; z += step * 0.92) {
       n += 1;
+      if (n % 3 === 0) continue;
+      const px = x + ((n * 3) % 5) * 0.22;
+      const pz = z + ((n * 5) % 4) * 0.18;
+      if (!pointInPoly(points, px, pz)) continue;
+      if (!pointInPoly(points, px + 0.7, pz) || !pointInPoly(points, px, pz + 0.7)) continue;
+      spots.push({ x: px, z: pz, s: 0.7 + (n % 4) * 0.22 });
     }
   }
+  addAgaves(root, spots);
 }
 
 function addStallStripes(root: THREE.Group): void {
@@ -850,14 +876,23 @@ function addEastNeighbors(root: THREE.Group): void {
 
 function addTrashEnclosure(root: THREE.Group): void {
   const { x, z, w, d } = TRASH_FOOTPRINT;
-  const wall = mat(0xcfc6b4, { roughness: 0.78, metalness: 0.04 });
-  const h = 1.25;
-  const t = 0.12;
-  root.add(box(w, 0.08, d, wall, x, 0.08, z));
-  root.add(box(w, h, t, wall, x, h * 0.5, z + d * 0.5));
-  root.add(box(w, h, t, wall, x, h * 0.5, z - d * 0.5));
-  root.add(box(t, h, d, wall, x - w * 0.5, h * 0.5, z));
-  root.add(box(t, h, d, wall, x + w * 0.5, h * 0.5, z));
+  const block = mat(0xd2c6b2, { roughness: 0.86, metalness: 0.04 });
+  const cap = mat(0xb7ab98, { roughness: 0.7, metalness: 0.08 });
+  const gate = mat(0x3a4046, { roughness: 0.45, metalness: 0.55 });
+  const bin = mat(0x2a2e28, { roughness: 0.8, metalness: 0.12 });
+  const h = 1.35;
+  const t = 0.14;
+  root.add(box(w, 0.08, d, block, x, 0.06, z));
+  root.add(box(w * 0.72, 0.7, d * 0.62, bin, x, 0.42, z));
+  root.add(box(w, h, t, block, x, h * 0.5, z + d * 0.5 - t * 0.5));
+  root.add(box(w, h, t, block, x, h * 0.5, z - d * 0.5 + t * 0.5));
+  root.add(box(t, h, d, block, x + w * 0.5 - t * 0.5, h * 0.5, z));
+  const leaf = d * 0.34;
+  root.add(box(t, h, leaf, block, x - w * 0.5 + t * 0.5, h * 0.5, z + d * 0.5 - leaf * 0.5));
+  root.add(box(t, h, leaf, block, x - w * 0.5 + t * 0.5, h * 0.5, z - d * 0.5 + leaf * 0.5));
+  root.add(box(0.04, h * 0.86, d * 0.28, gate, x - w * 0.5, h * 0.46, z));
+  root.add(box(w + 0.06, 0.08, t + 0.04, cap, x, h + 0.02, z + d * 0.5));
+  root.add(box(w + 0.06, 0.08, t + 0.04, cap, x, h + 0.02, z - d * 0.5));
 }
 
 function pylonBoard(): THREE.CanvasTexture {

@@ -452,14 +452,28 @@ export function facadeEmit(style: FacadeStyle = "warm"): THREE.CanvasTexture {
 
 export function gravel(): THREE.CanvasTexture {
   return canvasTex(256, 256, (ctx, w, h) => {
-    ctx.fillStyle = "#c8b48a";
+    ctx.fillStyle = "#c4b49a";
     ctx.fillRect(0, 0, w, h);
-    for (let i = 0; i < 5200; i++) {
-      const n = 140 + Math.random() * 90;
-      ctx.fillStyle = `rgb(${n},${n - 22},${n - 48})`;
-      ctx.fillRect(Math.random() * w, Math.random() * h, 1 + (i % 3), 1 + (i % 2));
+    for (let i = 0; i < 90; i++) {
+      const n = 168 + Math.random() * 40;
+      ctx.fillStyle = `rgb(${n},${n - 12},${n - 28})`;
+      ctx.fillRect(Math.random() * w, Math.random() * h, 18 + (i % 14), 10 + (i % 8));
     }
-  }, { repeatX: 5, repeatY: 3 });
+    for (let i = 0; i < 240; i++) {
+      const n = 108 + Math.random() * 80;
+      ctx.fillStyle = `rgb(${n},${n - 16},${n - 32})`;
+      const s = 3 + (i % 6);
+      ctx.beginPath();
+      ctx.ellipse(Math.random() * w, Math.random() * h, s, s * 0.7, Math.random() * 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    for (let i = 0; i < 70; i++) {
+      ctx.fillStyle = `rgba(70,62,54,${0.25 + (i % 5) * 0.06})`;
+      ctx.beginPath();
+      ctx.ellipse(Math.random() * w, Math.random() * h, 2 + (i % 3), 1.6, 0.4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }, { repeatX: 2.4, repeatY: 2.4 });
 }
 
 /** Quiet desert plaster. No carnival type, no RGB wash. */
