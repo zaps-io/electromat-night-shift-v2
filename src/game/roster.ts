@@ -10,7 +10,7 @@ const paint = Object.fromEntries(SEDAN_PAINTS.map((row) => [row.id, row.color]))
 export function nightRoster(): Guest[] {
   const base = SHIFT_START;
   return [
-    guest("hale", "Hale", "ZAP-001", "auto", "Deep blue sedan. Front port.", base + 1, 18, paint.blue, 42, "sedan"),
+    guest("hale", "Hale", "ZAP-001", "auto", "Deep blue pickup. Front port.", base + 1, 18, paint.blue, 42, "pickup"),
     guest("ruiz", "Ruiz", "NS-441", "auto", "White sedan. Short queue, front port.", base + 2, 20, paint.white, 38, "sedan"),
     guest("peck", "Peck", "PHX-88", "kiosk", "First visit. Red sedan, then the kiosk.", base + 4, 22, paint.red, 28, "sedan"),
     guest("ng", "Ng", "LOT-17", "kiosk", "Pearl sedan. I'll wait, then pay.", base + 3, 24, paint.pearl, 34, "sedan"),

@@ -13,7 +13,9 @@ The shipped file is `public/cars/zaps-ev-sedan.glb` (interior and the duplicate 
 
 ## Other fleet bodies
 
-The crossover is this same Model 3 with the greenhouse lifted to about 1.62 m. Wheel arches, tires, and the charge port stay on the sedan. Length stays 4.72 m. An original faceted pickup and an aero semi were modeled and left out: beside the Model 3 they still read as low-poly slabs. Kenney meshes are not in the lot. The MCS lane stays empty.
+The crossover is this same Model 3 with the greenhouse lifted to about 1.62 m. Wheel arches, tires, and the charge port stay on the sedan. Length stays 4.72 m.
+
+The pickup (`public/cars/zaps-ev-pickup.glb`) and the Class 8 tractor (`public/cars/zaps-ev-semi.glb`) are original meshes built in Blender for this lot. No third-party truck mesh is included. Sketchfab downloadable CC-BY models could not be fetched (the download API returns 401 without a token). Poly Haven has no vehicles. Grab3D's trucks are stylized, not used. The tractor has no trailer and is parked on the MCS lane. Kenney meshes are not in the lot.
 
 ## Dusk environment
 
