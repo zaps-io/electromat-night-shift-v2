@@ -285,11 +285,9 @@ function addCanopyAt(root: THREE.Group, canopy: Canopy): void {
   const aisleX = cx + face * (w * 0.5 + 0.05);
   const flatSide = Math.max(1.4, d - endR * 2 - 0.5);
   const aisleD = Math.min(3.4, flatSide);
-  const aisleFascia = new THREE.Mesh(new THREE.BoxGeometry(0.1, FASCIA_H, aisleD), canopyFascia);
-  aisleFascia.position.set(aisleX, fasciaY, cz);
-  aisleFascia.castShadow = true;
-  aisleFascia.userData.canopyFascia = true;
-  aisleFascia.userData.fasciaSign = {
+  const signAnchor = new THREE.Object3D();
+  signAnchor.position.set(aisleX, fasciaY, cz);
+  signAnchor.userData.fasciaSign = {
     x: aisleX + face * 0.1,
     y: fasciaY,
     z: cz,
@@ -297,10 +295,18 @@ function addCanopyAt(root: THREE.Group, canopy: Canopy): void {
     maxW: aisleD * 0.86,
     maxH: FASCIA_H * 0.8,
   };
-  root.add(aisleFascia);
-  const aisleTrim = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.016, Math.max(1.2, aisleD - 0.2)), canopyTrim);
-  aisleTrim.position.set(aisleX + face * 0.06, fasciaY - FASCIA_H * 0.5 - 0.01, cz);
-  root.add(aisleTrim);
+  root.add(signAnchor);
+  // East-facing rows show this board's blank back to the west drive. Letters stay; the slab does not.
+  if (face < 0) {
+    const aisleFascia = new THREE.Mesh(new THREE.BoxGeometry(0.1, FASCIA_H, aisleD), canopyFascia);
+    aisleFascia.position.set(aisleX, fasciaY, cz);
+    aisleFascia.castShadow = true;
+    aisleFascia.userData.canopyFascia = true;
+    root.add(aisleFascia);
+    const aisleTrim = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.016, Math.max(1.2, aisleD - 0.2)), canopyTrim);
+    aisleTrim.position.set(aisleX + face * 0.06, fasciaY - FASCIA_H * 0.5 - 0.01, cz);
+    root.add(aisleTrim);
+  }
   for (const [ox, oz] of [
     [-0.22, -0.16],
     [0.2, 0.18],
